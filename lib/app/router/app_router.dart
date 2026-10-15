@@ -10,7 +10,7 @@ GoRouter createAppRouter() {
     routes: [
       GoRoute(
         path: AppRoutes.bootstrap,
-        name: 'bootstrap',
+        name: AppRoutes.rootName,
         builder: (context, state) => const BootstrapScreen(),
       ),
     ],

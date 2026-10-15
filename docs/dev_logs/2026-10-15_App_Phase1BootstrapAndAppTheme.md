@@ -89,3 +89,13 @@ router composition.
 - Add the Phase 2 shared component widget tests.
 - Tester should verify narrow-width rendering, focus/semantics behavior, and
   offline asset loading as feature surfaces are introduced.
+
+### Post-Phase Audit
+
+- Rechecked the Phase 1 contract before the Phase 2 demo.
+- Completed `AppRoutes` with all stable Phase 9 path and route-name constants
+  while keeping future screens unregistered until their implementation
+  phases.
+- Re-ran `flutter analyze`, `flutter test`, `flutter build web`, prohibited
+  Firebase-call scanning, offline asset checks, and protected Android hash
+  comparison successfully.
