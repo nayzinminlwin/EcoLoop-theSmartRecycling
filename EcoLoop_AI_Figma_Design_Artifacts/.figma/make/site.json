@@ -1,0 +1,11 @@
+{
+  "title": "EcoLoop",
+  "description": "AI-powered platform enabling residents to recycle smartly, earn rewards, and allowing admins to monitor bins, verify deposits, and manage collections efficiently.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
