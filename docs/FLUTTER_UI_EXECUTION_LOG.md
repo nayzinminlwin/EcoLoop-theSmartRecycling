@@ -65,3 +65,29 @@
   `test/shared/widgets/shared_components_test.dart`.
 - A hot restart was attempted through DTD; no Flutter app was connected in the
   VS Code DTD instance, so no runtime restart was available for this phase.
+
+## Phase 3 — Shared mock foundation and resident data contracts
+
+**Status:** Completed
+**Date:** 15 October 2026
+
+### Completed
+
+- Added SDK-free async mock infrastructure with fixed demo clock, failure
+  scenarios, fixture loading, transactional in-memory storage, and broadcast
+  update streams.
+- Added Firestore-ready account, wallet, material, deposit, filter, summary,
+  auth projection, and application failure contracts with JSON round-trips.
+- Added canonical profile, wallet, metadata, and activity fixtures. The
+  activity fixture derives twelve verified deposits and 3.2 kg of verified
+  weight, with separate review and rejected records.
+- Added account, wallet, and activity repository seams plus Riverpod providers.
+
+### Verification
+
+- `flutter analyze` passes with no issues.
+- Focused Phase 3 tests pass for mock storage, account models, wallet
+  projections, activity filtering, async failure/retry, empty activity, and
+  fixture integrity.
+- No Firebase SDK initialization, network calls, emulator connections, or
+  protected Android configuration changes were introduced.

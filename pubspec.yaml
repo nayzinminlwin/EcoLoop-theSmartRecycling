@@ -26,6 +26,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icons/
+    - assets/mock/metadata.json
+    - assets/mock/account/
+    - assets/mock/wallet/
+    - assets/mock/activity/
   fonts:
     - family: Inter
       fonts:
