@@ -23,20 +23,16 @@ class MockAccountRepository implements AccountRepository {
   final MockApi _api;
   final MockSeedLoader _loader;
 
+  AuthState _readAuthState() =>
+      const AuthState(uid: 'RES-000842', role: AppRole.user, isSignedIn: true);
+
   @override
-  Future<AuthState> getAuthState() => _api.read(
-    'account.getAuthState',
-    () => const AuthState(
-      uid: 'RES-000842',
-      role: AppRole.user,
-      isSignedIn: true,
-    ),
-  );
+  Future<AuthState> getAuthState() =>
+      _api.read('account.getAuthState', _readAuthState);
 
   @override
   Stream<AuthState> watchAuthState() async* {
-    await Future<void>.delayed(_api.readDelay);
-    yield await getAuthState();
+    yield await _api.read('account.watchAuthState', _readAuthState);
   }
 
   Future<ResidentProfile> _readProfile() async {
@@ -52,8 +48,7 @@ class MockAccountRepository implements AccountRepository {
 
   @override
   Stream<ResidentProfile?> watchProfile() async* {
-    await Future<void>.delayed(_api.readDelay);
-    yield await getProfile();
+    yield await _api.read('account.watchProfile', _readProfile);
     if (_store != null) {
       await for (final json in _store.watchProfile()) {
         yield ResidentProfile.fromJson(json);

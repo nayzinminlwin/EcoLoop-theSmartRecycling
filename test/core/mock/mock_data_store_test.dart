@@ -3,6 +3,13 @@ import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('default clock uses the documented Kuala Lumpur instant', () {
+    expect(
+      AppClock().now.toUtc(),
+      DateTime.parse('2024-05-20T11:00:00+08:00').toUtc(),
+    );
+  });
+
   test('transactions roll back and isolate mutable values', () async {
     final store = MockDataStore(
       profile: {'id': 'RES-1'},
@@ -16,6 +23,18 @@ void main() {
     final copy = store.wallet;
     copy['balance'] = 999;
     expect(store.wallet['balance'], 10);
+
+    final nested = MockDataStore(
+      profile: {},
+      wallet: {
+        'nested': {'balance': 10},
+      },
+      deposits: [],
+    );
+    final nestedCopy = nested.wallet['nested'] as Map<String, Object?>;
+    nestedCopy['balance'] = 999;
+    expect((nested.wallet['nested'] as Map)['balance'], 10);
+    nested.dispose();
 
     await expectLater(
       store.transaction<void>((profile, wallet, deposits) {

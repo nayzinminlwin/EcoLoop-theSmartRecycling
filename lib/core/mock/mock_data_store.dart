@@ -9,9 +9,9 @@ class MockDataStore {
     required Map<String, Object?> wallet,
     required List<Map<String, Object?>> deposits,
     AppClock? clock,
-  }) : _profile = Map<String, Object?>.from(profile),
-       _wallet = Map<String, Object?>.from(wallet),
-       _deposits = deposits.map(Map<String, Object?>.from).toList(),
+  }) : _profile = _copyMap(profile),
+       _wallet = _copyMap(wallet),
+       _deposits = deposits.map(_copyMap).toList(),
        clock = clock ?? AppClock();
 
   final AppClock clock;
@@ -23,30 +23,30 @@ class MockDataStore {
   final _depositChanges =
       StreamController<List<Map<String, Object?>>>.broadcast();
 
-  Map<String, Object?> get profile => Map<String, Object?>.from(_profile);
-  Map<String, Object?> get wallet => Map<String, Object?>.from(_wallet);
+  Map<String, Object?> get profile => _copyMap(_profile);
+  Map<String, Object?> get wallet => _copyMap(_wallet);
   List<Map<String, Object?>> get deposits =>
-      _deposits.map(Map<String, Object?>.from).toList(growable: false);
+      _deposits.map(_copyMap).toList(growable: false);
 
   Stream<Map<String, Object?>> watchProfile() =>
-      _profileChanges.stream.map(Map<String, Object?>.from);
+      _profileChanges.stream.map(_copyMap);
   Stream<Map<String, Object?>> watchWallet() =>
-      _walletChanges.stream.map(Map<String, Object?>.from);
+      _walletChanges.stream.map(_copyMap);
   Stream<List<Map<String, Object?>>> watchDeposits() => _depositChanges.stream
-      .map((items) => items.map(Map<String, Object?>.from).toList());
+      .map((items) => items.map(_copyMap).toList(growable: false));
 
   void updateProfile(Map<String, Object?> value) {
-    _profile = Map<String, Object?>.from(value);
+    _profile = _copyMap(value);
     _profileChanges.add(profile);
   }
 
   void updateWallet(Map<String, Object?> value) {
-    _wallet = Map<String, Object?>.from(value);
+    _wallet = _copyMap(value);
     _walletChanges.add(wallet);
   }
 
   void replaceDeposits(List<Map<String, Object?>> value) {
-    _deposits = value.map(Map<String, Object?>.from).toList();
+    _deposits = value.map(_copyMap).toList();
     _depositChanges.add(deposits);
   }
 
@@ -62,9 +62,9 @@ class MockDataStore {
     final oldWallet = wallet;
     final oldDeposits = deposits;
     try {
-      final workingProfile = Map<String, Object?>.from(_profile);
-      final workingWallet = Map<String, Object?>.from(_wallet);
-      final workingDeposits = _deposits.map(Map<String, Object?>.from).toList();
+      final workingProfile = _copyMap(_profile);
+      final workingWallet = _copyMap(_wallet);
+      final workingDeposits = _deposits.map(_copyMap).toList();
       final result = action(workingProfile, workingWallet, workingDeposits);
       _profile = workingProfile;
       _wallet = workingWallet;
@@ -92,4 +92,19 @@ class MockDataStore {
     messageKey: 'mock.$entity.notFound',
     retryable: false,
   );
+
+  static Map<String, Object?> _copyMap(Map<String, Object?> value) =>
+      value.map((key, item) => MapEntry(key, _copyValue(item)));
+
+  static Object? _copyValue(Object? value) {
+    if (value is Map) {
+      return value.map(
+        (key, item) => MapEntry(key.toString(), _copyValue(item)),
+      );
+    }
+    if (value is List) {
+      return value.map(_copyValue).toList(growable: false);
+    }
+    return value;
+  }
 }

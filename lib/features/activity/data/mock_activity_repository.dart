@@ -60,19 +60,14 @@ class MockActivityRepository implements ActivityRepository {
     return limit == null ? result : result.take(limit).toList();
   }
 
-  @override
-  Future<List<DepositTransaction>> getDeposits({
-    required DepositFilter filter,
-    int? limit,
-  }) => _api.read('activity.getDeposits', () {
+  List<DepositTransaction> _readDeposits(DepositFilter filter, int? limit) {
     if (_api.scenario.scenario == MockScenario.emptyActivity) {
       return <DepositTransaction>[];
     }
     return _filtered(filter, limit);
-  });
+  }
 
-  @override
-  Future<RecyclingSummary> getSummary() => _api.read('activity.getSummary', () {
+  RecyclingSummary _readSummary() {
     if (_api.scenario.scenario == MockScenario.emptyActivity) {
       return const RecyclingSummary(
         verifiedDepositCount: 0,
@@ -91,15 +86,29 @@ class MockActivityRepository implements ActivityRepository {
         (sum, item) => sum + item.weightKg,
       ),
     );
+  }
+
+  @override
+  Future<List<DepositTransaction>> getDeposits({
+    required DepositFilter filter,
+    int? limit,
+  }) => _api.read('activity.getDeposits', () {
+    return _readDeposits(filter, limit);
   });
+
+  @override
+  Future<RecyclingSummary> getSummary() =>
+      _api.read('activity.getSummary', _readSummary);
 
   @override
   Stream<List<DepositTransaction>> watchDeposits({
     required DepositFilter filter,
     int? limit,
   }) async* {
-    await Future<void>.delayed(_api.readDelay);
-    yield await getDeposits(filter: filter, limit: limit);
+    yield await _api.read(
+      'activity.watchDeposits',
+      () => _readDeposits(filter, limit),
+    );
     if (_store != null) {
       await for (final _ in _store.watchDeposits()) {
         yield await getDeposits(filter: filter, limit: limit);
@@ -109,8 +118,7 @@ class MockActivityRepository implements ActivityRepository {
 
   @override
   Stream<RecyclingSummary> watchSummary() async* {
-    await Future<void>.delayed(_api.readDelay);
-    yield await getSummary();
+    yield await _api.read('activity.watchSummary', _readSummary);
     if (_store != null) {
       await for (final _ in _store.watchDeposits()) {
         yield await getSummary();

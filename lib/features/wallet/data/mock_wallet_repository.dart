@@ -27,11 +27,11 @@ class MockWalletRepository implements WalletRepository {
     final envelope = _store == null
         ? await _loader.loadMap('assets/mock/wallet/wallet.json')
         : _store.wallet.containsKey('wallet')
-            ? _store.wallet
-            : {
-                'wallet': _store.wallet,
-                'rewardCosts': const [100, 200, 350, 500],
-              };
+        ? _store.wallet
+        : {
+            'wallet': _store.wallet,
+            'rewardCosts': const [100, 200, 350, 500],
+          };
     final document = WalletDocument.fromJson(
       JsonReaders.map(envelope['wallet'], 'wallet'),
     );
@@ -60,8 +60,7 @@ class MockWalletRepository implements WalletRepository {
 
   @override
   Stream<WalletSnapshot?> watchWallet() async* {
-    await Future<void>.delayed(_api.readDelay);
-    yield await getWallet();
+    yield await _api.read('wallet.watchWallet', _readWallet);
     if (_store != null) {
       await for (final _ in _store.watchWallet()) {
         yield await getWallet();
