@@ -26,9 +26,22 @@ The real entry chain is:
 
 There are **no component files, API modules, image exports, or auth provider hidden behind this button**. Do not invent imports from a nonexistent Figma `components/` tree. The generic `public/favicon.svg` is not an EcoLoop brand asset.
 
-### Independent application boundary
+### Independent application boundary & Strict Scope Rules
 
-- Develop under `apps/admin-web/`; do not modify `lib/`, root Flutter platform folders, root `pubspec.yaml`, either existing plan, or the source artifact.
+- **Allowed Scope (Whitelist):**
+  - All web application code, assets, and tests MUST live strictly under `apps/admin-web/`.
+  - Development logs must be written to `docs/dev_logs/` (following the naming convention `YYYY-MM-DD_AdminWeb_Phase<N>*.md`).
+  - Acceptance documentation must be written to `docs/ADMIN_WEB_ACCEPTANCE.md` (Phase 10).
+- **Forbidden Scope (Strictly Off-Limits):**
+  - **NEVER create, modify, move, rename, or delete ANY file or directory outside `apps/admin-web/`**, with the sole exception of the designated log/acceptance files in `docs/` mentioned above.
+  - Specifically, **DO NOT TOUCH**:
+    - Flutter codebase (`lib/`, `test/`, `assets/`, `web/`)
+    - Native mobile platform directories (`android/`, `ios/`)
+    - Flutter project manifests and toolchain configs (`pubspec.yaml`, `pubspec.lock`, `analysis_options.yaml`, `.metadata`)
+    - Flutter agent configurations (`.agent/developer/agent.md`, `.agent/tester/agent.md`)
+    - The Figma design artifacts (`EcoLoop_AI_Figma_Design_Artifacts/` is **strictly READ-ONLY**)
+    - Existing Flutter plans (`docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` is **strictly READ-ONLY** contract authority)
+- **Zero Deletions Outside Scope:** Under no circumstances may the Web Developer or agent delete files created by other agents, developers, or sessions.
 - Replace the resident role-switch dependency with `/login` and an admin-only mock session. Remove the source's “Resident app”/role-switch buttons from the copied shell.
 - Admin and Flutter will use **the same Firebase project**, Auth UIDs/role claims, Firestore documents and Storage URL conventions in Goals 3–4. Their stateful in-memory stores are **separate processes** in Goals 1–2; changing one mock app does not change the other.
 - Do not add a backend, database, actual API endpoint, real authentication, or browser-storage synchronization in this goal.

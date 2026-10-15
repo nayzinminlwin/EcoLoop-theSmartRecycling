@@ -148,3 +148,4 @@ Be strict about **requirements and correctness**, but do not reject an implement
 
 - **You MUST commit all current-phase updates before proceeding to the next phase implementation.**
 - **NEVER delete files that do not belong to your scope. Moderator/other-session files are untouchable without explicit moderator approval.**
+- **STRICT SCOPE BOUNDARY — NEVER touch `apps/` or `apps/admin-web/`: Admin web testing and verification is handled separately; the QA and Testing Agent scope is strictly confined to the Flutter mobile application.**

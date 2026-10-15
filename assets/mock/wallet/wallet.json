@@ -1,0 +1,9 @@
+{
+  "wallet": {
+    "residentId": "RES-000842",
+    "balance": 245,
+    "updatedAt": "2024-05-20T11:00:00+08:00",
+    "version": 1
+  },
+  "rewardCosts": [100, 200, 350, 500]
+}

@@ -1,0 +1,41 @@
+abstract final class AppRoutes {
+  static const root = '/';
+  static const signedOut = '/signed-out';
+  static const home = '/home';
+  static const guide = '/guide';
+  static const history = '/history';
+  static const rewards = '/rewards';
+  static const vouchers = '/vouchers';
+  static const voucherDetail = '/vouchers/:voucherId';
+  static const scan = '/scan';
+  static const scanBin = '/scan/sessions/:sessionId/bin';
+  static const scanReady = '/scan/sessions/:sessionId/ready';
+  static const scanDetected = '/scan/sessions/:sessionId/detected';
+  static const scanProcessing = '/scan/sessions/:sessionId/processing';
+  static const scanResult = '/scan/sessions/:sessionId/result';
+  static const settings = '/settings';
+  static const profile = '/settings/profile';
+  static const security = '/settings/security';
+  static const notificationPreferences = '/settings/notifications';
+
+  static const rootName = 'root';
+  static const signedOutName = 'signedOut';
+  static const homeName = 'home';
+  static const guideName = 'guide';
+  static const historyName = 'history';
+  static const rewardsName = 'rewards';
+  static const vouchersName = 'vouchers';
+  static const voucherDetailName = 'voucherDetail';
+  static const scanName = 'scan';
+  static const scanBinName = 'scanBin';
+  static const scanReadyName = 'scanReady';
+  static const scanDetectedName = 'scanDetected';
+  static const scanProcessingName = 'scanProcessing';
+  static const scanResultName = 'scanResult';
+  static const settingsName = 'settings';
+  static const profileName = 'profile';
+  static const securityName = 'security';
+  static const notificationPreferencesName = 'notificationPreferences';
+
+  static const bootstrap = root;
+}

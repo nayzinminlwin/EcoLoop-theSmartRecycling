@@ -182,7 +182,8 @@ For follow-up corrections to the same bug/feature, append to the existing fix lo
 - **Do not duplicate specifications already defined in project documentation.**
 - **Document meaningful development work using `dev_log_template.md`.**
 - **Always check for related issues using `gh issue list` and tag them in commit messages.**
-- **Keep all development changes within the Flutter project (`eco_loop` package) unless explicitly instructed otherwise.**
+- **Keep all development changes within the Flutter project (`eco_loop` package: `lib/`, `test/`, `assets/`, `pubspec.yaml`) unless explicitly instructed otherwise.**
+- **STRICT SCOPE BOUNDARY — NEVER touch `apps/` or `apps/admin-web/`: The web admin portal is owned exclusively by the Web Development Agent. Do NOT create, modify, move, or delete any files under `apps/admin-web/`, `docs/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`, or web acceptance records.**
 - **You MUST commit all current-phase updates before proceeding to the next phase implementation.**
 
 If the available documentation and source code are insufficient to determine the correct implementation, clearly identify the missing information instead of inventing a solution.
