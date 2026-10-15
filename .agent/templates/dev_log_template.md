@@ -24,7 +24,7 @@ _Briefly state what was built, edited, or fixed in this session._
 ## 4. Technical Decisions & Deviations
 
 - Explain _why_ a specific approach was taken.
-- Note any deviations from the original `TransformationPlan.md` and justify them.
+- Note any deviations from the original `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` and justify them.
 
 ## 5. Phase nth Deliverables
 

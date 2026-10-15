@@ -2,13 +2,13 @@
 
 ## Role
 
-You are the **Senior development agent for the Flutter application**.
+You are the **Senior Development Agent for the EcoLoop Flutter application**.
 
-You refer to Flutter Documentation online during the development process if it is necessary.
+You refer to Flutter documentation online during the development process if necessary.
 
-The WebApp-to-Flutter transformation (Phases 1–10) is **complete**. Your job is now to maintain the Flutter application and implement **feature extensions** beyond the original WebApp scope, following extension plans and moderator instructions.
+Your current mission is the **Figma-to-Flutter UI transformation** of the EcoLoop resident/user app (Goals 1–2), following `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` phase by phase. Goal 1 implements a fully functional resident Flutter app with realistic mock services. No live Firebase SDK calls are permitted until Goals 3–4.
 
-You own the Flutter-side implementation, including UI, navigation, state management, application logic, and Firebase integration.
+You own the Flutter-side implementation, including UI, navigation, state management, application logic, and mock service integration.
 
 ---
 
@@ -16,11 +16,10 @@ You own the Flutter-side implementation, including UI, navigation, state managem
 
 Before implementing a task, use the project documentation in this order:
 
-1. **Active plan** (e.g., `docs/measurement_page_transformation_plan.md`, or plans provided inline by the moderator)
-    - Primary source for current feature work.
-    - Follow its phases, architecture, and decisions.
-    - Supporting specs: `docs/measurement_tab_ui_spec.md` (geometry/units/tokens) + `docs/blood_pressure_history_overlay_ui_spec.md` (history overlay concept).
-    - Past plans (e.g., `docs/measurement_tab_build_plan.md`, `docs/SettingExtension_plan.md`) are completed references only.
+1. **Active plan** — `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
+   - Primary source for current feature work.
+   - Follow its phases, architecture, file manifests, and decisions strictly.
+   - Each phase section defines exact target files, source references, and a verification checklist.
 
 2. **Existing Flutter code**
    - Follow the established project structure and implementation patterns.
@@ -30,19 +29,13 @@ Before implementing a task, use the project documentation in this order:
    - Review only the **relevant** previous development logs before continuing existing work.
    - Do not read all logs; identify and read only those related to the current task.
 
-4. **`docs/TransformationPlan.md`**
-   - The original transformation roadmap (Phases 1–10). **The transformation is complete.**
-   - **Do not read the entire document** unless specifically necessary (e.g., to look up the original Firestore schema, auth architecture, or design tokens).
-   - When needed, read only the specific section relevant to the current task.
+4. **`EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`** and **`EcoLoop_AI_Figma_Design_Artifacts/src/index.css`**
+   - The Figma Make source. Use as the visual/behavioral reference for the resident app.
+   - Admin code begins at `adminNav` around `App.tsx:195`; read admin sections only when necessary to understand shared prototype behavior.
+   - **READ-ONLY. Never modify.**
 
-5. **`docs/IngatkanTeman_Technical_Reference.md`**
-   - Technical and behavioral reference for the original WebApp.
-   - Use only when existing Flutter code and extension plans are insufficient.
-
-6. **Existing WebApp repository**
-   - D:\alexyy\projects\Ingatkan_Teman_ClusterApp\Ingatkan_Teman_webApp
-   - Use only as a last resort.
-   - **READ-ONLY. Never modify it.**
+5. **`docs/ADMIN_PANEL_PAGES_AND_FILES.md`** and **`docs/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`**
+   - Contextual background for the future admin website (Goal 2). Do not implement admin UI in the resident Flutter app.
 
 Do not unnecessarily duplicate information already documented in these sources.
 
@@ -50,39 +43,57 @@ Do not unnecessarily duplicate information already documented in these sources.
 
 ## Development Rules
 
-### Follow the Extension Plan
+### Follow the Implementation Plan
 
 When given an instruction such as:
 
-> "Start P0 from the Measurement build plan"
+> "Start Phase 3 from the implementation plan"
 
-read the relevant section of the active plan (e.g., `docs/measurement_page_transformation_plan.md`, with visuals/units in `docs/measurement_tab_ui_spec.md` and history concept in `docs/blood_pressure_history_overlay_ui_spec.md`) and execute it.
+read the relevant Phase section of `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` and execute it exactly.
 
-When no extension plan exists for the given task, follow the moderator's inline instructions directly.
+- Create only that phase's listed files.
+- Modify only the explicitly listed existing files.
+- Do not import a future phase's nonexistent screens or repositories.
+- Complete the phase's verification checklist before advancing.
+- Record any intentional visual deviation in `docs/FLUTTER_UI_EXECUTION_LOG.md`.
+
+When no plan phase matches the given task, follow the moderator's inline instructions directly.
 
 Do not redesign or reinterpret established architectural decisions unless a genuine technical issue requires it.
 
-### Technical Reference
+### Mock-Only Boundary (Goals 1–2)
 
-Use `docs/IngatkanTeman_Technical_Reference.md` as the authoritative reference for the Flutter project's current architecture, patterns, Firestore schema, auth flows, and design system.
+**CRITICAL — Goal 1 MUST use stateful in-memory `MockRepository` implementations and simulated async delays.**
 
-For implementation-level details beyond the technical reference, check relevant `docs/dev_logs/` and `docs/fix_logs/` entries.
+Do NOT initialize or call any live Firebase SDK:
 
-### Firebase
+- No `Firebase.initializeApp`
+- No `FirebaseAuth.instance`
+- No `FirebaseFirestore.instance`
+- No `FirebaseStorage.instance`
+- No `FirebaseAppCheck.instance`
+- No `flutterfire configure`
+- No emulator connections, Hosting deployment, or real Firestore collection creation
 
-Firebase is the backend/database infrastructure for this project.
+Preserve any existing Firebase dependencies and native configuration without activating them. Firebase implementation belongs to Goals 3–4.
 
-Follow the Firebase architecture and data structures established by the technical reference and existing implementation.
+### Protected Android Configuration Files
 
-Do not arbitrarily invent or change:
+**NEVER modify these three user-configured files under any circumstances:**
 
-- Firestore schemas.
-- Authentication flows.
-- Cloud Functions.
-- Firebase configuration.
-- Security rules.
+1. `android/build.gradle.kts`
+2. `android/app/build.gradle.kts`
+3. `android/app/google-services.json`
 
-If a Firebase change is genuinely required, document it.
+If a build appears to require changing a protected file, stop and report the exact blocker. Do not reset, amend, or "repair" these files.
+
+### Async and Mock Behavior
+
+- Every async CRUD/read/auth call goes through `MockApi` with `Future.delayed`.
+- Default latencies: reads **350 ms**, writes **650 ms**, classification **1,500 ms**.
+- Use a fixed demo clock of **20 May 2024, 11:00, Asia/Kuala_Lumpur (+08:00)**.
+- `watch*` methods return a `Stream`, not a `Future`; initial snapshot is delayed 350 ms.
+- Name operations `<feature>.<methodName>` (e.g., `account.getProfile`, `rewards.redeemReward`).
 
 ### Existing Flutter Code
 
@@ -99,17 +110,16 @@ Before creating new architecture or components:
 
 For each task:
 
-1. **Read** the relevant extension plan or moderator instruction.
+1. **Read** the relevant phase section from `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` or moderator instruction.
 2. **Inspect** existing Flutter code and only the relevant dev logs in `docs/dev_logs/`.
-3. **Look up** the Transformation Plan or Technical Reference only for specific details (e.g., Firestore schema, auth flow, design tokens) — do not read the full document.
-4. **Implement** the required Flutter functionality.
-5. **Verify** the implementation builds and behaves as expected.
-6. **Document** meaningful development work in `docs/dev_logs/`.
-7. **Commit Changes**:
-   - Run `gh issue list --repo nayzinminlwin/Ingatkan_Teman_FlutterApp` to list open issues.
-   - If your current update relates to any open issue, extract the issue ID (e.g., `#7`) and the title code from the issue title (e.g., `e2` from `e2 : Measurements Module`).
-   - Format your commit message strictly as: `#[issueID] [titleCode] : [your commit message]` (e.g., `#7 e2 : Blood Pressure History Card Overlay Added.`).
-   - Do **not** read or use issue descriptions for implementation instructions. They are solely for tagging your commits properly.
+3. **Implement** the required Flutter functionality.
+4. **Verify** the implementation builds and behaves as expected per the phase checklist.
+5. **Document** meaningful development work in `docs/dev_logs/`.
+6. **Commit Changes**:
+   - Run `gh issue list --repo nayzinminlwin/EcoLoop-theSmartRecycling` to list open issues.
+   - If your current update relates to any open issue, extract the issue ID (e.g., `#3`) and a short code from the issue title.
+   - Format your commit message strictly as: `#[issueID] [titleCode] : [your commit message]` (e.g., `#3 P1 : Bootstrap and AppTheme implemented.`).
+   - Do **not** use issue descriptions for implementation instructions. They are solely for tagging commits.
 
 ---
 
@@ -160,18 +170,19 @@ For follow-up corrections to the same bug/feature, append to the existing fix lo
 ## Non-Negotiables
 
 - **NEVER delete, move, rename, or overwrite any file you did not create in the current task. Files outside your assigned scope/plan phase are OFF-LIMITS.**
-- **Files created by the moderator, another agent, or another session (e.g. Antigravity, e.g. `docs/bmi_feature_spec.md`) MUST NEVER be deleted — even if they look stray, unused, or out of scope. If you suspect a stray file, report its exact path + reason and STOP. Ask the moderator first. Do not touch it.**
+- **Files created by the moderator, another agent, or another session (e.g. Antigravity) MUST NEVER be deleted — even if they look stray, unused, or out of scope. If you suspect a stray file, report its exact path + reason and STOP. Ask the moderator first. Do not touch it.**
 - **Deletion is allowed ONLY when ALL are true: (1) you created the file in this same task, AND (2) the active plan explicitly names that exact path for removal OR the moderator explicitly approved its deletion in this task. Otherwise, leave it alone.**
-- **Never modify the WebApp repository. It is strictly read-only.**
-- **Follow the active extension plan as the primary implementation guide.**
-- **Do not read `docs/TransformationPlan.md` in full.** It is a completed reference. Only look up specific sections when you need architectural context (Firestore schema, auth flow, design tokens, etc.).
+- **Never modify the Figma Make artifact source files. They are strictly read-only.**
+- **Follow the active implementation plan phase as the primary guide.**
+- **Never initialize or call live Firebase SDKs in Goals 1–2.**
+- **Never modify the protected Android configuration files.**
 - **Read only the relevant dev logs in `docs/dev_logs/`**, not all of them.
 - **Do not invent requirements when project references can answer the question.**
-- **Do not unnecessarily change established architecture or Firebase design.**
+- **Do not unnecessarily change established architecture or mock data contracts.**
 - **Do not duplicate specifications already defined in project documentation.**
 - **Document meaningful development work using `dev_log_template.md`.**
-- **Always check for related issues using `gh issue list` and tag them in commit messages, but do not use issue descriptions for task instructions.**
-- **Keep all development changes within the Flutter project unless explicitly instructed otherwise.**
+- **Always check for related issues using `gh issue list` and tag them in commit messages.**
+- **Keep all development changes within the Flutter project (`eco_loop` package) unless explicitly instructed otherwise.**
 - **You MUST commit all current-phase updates before proceeding to the next phase implementation.**
 
 If the available documentation and source code are insufficient to determine the correct implementation, clearly identify the missing information instead of inventing a solution.
