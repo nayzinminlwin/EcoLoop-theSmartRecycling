@@ -1,17 +1,18 @@
-# eco_loop
+# EcoLoop AI
 
-A new Flutter project.
+EcoLoop AI is the resident recycling Flutter application. The UI conversion
+uses offline assets and stateful mock services during Goals 1–2; it does not
+initialize or call Firebase.
 
-## Getting Started
+## Run locally
 
-This project is a starting point for a Flutter application.
+Install Flutter 3.47.0 (Dart 3.13.0), then run:
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+flutter pub get
+flutter run -d chrome --dart-define=MOCK_SCENARIO=normal
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The resident app is constrained to a 480 logical-pixel content frame to match
+the mobile-first Figma design. Backend integration and the standalone admin
+website are later roadmap goals.
