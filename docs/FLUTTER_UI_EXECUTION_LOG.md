@@ -122,3 +122,36 @@
   subscriptions. History filter reads remain guarded one-shot operations
   because the mock stream lifecycle left the filter sheet in a settling state
   during widget verification.
+
+## Phase 5 — Recycling guide and configured point-rate content
+
+**Status:** Completed
+**Date:** 16 October 2026
+
+### Completed
+
+- Added JSON-round-trippable guide content, material, step, and integer
+  points-per-item rate models.
+- Added the repository-composed recycling guide fixture with ordered material
+  cards, preparation tips, source do/avoid lists, five smart-bin steps, and
+  plastic/aluminium/paper rates of 5/8/3 points per item.
+- Added the stateful async mock guide repository and Riverpod stream/controller
+  seams without Firebase or external service calls.
+- Corrected repository persistence so an updated guide remains the source for
+  later reads as well as stream emissions; model collections are immutable.
+- Added the responsive `/guide` screen, material cards, step list, and rate
+  table. Unknown fixture icon keys fall back to the generic recycle icon.
+- Registered the guide repository, route, asset manifest entry, and loading
+  copy. Home's existing guide quick action now opens the complete guide.
+
+### Verification
+
+- `flutter test test/features/recycling_guide` passes all 3 focused tests.
+- `flutter analyze` passes with no issues.
+- `flutter test` passes all 25 tests.
+- `flutter build web` succeeds.
+- DTD discovery and connection were attempted, but the VS Code DTD instance
+  had no active Flutter app; hot restart therefore could not connect.
+
+Detailed implementation notes are recorded in
+`docs/dev_logs/phase_5_recycling_guide.md`.

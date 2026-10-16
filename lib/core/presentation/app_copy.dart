@@ -7,4 +7,5 @@ abstract final class AppCopy {
   static const confirm = 'Confirm';
   static const loadDashboardFailed = 'We could not load your dashboard.';
   static const loadHistoryFailed = 'We could not load your recycling history.';
+  static const loadGuideFailed = 'We could not load your recycling guide.';
 }

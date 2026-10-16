@@ -30,6 +30,7 @@ flutter:
     - assets/mock/account/
     - assets/mock/wallet/
     - assets/mock/activity/
+    - assets/mock/recycling_guide/
   fonts:
     - family: Inter
       fonts:

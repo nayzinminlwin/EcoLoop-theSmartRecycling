@@ -3,6 +3,7 @@ import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/features/activity/presentation/screens/history_screen.dart';
 import 'package:eco_loop/features/home/presentation/screens/home_screen.dart';
+import 'package:eco_loop/features/recycling_guide/presentation/screens/recycling_guide_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,6 +25,11 @@ GoRouter createAppRouter() {
         path: AppRoutes.history,
         name: AppRoutes.historyName,
         builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.guide,
+        name: AppRoutes.guideName,
+        builder: (context, state) => const RecyclingGuideScreen(),
       ),
     ],
     errorBuilder: (context, state) =>

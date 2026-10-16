@@ -6,6 +6,8 @@ import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dar
 import 'package:eco_loop/features/activity/domain/repositories/activity_repository.dart';
 import 'package:eco_loop/features/wallet/data/mock_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:eco_loop/features/recycling_guide/data/mock_recycling_guide_repository.dart';
+import 'package:eco_loop/features/recycling_guide/domain/repositories/recycling_guide_repository.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +21,10 @@ final accountRepositoryProvider = Provider<AccountRepository>(
 
 final walletRepositoryProvider = Provider<WalletRepository>(
   (ref) => MockWalletRepository(),
+);
+
+final recyclingGuideRepositoryProvider = Provider<RecyclingGuideRepository>(
+  (ref) => MockRecyclingGuideRepository(),
 );
 
 final activityRepositoryProvider = FutureProvider<ActivityRepository>((
