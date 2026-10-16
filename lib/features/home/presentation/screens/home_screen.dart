@@ -1,4 +1,6 @@
 import 'package:eco_loop/app/router/app_routes.dart';
+import 'package:eco_loop/app/providers/app_providers.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
@@ -29,17 +31,31 @@ class HomeScreen extends ConsumerWidget {
         ),
         error: (_, _) => AppErrorView(
           message: AppCopy.loadDashboardFailed,
-          onRetry: () => ref.read(homeControllerProvider.notifier).refresh(),
+          onRetry: () => _refresh(context, ref),
         ),
-        data: (data) => _HomeContent(data: data),
+        data: (data) =>
+            _HomeContent(data: data, clock: ref.watch(appClockProvider)),
       ),
     );
+  }
+
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(homeControllerProvider.notifier).refresh();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Dashboard could not be refreshed.')),
+        );
+      }
+    }
   }
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({required this.data});
+  const _HomeContent({required this.data, required this.clock});
   final HomeViewData data;
+  final AppClock clock;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -48,6 +64,7 @@ class _HomeContent extends StatelessWidget {
       HomeGreeting(
         name: data.profile.firstName,
         initials: data.profile.initials,
+        clock: clock,
       ),
       const SizedBox(height: 24),
       WalletSummaryCard(

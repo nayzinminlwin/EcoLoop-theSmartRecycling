@@ -1,13 +1,19 @@
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/presentation/app_formatters.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
 import 'package:eco_loop/features/activity/presentation/controllers/history_controller.dart';
 import 'package:flutter/material.dart';
 
 class HistoryFilterSheet extends StatefulWidget {
-  const HistoryFilterSheet({required this.initial, super.key});
+  const HistoryFilterSheet({
+    required this.initial,
+    required this.clock,
+    super.key,
+  });
 
   final HistoryFilterState initial;
+  final AppClock clock;
 
   @override
   State<HistoryFilterSheet> createState() => _HistoryFilterSheetState();
@@ -61,10 +67,30 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
           ),
           if (_filter.datePreset == HistoryDatePreset.custom) ...[
             const SizedBox(height: 12),
-            Text(
-              _filter.customFrom == null
-                  ? 'Choose a custom date range when needed.'
-                  : '${AppFormatters.date(_filter.customFrom!)} - ${AppFormatters.date(_filter.customTo ?? _filter.customFrom!)}',
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _pickDate(isStart: true),
+                    child: Text(
+                      _filter.customFrom == null
+                          ? 'Start date'
+                          : AppFormatters.date(_filter.customFrom!),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _pickDate(isStart: false),
+                    child: Text(
+                      _filter.customTo == null
+                          ? 'End date'
+                          : AppFormatters.date(_filter.customTo!),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
           const SizedBox(height: 24),
@@ -104,6 +130,28 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
       ),
     ),
   );
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDate: isStart
+          ? (_filter.customFrom ?? _filter.customTo ?? widget.clock.now)
+          : (_filter.customTo ?? _filter.customFrom ?? widget.clock.now),
+    );
+    if (selected == null || !mounted) return;
+    final from = isStart ? selected : _filter.customFrom;
+    final to = isStart ? _filter.customTo : selected;
+    setState(
+      () => _filter = HistoryFilterState(
+        datePreset: HistoryDatePreset.custom,
+        status: _filter.status,
+        customFrom: from,
+        customTo: to,
+      ),
+    );
+  }
 
   String _presetLabel(HistoryDatePreset preset) => switch (preset) {
     HistoryDatePreset.all => 'All dates',

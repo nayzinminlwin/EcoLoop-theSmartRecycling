@@ -1,4 +1,5 @@
 import 'package:eco_loop/app/providers/app_providers.dart';
+import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/features/account/domain/models/resident_profile.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
@@ -34,11 +35,52 @@ class HomeViewData {
 final homeControllerProvider =
     AsyncNotifierProvider<HomeController, HomeViewData>(HomeController.new);
 
+final homeProfileStreamProvider = StreamProvider<ResidentProfile?>(
+  (ref) => ref.read(accountRepositoryProvider).watchProfile(),
+);
+
+final homeWalletStreamProvider = StreamProvider<WalletSnapshot?>(
+  (ref) => ref.read(walletRepositoryProvider).watchWallet(),
+);
+
+final homeSummaryStreamProvider = StreamProvider<RecyclingSummary>((
+  ref,
+) async* {
+  final repository = await ref.watch(activityRepositoryProvider.future);
+  yield* repository.watchSummary();
+});
+
+final homeRecentDepositsStreamProvider =
+    StreamProvider<List<DepositTransaction>>((ref) async* {
+      final repository = await ref.watch(activityRepositoryProvider.future);
+      yield* repository.watchDeposits(filter: const DepositFilter(), limit: 2);
+    });
+
 class HomeController extends AsyncNotifier<HomeViewData> {
   @override
-  Future<HomeViewData> build() => _load();
+  Future<HomeViewData> build() async {
+    final profile = await ref.watch(homeProfileStreamProvider.future);
+    final wallet = await ref.watch(homeWalletStreamProvider.future);
+    final summary = await ref.watch(homeSummaryStreamProvider.future);
+    final recentDeposits = await ref.watch(
+      homeRecentDepositsStreamProvider.future,
+    );
+    if (profile == null || wallet == null) {
+      throw const AppFailure(
+        code: AppFailureCodes.notFound,
+        messageKey: 'home.residentDataUnavailable',
+        retryable: true,
+      );
+    }
+    return HomeViewData(
+      profile: profile,
+      wallet: wallet,
+      summary: summary,
+      recentDeposits: List.unmodifiable(recentDeposits),
+    );
+  }
 
-  Future<HomeViewData> _load() async {
+  Future<HomeViewData> _loadOnce() async {
     final profile = await ref.read(accountRepositoryProvider).getProfile();
     final wallet = await ref.read(walletRepositoryProvider).getWallet();
     final activity = await ref.read(activityRepositoryProvider.future);
@@ -59,7 +101,7 @@ class HomeController extends AsyncNotifier<HomeViewData> {
     final previous = state.valueOrNull;
     state = const AsyncLoading();
     try {
-      state = AsyncData(await _load());
+      state = AsyncData(await _loadOnce());
     } catch (error, stackTrace) {
       state = previous == null
           ? AsyncError(error, stackTrace)

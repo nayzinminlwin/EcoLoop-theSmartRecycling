@@ -31,8 +31,13 @@ Home dashboard and recycling History screen.
   rather than introducing a Home repository or duplicating domain models.
 - History filters use typed `DepositFilter` values. Custom end dates become the
   next calendar day as `toExclusive`, avoiding fabricated end-of-day times.
+- Custom ranges now expose start/end date pickers, and the app clock is
+  injected through Riverpod for deterministic date behavior.
 - Refresh failures retain the previous successful data, while initial failures
-  expose retry.
+  expose retry; refresh failures also provide visible feedback.
+- Home subscribes to repository watch streams for resident, wallet, summary,
+  and recent activity updates. History uses guarded one-shot reads for filter
+  changes so applying a filter cannot leave the screen in a settling state.
 - No Firebase SDK, network call, or future-phase screen was added.
 
 ## 5. Phase 4 Deliverables

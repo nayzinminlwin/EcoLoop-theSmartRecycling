@@ -1,4 +1,6 @@
 import 'package:eco_loop/core/presentation/app_copy.dart';
+import 'package:eco_loop/app/providers/app_providers.dart';
+import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -19,7 +21,7 @@ class HistoryScreen extends ConsumerWidget {
     return AppPage(
       header: AppPageHeader(
         title: 'Recycling history',
-        onBack: () => context.go('/home'),
+        onBack: () => context.go(AppRoutes.home),
         trailing: IconButton(
           tooltip: 'Filter history',
           onPressed: () => _openFilters(context, ref),
@@ -33,11 +35,10 @@ class HistoryScreen extends ConsumerWidget {
         ),
         error: (_, _) => AppErrorView(
           message: AppCopy.loadHistoryFailed,
-          onRetry: () => ref.read(historyControllerProvider.notifier).refresh(),
+          onRetry: () => _refresh(context, ref),
         ),
         data: (items) => RefreshIndicator(
-          onRefresh: () =>
-              ref.read(historyControllerProvider.notifier).refresh(),
+          onRefresh: () => _refresh(context, ref),
           child: items.isEmpty
               ? ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -67,11 +68,33 @@ class HistoryScreen extends ConsumerWidget {
     final selected = await showModalBottomSheet<HistoryFilterState>(
       context: context,
       isScrollControlled: true,
-      builder: (_) =>
-          HistoryFilterSheet(initial: ref.read(historyFilterProvider)),
+      builder: (_) => HistoryFilterSheet(
+        initial: ref.read(historyFilterProvider),
+        clock: ref.read(appClockProvider),
+      ),
     );
     if (selected != null && context.mounted) {
-      await ref.read(historyControllerProvider.notifier).apply(selected);
+      try {
+        await ref.read(historyControllerProvider.notifier).apply(selected);
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('History could not be refreshed.')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(historyControllerProvider.notifier).refresh();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('History could not be refreshed.')),
+        );
+      }
     }
   }
 }

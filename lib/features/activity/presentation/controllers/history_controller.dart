@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
@@ -72,7 +70,7 @@ class HistoryController extends AsyncNotifier<List<DepositTransaction>> {
   @override
   Future<List<DepositTransaction>> build() {
     final filter = ref.read(historyFilterProvider);
-    return _load(filter.toFilter(DateTime.now()));
+    return _load(filter.toFilter(ref.read(appClockProvider).now));
   }
 
   Future<List<DepositTransaction>> _load(DepositFilter filter) async {
@@ -86,7 +84,9 @@ class HistoryController extends AsyncNotifier<List<DepositTransaction>> {
     state = const AsyncLoading();
     ref.read(historyFilterProvider.notifier).setFilter(filter);
     try {
-      final result = await _load(filter.toFilter(DateTime.now()));
+      final result = await _load(
+        filter.toFilter(ref.read(appClockProvider).now),
+      );
       if (requestId == _requestId) state = AsyncData(result);
     } catch (error, stackTrace) {
       if (requestId == _requestId) {
@@ -94,6 +94,7 @@ class HistoryController extends AsyncNotifier<List<DepositTransaction>> {
             ? AsyncError(error, stackTrace)
             : AsyncData(previous);
       }
+      rethrow;
     }
   }
 

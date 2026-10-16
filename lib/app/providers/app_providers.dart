@@ -7,9 +7,11 @@ import 'package:eco_loop/features/activity/domain/repositories/activity_reposito
 import 'package:eco_loop/features/wallet/data/mock_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouterProvider = Provider((ref) => createAppRouter());
+final appClockProvider = Provider<AppClock>((ref) => AppClock());
 
 final accountRepositoryProvider = Provider<AccountRepository>(
   (ref) => MockAccountRepository(),

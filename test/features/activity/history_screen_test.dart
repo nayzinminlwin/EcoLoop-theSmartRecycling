@@ -13,7 +13,7 @@ void main() {
         child: MaterialApp(theme: AppTheme.light, home: const HistoryScreen()),
       ),
     );
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 2));
 
     expect(find.text('Recycling history'), findsOneWidget);
     expect(find.text('PET plastic'), findsWidgets);
@@ -24,7 +24,7 @@ void main() {
     expect(find.text('Filter history'), findsOneWidget);
     expect(find.text('Last 7 days'), findsOneWidget);
 
-    await tester.tap(find.text('Review').last);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Review'));
     await tester.tap(find.text('Apply'));
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Paper'), findsOneWidget);

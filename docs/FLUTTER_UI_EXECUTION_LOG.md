@@ -117,3 +117,8 @@
 - `flutter test` passes all 21 tests.
 - `flutter build web` succeeds.
 - DTD hot-restart was attempted; no Flutter app was connected in VS Code.
+- A post-phase audit added injected clock usage, functional custom date
+  pickers, visible refresh-failure feedback, and Home repository stream
+  subscriptions. History filter reads remain guarded one-shot operations
+  because the mock stream lifecycle left the filter sheet in a settling state
+  during widget verification.
