@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 void main() {
   testWidgets('scan route renders the scanner simulation', (tester) async {
     final router = createAppRouter();
-    router.go(AppRoutes.scan);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -18,6 +17,8 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
+    await tester.pump();
+    router.go(AppRoutes.scan);
     await tester.pumpAndSettle();
     expect(find.text('Scan a smart bin'), findsOneWidget);
   });

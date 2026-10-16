@@ -195,7 +195,8 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
       GoRoute(
         path: AppRoutes.root,
         name: AppRoutes.rootName,
-        builder: (context, state) => const BootstrapScreen(),
+        builder: (context, state) =>
+            BootstrapScreen(hasError: guards.hasError, onRetry: guards.retry),
       ),
       GoRoute(
         path: AppRoutes.signedOut,

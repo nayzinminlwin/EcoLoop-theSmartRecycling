@@ -41,6 +41,7 @@ void main() {
     expect(filter.status, DepositStatus.verified);
     expect(RouteParameterParsers.opaqueId('  voucher-1 '), 'voucher-1');
     expect(RouteParameterParsers.opaqueId(''), isNull);
+    expect(RouteParameterParsers.opaqueId('%ZZ'), isNull);
     expect(RouteParameterParsers.depositStatus('not-a-status'), isNull);
   });
 }

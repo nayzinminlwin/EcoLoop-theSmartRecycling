@@ -4,8 +4,21 @@ import 'package:eco_loop/features/rewards/domain/models/resident_voucher.dart';
 
 abstract final class RouteParameterParsers {
   static String? opaqueId(String? value) {
-    final decoded = value == null ? null : Uri.decodeComponent(value).trim();
+    final decoded = switch (value) {
+      null => null,
+      final raw => _decode(raw),
+    };
     return decoded == null || decoded.isEmpty ? null : decoded;
+  }
+
+  static String? _decode(String raw) {
+    try {
+      return Uri.decodeComponent(raw).trim();
+    } on FormatException {
+      return null;
+    } on ArgumentError {
+      return null;
+    }
   }
 
   static DateTime? calendarDate(String? value) {

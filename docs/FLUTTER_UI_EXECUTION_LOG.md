@@ -227,6 +227,17 @@ Detailed implementation notes are recorded in
 - Dart SDK hot reload/hot restart was unavailable because no Dart/Flutter MCP
   client was connected and no active VS Code Flutter app was present.
 
+### Phase 9 audit correction
+
+- Direct links now remain on the bootstrap route until the initial mock auth
+  snapshot resolves; auth read failures expose a retry action instead of an
+  indefinite spinner.
+- Branch reselect behavior now resets Home and Settings to their roots and
+  retains an unfinished scan-stage route when reselecting Scan.
+- Malformed percent-encoded route IDs normalize to recoverable route handling.
+- The scan route test now waits for the guarded router to resolve before
+  navigating directly to `/scan`.
+
 ## Phase 8 — Settings, editable account forms, notifications, and demo sign-out
 
 **Status:** Completed

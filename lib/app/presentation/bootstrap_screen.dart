@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class BootstrapScreen extends StatelessWidget {
-  const BootstrapScreen({super.key});
+  const BootstrapScreen({super.key, this.hasError = false, this.onRetry});
+
+  final bool hasError;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +44,17 @@ class BootstrapScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    AppCopy.bootstrapMessage,
+                    hasError
+                        ? 'We could not restore your demo session.'
+                        : AppCopy.bootstrapMessage,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 28),
-                  const CircularProgressIndicator(),
+                  if (hasError)
+                    FilledButton(onPressed: onRetry, child: const Text('Retry'))
+                  else
+                    const CircularProgressIndicator(),
                 ],
               ),
             ),

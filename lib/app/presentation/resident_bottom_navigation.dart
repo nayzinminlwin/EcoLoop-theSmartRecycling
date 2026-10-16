@@ -8,8 +8,13 @@ class ResidentBottomNavigation extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   void _select(BuildContext context, int index) {
-    if (index == navigationShell.currentIndex) return;
-    navigationShell.goBranch(index, initialLocation: true);
+    final isScan = index == 1;
+    final currentPath = GoRouterState.of(context).uri.path;
+    final scanHasActiveSession =
+        currentPath.startsWith('/scan/sessions/') &&
+        !currentPath.endsWith('/result');
+    final initialLocation = !isScan || !scanHasActiveSession;
+    navigationShell.goBranch(index, initialLocation: initialLocation);
   }
 
   @override
