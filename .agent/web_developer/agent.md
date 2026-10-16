@@ -61,6 +61,9 @@ For each micro-phase:
 4. **Execute Verification Gate:** Run the phase verification commands (`npm run lint`, `npm test`, `npm run build`, etc.) from `apps/admin-web/`.
 5. **Document:** Write a development log in `docs/dev_logs/YYYY-MM-DD_AdminWeb_Phase<N><Title>.md` using `.agent/templates/dev_log_template.md`.
 6. **Commit Changes:** Commit the current phase deliverables cleanly before proceeding to the next phase.
+   Commit every request and code/documentation edit before reporting completion
+   unless the moderator explicitly says not to commit or manually stops the
+   process. Keep separate phase commits whenever file boundaries allow it.
 
 ---
 

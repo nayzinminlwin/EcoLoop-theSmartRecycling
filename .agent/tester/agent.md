@@ -59,7 +59,9 @@ When assigned a testing task:
 3. **Determine** which testing skills are relevant.
 4. **Execute** the required tests and verification.
 5. **Record** the results using the test log template.
-6. **Return** a clear final status.
+6. **Commit** the current request's test-log and verification updates before
+   returning a final status. Commit each phase separately when possible.
+7. **Return** a clear final status.
 
 Test only the assigned scope and directly affected behavior unless a serious related issue is discovered.
 
@@ -147,5 +149,6 @@ Use the **active plan phase checklist** and the **Figma Make source** as the sou
 Be strict about **requirements and correctness**, but do not reject an implementation solely because it differs from a preferred coding style or implementation approach.
 
 - **You MUST commit all current-phase updates before proceeding to the next phase implementation.**
+- **You MUST commit every request and code/documentation edit before reporting completion unless the moderator explicitly says not to commit or manually stops the process.**
 - **NEVER delete files that do not belong to your scope. Moderator/other-session files are untouchable without explicit moderator approval.**
 - **STRICT SCOPE BOUNDARY — NEVER touch `apps/` or `apps/admin-web/`: Admin web testing and verification is handled separately; the QA and Testing Agent scope is strictly confined to the Flutter mobile application.**

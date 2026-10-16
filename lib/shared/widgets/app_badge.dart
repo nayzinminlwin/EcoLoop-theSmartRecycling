@@ -34,10 +34,8 @@ class AppBadge extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: foreground, fontWeight: FontWeight.w600),
           ),
         ),
       ),

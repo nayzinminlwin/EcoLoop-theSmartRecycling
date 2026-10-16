@@ -1,0 +1,36 @@
+{
+  "content": {
+    "id": "guide-default",
+    "heroTitle": "Small steps, meaningful impact.",
+    "heroDescription": "Accepted materials depend on the selected smart bin.",
+    "toDo": [
+      "Empty containers",
+      "Rinse when appropriate",
+      "Separate materials correctly"
+    ],
+    "toAvoid": [
+      "Food-filled containers",
+      "General or hazardous waste",
+      "Unaccepted materials"
+    ],
+    "pointsDisclaimer": "Final points depend on verified classification, configured reward rules, and accepted deposits. Rates are adjustable by admins."
+  },
+  "materials": [
+    {"id": "plastic", "type": "plastic", "title": "Plastic bottles", "preparationTip": "Empty & rinse", "iconKey": "recycle", "sortOrder": 1},
+    {"id": "glass", "type": "glass", "title": "Glass bottles", "preparationTip": "Remove lids", "iconKey": "recycle", "sortOrder": 2},
+    {"id": "aluminium", "type": "aluminium", "title": "Metal cans", "preparationTip": "Clean & dry", "iconKey": "recycle", "sortOrder": 3},
+    {"id": "paper", "type": "paper", "title": "Paper & cardboard", "preparationTip": "Flatten first", "iconKey": "book", "sortOrder": 4}
+  ],
+  "steps": [
+    {"id": "scan", "order": 1, "instruction": "Scan the bin QR code"},
+    {"id": "insert", "order": 2, "instruction": "Insert recyclable materials"},
+    {"id": "finish", "order": 3, "instruction": "Press the red finish button"},
+    {"id": "verify", "order": 4, "instruction": "Wait for verification"},
+    {"id": "points", "order": 5, "instruction": "Receive EcoPoints"}
+  ],
+  "rates": [
+    {"materialType": "plastic", "displayName": "Plastic", "pointsPerItem": 5, "eligible": true},
+    {"materialType": "aluminium", "displayName": "Aluminium", "pointsPerItem": 8, "eligible": true},
+    {"materialType": "paper", "displayName": "Paper", "pointsPerItem": 3, "eligible": true}
+  ]
+}

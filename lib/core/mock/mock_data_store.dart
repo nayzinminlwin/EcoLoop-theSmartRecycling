@@ -8,16 +8,27 @@ class MockDataStore {
     required Map<String, Object?> profile,
     required Map<String, Object?> wallet,
     required List<Map<String, Object?>> deposits,
+    Map<String, Object?>? security,
+    Map<String, Object?>? notificationPreferences,
+    Map<String, Object?>? session,
+    this.mockCurrentPassword = 'DemoPass123!',
     AppClock? clock,
   }) : _profile = _copyMap(profile),
        _wallet = _copyMap(wallet),
        _deposits = deposits.map(_copyMap).toList(),
+       _security = _copyMap(security ?? const {}),
+       _notificationPreferences = _copyMap(notificationPreferences ?? const {}),
+       _session = _copyMap(session ?? const {}),
        clock = clock ?? AppClock();
 
   final AppClock clock;
   Map<String, Object?> _profile;
   Map<String, Object?> _wallet;
   List<Map<String, Object?>> _deposits;
+  Map<String, Object?> _security;
+  Map<String, Object?> _notificationPreferences;
+  Map<String, Object?> _session;
+  String mockCurrentPassword;
   final _profileChanges = StreamController<Map<String, Object?>>.broadcast();
   final _walletChanges = StreamController<Map<String, Object?>>.broadcast();
   final _depositChanges =
@@ -34,6 +45,17 @@ class MockDataStore {
       _walletChanges.stream.map(_copyMap);
   Stream<List<Map<String, Object?>>> watchDeposits() => _depositChanges.stream
       .map((items) => items.map(_copyMap).toList(growable: false));
+
+  Map<String, Object?> get security => _copyMap(_security);
+  Map<String, Object?> get notificationPreferences =>
+      _copyMap(_notificationPreferences);
+  Map<String, Object?> get session => _copyMap(_session);
+
+  void updateSecurity(Map<String, Object?> value) =>
+      _security = _copyMap(value);
+  void updateNotificationPreferences(Map<String, Object?> value) =>
+      _notificationPreferences = _copyMap(value);
+  void updateSession(Map<String, Object?> value) => _session = _copyMap(value);
 
   void updateProfile(Map<String, Object?> value) {
     _profile = _copyMap(value);

@@ -25,7 +25,7 @@ class DepositTransaction {
     required this.binLocation,
     required this.materialType,
     required this.materialLabel,
-    required this.weightKg,
+    required this.itemCount,
     required this.pointsAwarded,
     required this.status,
     required this.occurredAt,
@@ -39,7 +39,7 @@ class DepositTransaction {
   final String binLocation;
   final MaterialType materialType;
   final String materialLabel;
-  final double weightKg;
+  final int itemCount;
   final int? pointsAwarded;
   final DepositStatus status;
   final DateTime occurredAt;
@@ -55,7 +55,7 @@ class DepositTransaction {
       JsonReaders.string(json, 'materialType'),
     ),
     materialLabel: JsonReaders.string(json, 'materialLabel'),
-    weightKg: JsonReaders.number(json, 'weightKg'),
+    itemCount: JsonReaders.integer(json, 'itemCount'),
     pointsAwarded: json['pointsAwarded'] == null
         ? null
         : JsonReaders.integer(json, 'pointsAwarded'),
@@ -74,7 +74,7 @@ class DepositTransaction {
     'binLocation': binLocation,
     'materialType': materialType.wireValue,
     'materialLabel': materialLabel,
-    'weightKg': weightKg,
+    'itemCount': itemCount,
     'pointsAwarded': pointsAwarded,
     'status': status.wireValue,
     'occurredAt': occurredAt.toIso8601String(),

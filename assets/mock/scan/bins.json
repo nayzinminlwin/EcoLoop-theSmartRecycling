@@ -1,0 +1,14 @@
+{
+  "demoQrPayload": "ecoloop://bin/BIN-004",
+  "items": [
+    {
+      "id": "BIN-004",
+      "locationName": "Central Market",
+      "locationDetail": "North entrance, level 1",
+      "capacityPercent": 65,
+      "acceptedMaterials": ["plastic", "aluminium", "paper"],
+      "isOnline": true,
+      "lastUpdatedAt": "2024-05-20T10:55:00+08:00"
+    }
+  ]
+}

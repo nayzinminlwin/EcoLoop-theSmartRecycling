@@ -6,6 +6,7 @@ import 'package:eco_loop/core/data/json_readers.dart';
 import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 
 import '../domain/models/wallet_snapshot.dart';
 import '../domain/repositories/wallet_repository.dart';
@@ -15,13 +16,16 @@ class MockWalletRepository implements WalletRepository {
     MockDataStore? store,
     MockApi? api,
     MockSeedLoader? loader,
+    AppClock? clock,
   }) : _store = store,
        _api = api ?? MockApi(),
-       _loader = loader ?? const MockSeedLoader();
+       _loader = loader ?? const MockSeedLoader(),
+       _clock = clock ?? AppClock();
 
   final MockDataStore? _store;
   final MockApi _api;
   final MockSeedLoader _loader;
+  final AppClock _clock;
 
   Future<WalletSnapshot> _readWallet() async {
     final envelope = _store == null
@@ -35,9 +39,16 @@ class MockWalletRepository implements WalletRepository {
     final document = WalletDocument.fromJson(
       JsonReaders.map(envelope['wallet'], 'wallet'),
     );
-    final costs = (envelope['rewardCosts'] as List).whereType<num>().map(
-      (e) => e.toInt(),
-    );
+    final catalog = await _loader.loadItems('assets/mock/rewards/catalog.json');
+    final costs = catalog
+        .where((item) => item['isActive'] == true)
+        .where((item) {
+          final expiry = item['expiresAt'];
+          return expiry is String && DateTime.parse(expiry).isAfter(_clock.now);
+        })
+        .map((item) => item['pointsCost'])
+        .whereType<num>()
+        .map((e) => e.toInt());
     int? next;
     for (final cost in costs) {
       if (cost > document.balance) {

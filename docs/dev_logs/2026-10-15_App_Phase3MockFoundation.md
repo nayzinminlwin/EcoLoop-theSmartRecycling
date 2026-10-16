@@ -36,9 +36,13 @@ and recycling activity contracts required by later resident screens.
   streams.
 - The demo clock uses 20 May 2024 at 11:00 with the documented +08:00 fixture
   interpretation. Dart `DateTime` values preserve the parsed instant.
-- The fixture contains twelve verified deposits totaling 3.2 kg, one review
-  record with nullable points, and one rejected record with zero points.
-- No intentional deviations from Phase 3 contracts.
+- The fixture contains twelve verified deposits totaling 26 pcs and 150 points.
+  Its 1.04 kg impact is derived at read time from the fixed material
+  conversion table; weight is not stored on transaction records. It also has
+  one review record with nullable points and one rejected record with zero
+  points.
+- The original implementation used weight-based transaction fixtures and has
+  been refactored to the locked count-based Phase 3 contracts.
 
 ## 5. Phase 3 Deliverables
 
@@ -46,9 +50,9 @@ and recycling activity contracts required by later resident screens.
 |-------------|------------|-------------|
 | Typed JSON/domain contracts | ✅ | Account, wallet, material, transaction, filter, summary, and failure types. |
 | Stateful async mock foundation | ✅ | Delayed reads/writes, scenarios, fixture loader, transactional store, and streams. |
-| Canonical fixtures | ✅ | Metadata, profile, wallet envelope, and resident activity records. |
+| Canonical fixtures | ✅ | Metadata, profile, wallet envelope, and count-based resident activity records. |
 | Repository/provider seams | ✅ | Account, wallet, and activity interfaces, mock implementations, and Riverpod providers. |
-| Focused tests | ✅ | Serialization, fixture integrity, filtering, failure/retry, empty activity, and rollback coverage. |
+| Focused tests | ✅ | Serialization, count/derived-weight fixture integrity, filtering, failure/retry, empty activity, and rollback coverage. |
 | Analyzer and focused test gate | ✅ | `flutter analyze` and Phase 3 tests pass. |
 
 ## 6. Next Steps / Known Issues

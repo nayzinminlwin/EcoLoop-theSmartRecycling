@@ -38,4 +38,11 @@ abstract final class AppRoutes {
   static const notificationPreferencesName = 'notificationPreferences';
 
   static const bootstrap = root;
+
+  static String scanBinPath(String id) => '/scan/sessions/$id/bin';
+  static String scanReadyPath(String id) => '/scan/sessions/$id/ready';
+  static String scanDetectedPath(String id) => '/scan/sessions/$id/detected';
+  static String scanProcessingPath(String id) =>
+      '/scan/sessions/$id/processing';
+  static String scanResultPath(String id) => '/scan/sessions/$id/result';
 }

@@ -116,6 +116,12 @@ For each task:
 4. **Verify** the implementation builds and behaves as expected per the phase checklist.
 5. **Document** meaningful development work in `docs/dev_logs/`.
 6. **Commit Changes**:
+   - Commit the completed phase before starting any subsequent phase. If a
+     request contains multiple phases, keep each phase in its own commit when
+     the file boundaries allow it; put only inseparable cross-phase integration
+     in a final commit.
+   - Commit every request and code edit before reporting completion unless the
+     moderator explicitly says not to commit or manually stops the process.
    - Run `gh issue list --repo nayzinminlwin/EcoLoop-theSmartRecycling` to list open issues.
    - If your current update relates to any open issue, extract the issue ID (e.g., `#3`) and a short code from the issue title.
    - Format your commit message strictly as: `#[issueID] [titleCode] : [your commit message]` (e.g., `#3 P1 : Bootstrap and AppTheme implemented.`).
