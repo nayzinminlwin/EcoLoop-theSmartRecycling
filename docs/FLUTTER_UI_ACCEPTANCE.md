@@ -28,8 +28,8 @@
   resident/reward references, date ordering, nullable review/rejection values,
   opening wallet (245), 12 verified deposits, 26 verified items, and 1.04 kg.
 - `integration_test/resident_journey_test.dart` covers Home, guide, all scan
-  stages, verified result, wallet refresh, Settings, and Profile on a real
-  Flutter device.
+  stages, verified result, wallet refresh, Settings, and Profile when run on a
+  real Flutter device.
 - Existing feature tests cover review/rejection projections, one-shot read
   retry, idempotent scan completion, redemption atomicity, voucher states,
   profile validation, and signed-out routing.
@@ -45,9 +45,11 @@ flutter build web
 flutter test integration_test/resident_journey_test.dart -d <available-device-id>
 ```
 
-In this Phase 10 execution, the unit/widget suite and web build are the
-offline checks. A device target must be supplied before the integration test
-can be marked executed; no unavailable device is treated as a pass.
+Phase 10 offline results: `flutter analyze` passed, `flutter test` passed all
+44 tests, and `flutter build web` succeeded. A device target must be supplied
+before the integration test can be marked executed; no unavailable device is
+treated as a pass. Windows desktop support is not configured and Flutter
+integration tests do not support the available Chrome web target.
 
 ## Visual review record
 

@@ -286,6 +286,8 @@ Detailed implementation notes are recorded in
 - Added [`docs/FLUTTER_MOCK_CONTRACTS.md`](FLUTTER_MOCK_CONTRACTS.md) with
   actual JSON contracts, repository seams, latency/scenario behavior, and the
   Firebase handoff boundary.
+- Added the required development log at
+  [`docs/dev_logs/2026-10-16_App_Phase10ResidentAcceptanceAndHandoff.md`](dev_logs/2026-10-16_App_Phase10ResidentAcceptanceAndHandoff.md).
 - Added one-shot classification, profile-save, and redemption write-failure
   controls to the mock API so retry acceptance can be exercised with injected
   repository scenarios.
@@ -295,8 +297,10 @@ Detailed implementation notes are recorded in
 ### Verification
 
 - `flutter analyze` passes.
-- `flutter test` passes, including the new fixture-integrity test.
+- `flutter test` passes all 44 tests, including the new fixture-integrity test.
 - `flutter build web` succeeds as the offline build check for this phase.
+- `dart format --output=none --set-exit-if-changed lib test integration_test`
+  passes.
 - `flutter test integration_test/resident_journey_test.dart -d <device-id>`
   requires an available emulator or physical device; no device target was
   available in this workspace, so this is recorded as pending rather than
