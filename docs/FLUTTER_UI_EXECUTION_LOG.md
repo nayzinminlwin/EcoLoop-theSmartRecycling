@@ -154,4 +154,4 @@
   had no active Flutter app; hot restart therefore could not connect.
 
 Detailed implementation notes are recorded in
-`docs/dev_logs/phase_5_recycling_guide.md`.
+`docs/dev_logs/2026-10-16_App_Phase5RecyclingGuide.md`.
