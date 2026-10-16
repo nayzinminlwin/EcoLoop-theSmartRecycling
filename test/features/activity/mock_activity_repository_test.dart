@@ -20,11 +20,19 @@ Future<MockActivityRepository> createRepository({MockApi? api}) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('fixture has twelve verified deposits and 3.2 kg', () async {
+  test('fixture has twelve verified deposits and derived 1.04 kg', () async {
     final repository = await createRepository();
     final summary = await repository.getSummary();
     expect(summary.verifiedDepositCount, 12);
-    expect(summary.verifiedWeightKg, closeTo(3.2, 0.0001));
+    expect(summary.verifiedWeightKg, closeTo(1.04, 0.0001));
+    final verified = await repository.getDeposits(
+      filter: const DepositFilter(status: DepositStatus.verified),
+    );
+    expect(verified.fold<int>(0, (sum, item) => sum + item.itemCount), 26);
+    expect(
+      verified.fold<int>(0, (sum, item) => sum + (item.pointsAwarded ?? 0)),
+      150,
+    );
     final review = await repository.getDeposits(
       filter: const DepositFilter(status: DepositStatus.review),
     );

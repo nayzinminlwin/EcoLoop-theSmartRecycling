@@ -5,4 +5,6 @@ abstract final class AppCopy {
   static const retry = 'Try again';
   static const cancel = 'Cancel';
   static const confirm = 'Confirm';
+  static const loadDashboardFailed = 'We could not load your dashboard.';
+  static const loadHistoryFailed = 'We could not load your recycling history.';
 }

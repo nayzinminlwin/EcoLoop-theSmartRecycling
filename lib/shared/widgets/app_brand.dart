@@ -18,10 +18,11 @@ class AppBrand extends StatelessWidget {
       SizedBox(width: compact ? AppSpacing.xs : AppSpacing.sm),
       Text(
         AppCopy.appName,
-        style: (compact
-                ? AppTypography.textTheme.titleMedium
-                : AppTypography.textTheme.headlineSmall)
-            ?.copyWith(fontWeight: FontWeight.w800),
+        style:
+            (compact
+                    ? AppTypography.textTheme.titleMedium
+                    : AppTypography.textTheme.headlineSmall)
+                ?.copyWith(fontWeight: FontWeight.w800),
       ),
     ],
   );

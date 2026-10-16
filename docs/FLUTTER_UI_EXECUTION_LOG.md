@@ -79,8 +79,9 @@
 - Added Firestore-ready account, wallet, material, deposit, filter, summary,
   auth projection, and application failure contracts with JSON round-trips.
 - Added canonical profile, wallet, metadata, and activity fixtures. The
-  activity fixture derives twelve verified deposits and 3.2 kg of verified
-  weight, with separate review and rejected records.
+  activity fixture contains twelve verified deposits totaling 26 pcs and 150
+  points; its 1.04 kg impact is derived from fixed material conversion
+  constants, with separate review and rejected records.
 - Added account, wallet, and activity repository seams plus Riverpod providers.
 
 ### Verification
@@ -91,3 +92,28 @@
   fixture integrity.
 - No Firebase SDK initialization, network calls, emulator connections, or
   protected Android configuration changes were introduced.
+
+## Phase 4 — Home dashboard and recycling history
+
+**Status:** Completed
+**Date:** 16 October 2026
+
+### Completed
+
+- Added repository-composed Home dashboard data with profile greeting,
+  wallet/reward progress, derived recycling impact, quick actions, scan CTA,
+  and the two newest activity records.
+- Added History with typed date/status filter state, inclusive custom-date
+  conversion to exclusive calendar boundaries, reset/cancel/apply behavior,
+  refresh/error/empty states, and stale-request protection.
+- Registered `/home` and `/history`, making Home the normal initial data route.
+- Added focused Home and History widget tests while preserving the mock-only
+  Firebase boundary.
+
+### Verification
+
+- `dart format --output=none --set-exit-if-changed lib test` passes.
+- `flutter analyze` passes with no issues.
+- `flutter test` passes all 21 tests.
+- `flutter build web` succeeds.
+- DTD hot-restart was attempted; no Flutter app was connected in VS Code.

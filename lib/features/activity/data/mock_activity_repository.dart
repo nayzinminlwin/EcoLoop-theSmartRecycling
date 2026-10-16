@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
+import 'package:eco_loop/core/domain/material_weight_constants.dart';
 
 import '../domain/models/deposit_filter.dart';
 import '../domain/models/deposit_transaction.dart';
@@ -83,7 +84,12 @@ class MockActivityRepository implements ActivityRepository {
       verifiedDepositCount: verified.length,
       verifiedWeightKg: verified.fold<double>(
         0,
-        (sum, item) => sum + item.weightKg,
+        (sum, item) =>
+            sum +
+            MaterialWeightConstants.getWeightKg(
+              item.materialType,
+              item.itemCount,
+            ),
       ),
     );
   }

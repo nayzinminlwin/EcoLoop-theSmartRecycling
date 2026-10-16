@@ -22,8 +22,6 @@ class AppFilterChip<T> extends StatelessWidget {
     onSelected: onSelected,
     showCheckmark: false,
     selectedColor: AppColors.sage,
-    side: BorderSide(
-      color: selected ? AppColors.primary : AppColors.border,
-    ),
+    side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
   );
 }

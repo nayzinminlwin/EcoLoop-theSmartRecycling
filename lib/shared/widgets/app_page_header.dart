@@ -37,15 +37,19 @@ class AppPageHeader extends StatelessWidget implements PreferredSizeWidget {
         if (eyebrow != null)
           Text(
             eyebrow!,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.muted,
-            ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: AppColors.muted),
           ),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
       ],
     ),
     actions: trailing == null
         ? null
-        : [Padding(padding: const EdgeInsets.only(right: AppSpacing.sm), child: trailing)],
+        : [
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: trailing,
+            ),
+          ],
   );
 }
