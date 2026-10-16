@@ -95,7 +95,7 @@ Preserve the resident layout, palette, hierarchy, rounded components, icon style
 |---|---|
 | `beginScan()` starts at step 1 and skips the visible scanner | Every new scan starts at `/scan`; an explicit simulated QR action finds a bin. |
 | `245` points paired with hardcoded “55 points” / `82%` | Compute progress against the next higher reward cost. Initial active costs are 100/200/350/500: 245 points means 105 remaining and 70% toward 350. |
-| Home stats are `12` / `3.2 kg`, but only three transactions exist | Seed 12 verified deposits totaling 3.2 kg plus one review record; derive both stats and recent activity from the same dataset. |
+| Home stats are `12` / `1.04 kg`, but only three transactions exist | Seed 12 verified deposits totaling 26 items and 1.04 kg derived from the fixed material conversion table, plus one review record; derive both stats and recent activity from the same dataset. |
 | Source avatar is `FR` on Home and `AN` in Settings for the same person | Derive initials consistently from `Faris Rezza`. |
 | Only the first reward redeems; other handlers are missing | Every eligible active reward can be redeemed through one consistent confirmation flow. |
 | Category badges, history filters, “View all” vouchers, and settings actions are inert | Provide working local filters, voucher routes, editable forms, and preference persistence. |
@@ -150,7 +150,7 @@ Within a feature, use `domain/models/`, `domain/repositories/`, `data/`, `presen
 ### Data and serialization rules
 
 1. All domain value/request/response models listed in the phases are immutable, have stable **String** IDs where relevant, and implement `fromJson`/`toJson`; stored documents also implement the SDK-free `fromMap`/`toMap` contract below. Add `copyWith` where updates require it. UI-only controller state and callback types do not need JSON serialization.
-2. JSON uses **camelCase** keys matching the field names below, ISO-8601 timestamp strings with an explicit offset/UTC, numeric weights in kilograms, integer points, and the explicit enum wire values listed below (lower camel case where multiword). Serialize nested models and enum values explicitly.
+2. JSON uses **camelCase** keys matching the field names below, ISO-8601 timestamp strings with an explicit offset/UTC, integer item counts, integer points, and the explicit enum wire values listed below (lower camel case where multiword). Weight is derived from item counts for summaries and presentation; it is not stored in transaction or result records. Serialize nested models and enum values explicitly.
 3. Never put formatted values such as `"+20"`, `"0.4 kg"`, `"Today, 10:42 AM"`, or badge colors into domain numeric/date/status fields. Display formatters create those strings and presentation maps statuses to theme tones.
 4. Define controlled handling for unknown enum values and malformed IDs/dates; repositories translate invalid fixture/service data into `AppFailure`, not a widget crash. Required IDs/numbers must not silently default to fabricated values.
 5. Presentation can contain ordinary structural widgets. Fixed interface labels/validation messages belong in `AppCopy`; user-facing **mock content and data-driven lists** come from repositories. Navigation destinations, enum-to-icon maps, and form field definitions are structural configuration, not fake API lists.
@@ -220,10 +220,10 @@ Baseline data:
 
 - Resident `RES-000842`: Faris Rezza, `rezza@example.com`; opening balance 245.
 - A wallet opening-balance fixture is authoritative for pre-demo earnings/spending. Do not reconstruct that historical balance from the abbreviated demo deposit history.
-- Twelve verified deposits total 3.2 kg, including the source's PET plastic 0.4 kg/+20 at BIN-004 today and aluminium 0.2 kg/+16 at BIN-002 on 18 May. The ten additional older verified records total 2.6 kg. One separate Paper 0.8 kg record at BIN-007 on 16 May is in review with no awarded points.
+- Twelve verified deposits total 26 pcs and 1.04 kg derived from the fixed material conversion table, including 2 pcs PET plastic/+10 at BIN-004 today and 2 pcs aluminium/+16 at BIN-002 on 18 May. One separate 4 pcs Paper record at BIN-007 on 16 May is in review with no awarded points.
 - BIN-004: Cedar Residence · Ground Floor, 65% capacity, accepts plastic/aluminium. Seed BIN-002 and BIN-007 references to match resident history; do not inherit inconsistent admin location text.
 - Catalog: Vending snack/100, RM5 café voucher/200, Meal voucher/350, RM10 shopping voucher/500. One available zero-cost RM3 Welcome voucher expiring 31 May.
-- Guide rates: plastic 50, aluminium 80, paper 25 points/kg. Glass is a guide material; do not invent a resident glass rate row absent from the source.
+- Guide rates: plastic 5, aluminium 8, paper 3 points/pc. Glass is a guide material; do not invent a resident glass rate row absent from the source.
 
 `MockScenario` must support at least these deterministic selections, injected through providers/tests or a debug `MOCK_SCENARIO` dart-define:
 
@@ -473,7 +473,7 @@ Modify `lib/app/bootstrap.dart`, `lib/app/providers/app_providers.dart`, `lib/co
 | `WalletSnapshot` | `residentId: String`, `balance: int`, `nextRewardCost: int?`, `updatedAt: DateTime`, `version: int`. Balance/version nonnegative; next cost is the next configured active cost strictly above balance, or null. |
 | `WalletDocument` | `residentId: String`, `balance: int`, `updatedAt: DateTime`, `version: int`; stored form omits computed `nextRewardCost`. Define in `wallet_snapshot.dart`. |
 | `DepositStatus` | Wire values `verified`, `review`, `rejected`, `unknown`; unknown receives no credit. |
-| `DepositTransaction` | `id: String`, `residentId: String`, `sessionId: String?`, `binId: String`, `binLocation: String`, `materialType: MaterialType`, `materialLabel: String`, `weightKg: double`, `pointsAwarded: int?`, `status: DepositStatus`, `occurredAt: DateTime`, `verifiedAt: DateTime?`. Review points are null, rejected points zero, verified points nonnegative. |
+| `DepositTransaction` | `id: String`, `residentId: String`, `sessionId: String?`, `binId: String`, `binLocation: String`, `materialType: MaterialType`, `materialLabel: String`, `itemCount: int`, `pointsAwarded: int?`, `status: DepositStatus`, `occurredAt: DateTime`, `verifiedAt: DateTime?`. Review points are null, rejected points zero, verified points nonnegative. |
 | `DepositFilter` | `from: DateTime?`, `toExclusive: DateTime?`, `status: DepositStatus?`. Null means unrestricted; reject an inverted date range. |
 | `RecyclingSummary` | `verifiedDepositCount: int`, `verifiedWeightKg: double`. Derived only from verified records belonging to the active resident. |
 
@@ -512,8 +512,8 @@ The store's transaction mechanism is internal infrastructure, not an alternate p
 
 ### Verification checklist
 
-- [ ] Round-trip profile, wallet, filter, summary, and nested/enum/date deposit JSON. Test nullable pending points, integer JSON weights accepted as doubles, malformed required data, and unknown status behavior.
-- [ ] Fixture integrity: 12 verified deposits, 3.2 kg verified total, one separate review record; opening balance 245 and next target 350.
+- [ ] Round-trip profile, wallet, filter, summary, and nested/enum/date deposit JSON. Test nullable pending points, integer JSON item counts, malformed required data, and unknown status behavior.
+- [ ] Fixture integrity: 12 verified deposits, 26 verified items, 1.04 kg derived total, one separate review record; opening balance 245 and next target 350.
 - [ ] Reads show a real asynchronous boundary; named read-failure-once then retry succeeds. `empty_activity` returns zero derived impact without crashing.
 - [ ] SDK-free ISO/native-date/Timestamp-parts conversions preserve instants; document round-trips validate string IDs and never persist AuthState, credentials or computed wallet fields.
 - [ ] Subscribe before/after a mock write: initial event is delayed, later wallet/profile/activity events match committed state and no event leaks after cancellation. Simulated auth-fixture UID/role changes emit correct state without Firebase; full sign-out/resume UI is verified in Phase 8.
@@ -569,7 +569,7 @@ Use `ResidentProfile`, `WalletSnapshot`, `DepositTransaction`, `DepositFilter`, 
 
 ### Verification checklist
 
-- [ ] Home shows Faris/FR, 245 points, computed 105 remaining/70%, 12 deposits and 3.2 kg from repository values.
+- [ ] Home shows Faris/FR, 245 points, computed 105 remaining/70%, 12 deposits and 1.04 kg derived from 26 verified items.
 - [ ] Changing injected fixture values changes the UI without modifying any widget. Empty activity and failed reads render intentional states.
 - [ ] Date/status/custom-range filters produce correct results, survive widget rebuilds, and handle rapid changes and Retry.
 - [ ] `flutter test test/features/home test/features/activity` passes; pump a bounded duration for loading spinners instead of settling an infinite animation.
@@ -614,7 +614,7 @@ Modify `lib/app/providers/app_providers.dart`, `lib/app/router/app_router.dart`,
 |---|---|
 | `RecyclingMaterial` | `id: String`, `type: MaterialType`, `title: String`, `preparationTip: String`, `iconKey: String`, `sortOrder: int` |
 | `RecyclingStep` | `id: String`, `order: int`, `instruction: String` |
-| `MaterialRate` | `materialType: MaterialType`, `displayName: String`, `pointsPerKg: int`, `exampleWeightKg: double`, `eligible: bool`; derive example points with one documented rounding rule. |
+| `MaterialRate` | `materialType: MaterialType`, `displayName: String`, `pointsPerItem: int`, `eligible: bool`; rates are integer points per piece and have no weight fields. |
 | `RecyclingGuideContent` | `id: String`, `heroTitle: String`, `heroDescription: String`, `toDo: List<String>`, `toAvoid: List<String>`, `pointsDisclaimer: String`; flat stored content, default `id` is `guide-default`. |
 | `RecyclingGuide` | `id: String`, `heroTitle: String`, `heroDescription: String`, `materials: List<RecyclingMaterial>`, `toDo: List<String>`, `toAvoid: List<String>`, `steps: List<RecyclingStep>`, `rates: List<MaterialRate>`, `pointsDisclaimer: String` |
 
@@ -622,7 +622,7 @@ All models implement JSON round-trips; persisted content/material/step/rate reco
 
 ### Repository and mock method
 
-`RecyclingGuideRepository.getGuide()` → `Future<RecyclingGuide>`: delayed fixture read, stable material/step ordering, and normal read failure behavior. Seed plastic/glass/metal/paper cards, the three source do/avoid items per column, the five source instructions, and the plastic/aluminium/paper rate examples. Use examples 0.4/0.2/0.8 kg to yield 20/16/20 points. Round awarded fractional points down consistently in mock classification and guide examples.
+`RecyclingGuideRepository.getGuide()` → `Future<RecyclingGuide>`: delayed fixture read, stable material/step ordering, and normal read failure behavior. Seed plastic/glass/metal/paper cards, the three source do/avoid items per column, the five source instructions, and the plastic/aluminium/paper rate examples. Use count examples 2/2/4 pcs to yield 10/16/12 points. Weight examples in educational copy may show the fixed kg-per-piece conversion, but never determine points.
 
 Also declare `Stream<RecyclingGuide> watchGuide();` in that same interface and implement a delayed initial snapshot plus updates when mock guide/rate documents change. Use the stream for displayed guide content; retain the Future method for one-shot reads. No Firestore SDK listener is connected in this goal.
 
@@ -682,9 +682,9 @@ Modify `lib/app/providers/app_providers.dart`, `lib/core/mock/mock_seed_loader.d
 | `DepositOutcome` | Wire values `verified`, `review`, `rejected`, `unknown`; unknown never earns points. |
 | `ScanInstructions` | `id: String` equal to `default`, `scannerTitle: String`, `scannerDescription: String`, `binFoundTitle: String`, `readyTitle: String`, `readyDescription: String`, `itemDetectedTitle: String`, `itemDetectedDescription: String`, `processingTitle: String`, `processingDescription: String`, `verifiedTitle: String`, `reviewTitle: String`, `rejectedTitle: String`, `pointsTimingNotice: String` |
 | `DepositSession` | `id: String`, `residentId: String`, `binId: String`, `stage: ScanStage`, `createdAt: DateTime`, `updatedAt: DateTime`, `creationRequestId: String`, `resultId: String?`; result lives in a separate document. |
-| `DepositResult` | `id: String`, `sessionId: String`, `transactionId: String`, `outcome: DepositOutcome`, `materialType: MaterialType`, `materialLabel: String`, `weightKg: double`, `pointsAwarded: int?`, `classifiedAt: DateTime`, `explanation: String` |
+| `DepositResult` | `id: String`, `sessionId: String`, `transactionId: String`, `outcome: DepositOutcome`, `materialType: MaterialType`, `materialLabel: String`, `itemCount: int`, `pointsAwarded: int?`, `classifiedAt: DateTime`, `explanation: String` |
 
-Keep current bin details in the canonical bin dataset and resolve them by `binId`; do not serialize widget illustrations into a session. Classification fixtures provide material/weight/outcome/explanation and simulated capacity increase. Verified points are calculated from the guide rate dataset, not copied from `"+20"` text. Session results and activity records must agree.
+Keep current bin details in the canonical bin dataset and resolve them by `binId`; do not serialize widget illustrations into a session. Classification fixtures provide material/itemCount/outcome/explanation and simulated capacity increase. Verified points are calculated as `itemCount × pointsPerItem` from the guide rate dataset, not copied from display text. Session results and activity records must agree.
 
 ### Repository interface and mock methods
 
@@ -714,9 +714,9 @@ Reactive signatures in the same `ScanRepository`: `Stream<SmartBin?> watchBin(St
 3. **Ready** `…/ready`: show instructions to insert items and press the physical red finish button; the local confirmation invokes `reportFinishPressed`.
 4. **Item detected** `…/detected`: show internal camera visual. Continue invokes `startVerification` and navigates to processing.
 5. **Identifying** `…/processing`: run `completeVerification` once per session via the controller. Animation represents a delayed operation, not a second balance mutation. Failure leaves a retryable processing session. Do not require a user to approve AI eligibility with the prototype's “Complete verification” shortcut.
-6. **Result** `…/result`: show verified/review/rejected outcome from `DepositResult`. Verified default is 0.4 kg PET plastic / +20. Review says no credit pending review; rejected shows no earned points. Back to home clears the active UI selection, not the stored history.
+6. **Result** `…/result`: show verified/review/rejected outcome from `DepositResult`. Verified default is 2 pcs PET plastic / +10 pts. Review says no credit pending review; rejected shows no earned points. Back to home clears the active UI selection, not the stored history.
 
-Atomic successful finalization creates exactly one activity record and result, updates bin capacity from 65% to 85% for the baseline fixture, and increments the wallet by 20 **only for verified eligibility**. For baseline verification, balance becomes 265, verified count 13, verified weight 3.6 kg. Review/rejection may create their corresponding activity record but do not increase verified impact or wallet. Never overwrite the unrelated opening history review record.
+Atomic successful finalization creates exactly one activity record and result, updates bin capacity from 65% to 85% for the baseline fixture, and increments the wallet by 10 **only for verified eligibility**. For baseline verification, balance becomes 255, verified count 13, verified item count 28, and verified weight 1.09 kg derived from the fixed conversion table. Review/rejection may create their corresponding activity record but do not increase verified impact or wallet. Never overwrite the unrelated opening history review record.
 
 Repeated finalization returns the previous result and must not apply capacity/points twice. Disable duplicate taps, enforce transitions in the repository, and guard concurrent calls at the store. Invalid step URLs redirect to the session's canonical current route; changing a URL cannot award points or skip states.
 
@@ -1029,7 +1029,7 @@ Modify `test/widget_test.dart`, `README.md`, and `docs/FLUTTER_UI_EXECUTION_LOG.
 
 ### Required acceptance journeys
 
-1. **Happy path:** start normal → Home (245) → guide → Home → scan every stage → verified result (+20) → Home (265, 13 verified, 3.6 kg) → History sees the new verified record → Rewards → redeem snack (165) → new voucher detail → Settings → update name → Home reflects name.
+1. **Happy path:** start normal → Home (245) → guide → Home → scan every stage → verified result (2 pcs, +10 pts) → Home (255, 13 verified, 1.09 kg) → History sees the new verified record → Rewards → redeem snack (155) → new voucher detail → Settings → update name → Home reflects name.
 2. **Review/rejection:** start a fresh overridden fixture for each outcome → complete scan → history displays actual outcome → wallet and verified impact remain unchanged.
 3. **Recoverability:** fail a named read once → Retry; fail classification/redemption/profile save once → preserve state → Retry → exactly one committed result.
 4. **Navigation:** direct link to voucher and settings detail; invalid/missing resource; Back from details; branch switching; unfinished scan cancellation; sign out → protected route blocked → Continue demo.

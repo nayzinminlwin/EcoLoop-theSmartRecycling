@@ -135,7 +135,7 @@ The final feature folders are `features/fleet/`, `features/operations/`, and `fe
 | Bin fill level | `SmartBin.capacityPercent: number` | `capacity`, `fillLevel`, formatted `"85%"` |
 | Metal material | `aluminium` | `metal`, `Metal`, `Aluminium` as enum values |
 | Deposit moderation outcome | `DepositTransaction.status: verified/review/rejected/unknown` | Persisting `Approved` or `Awaiting review` in that field |
-| Rewarded quantity | `pointsAwarded: number \| null`, `weightKg: number` | `"+20"`, `"Pending"`, `"0.4 kg"` |
+| Rewarded quantity | `pointsAwarded: number \| null`, `itemCount: number` | `"+10"`, `"Pending"`, `"2 pcs"` |
 | Resident identity | `ResidentProfile.fullName`, `email` | Invented `firstName`, `avatarInitials`, `username` fields |
 
 Additional admin-only records are explicitly defined in Phase 2. They reference shared IDs; they do not add fields to, extend, or replace the shared resident interfaces.
@@ -359,7 +359,7 @@ export interface WalletSnapshot {
 export interface DepositTransaction {
   id: string; residentId: string; sessionId: string | null;
   binId: string; binLocation: string; materialType: MaterialType;
-  materialLabel: string; weightKg: number; pointsAwarded: number | null;
+  materialLabel: string; itemCount: number; pointsAwarded: number | null;
   status: DepositStatus; occurredAt: ISODateTime; verifiedAt: ISODateTime | null;
 }
 export interface DepositFilter {
@@ -377,8 +377,8 @@ export interface RecyclingStep {
   id: string; order: number; instruction: string;
 }
 export interface MaterialRate {
-  materialType: MaterialType; displayName: string; pointsPerKg: number;
-  exampleWeightKg: number; eligible: boolean;
+  materialType: MaterialType; displayName: string; pointsPerItem: number;
+  eligible: boolean;
 }
 export interface RecyclingGuide {
   id: string; heroTitle: string; heroDescription: string;
@@ -409,7 +409,7 @@ export interface DepositSession {
 export interface DepositResult {
   id: string; sessionId: string; transactionId: string;
   outcome: DepositOutcome; materialType: MaterialType; materialLabel: string;
-  weightKg: number; pointsAwarded: number | null;
+  itemCount: number; pointsAwarded: number | null;
   classifiedAt: ISODateTime; explanation: string;
 }
 export interface RewardCategory {
@@ -568,6 +568,7 @@ export interface ResidentSnapshot {
   profile: ResidentProfile; wallet: WalletSnapshot;
   deposits: DepositTransaction[]; summary: RecyclingSummary;
 }
+
 export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt">;
 export type RewardInput = Omit<RewardDocument, "id">;
 export type SettingsInput = Pick<AdminSettings,
@@ -605,7 +606,7 @@ export type AdminDocumentRecords = Pick<AdminRecords,
   "AdminIdentity" | "ProgramSettingsDocument">;
 ```
 
-`DailyActivity.date` is a calendar `YYYY-MM-DD` label, not an instant. `Reward.residentRedemptionCount` and `WalletSnapshot.nextRewardCost` are computed read projections and absent from document writers. `AdminSettings` joins `ProgramSettingsDocument` with separate rate records; joined rows/receipts/dashboard/auth/session/request objects are not members of either document registry. Keep every declared shared field aligned with Flutter; future Firebase adapters cannot write read models wholesale.
+`DailyActivity.date` is a calendar `YYYY-MM-DD` label, not an instant. `MaterialMixEntry.weightKg` and `DashboardSummary.totalWeightKg` are read-time analytics projections calculated from each verified transaction's `itemCount` and the fixed system kg-per-piece conversion table. They are never stored on `DepositTransaction`, configured by Admin, or used in points calculations. `Reward.residentRedemptionCount` and `WalletSnapshot.nextRewardCost` are computed read projections and absent from document writers. `AdminSettings` joins `ProgramSettingsDocument` with separate rate records; joined rows/receipts/dashboard/auth/session/request objects are not members of either document registry. Keep every declared shared field aligned with Flutter; future Firebase adapters cannot write read models wholesale.
 
 #### C. JSON codec exports
 
@@ -628,7 +629,7 @@ export function decodeAdminDocument<K extends keyof AdminDocumentRecords>(kind: 
 export function encodeAdminDocument<K extends keyof AdminDocumentRecords>(kind: K, value: AdminDocumentRecords[K]): Record<string, unknown>;
 ```
 
-Rules: strict object keys; required nullable keys use `.nullable()`, not `.optional()`; finite nonnegative weights/points; integer points/counts/order/version, including `walletBalanceAfter` and `walletVersion`; 0–100 capacities/confidence; offset-aware datetime strings. Review deposits require null points/verification date, rejected deposits zero points/null verification date, verified deposits numeric points/verification date. Unknown shared material/status/outcome/voucher wire values normalize to `unknown`; unknown `ScanStage`/role/admin workflow values fail. Validate filter ordering, unique rates and string IDs; malformed fields must fail, never be fabricated.
+Rules: strict object keys; required nullable keys use `.nullable()`, not `.optional()`; finite nonnegative item counts/points; integer item counts, points, rates, order and version, including `walletBalanceAfter` and `walletVersion`; 0–100 capacities/confidence; offset-aware datetime strings. Review deposits require null points/verification date, rejected deposits zero points/null verification date, verified deposits numeric points/verification date. Unknown shared material/status/outcome/voucher wire values normalize to `unknown`; unknown `ScanStage`/role/admin workflow values fail. Validate filter ordering, unique rates and string IDs; malformed fields must fail, never be fabricated.
 
 `normalizeTimestamp` accepts an ISO instant, native Date or plain `{seconds: number, nanoseconds: number}` value with integer fields, and emits UTC ISO at millisecond precision. Document codecs normalize **declared instant fields only**, inject a missing declared ID from `documentId`, and reject a mismatching embedded ID. The ID field is `residentId` for WalletDocument/preferences/security, `materialType` for MaterialRate, `binId` for BinOperations, otherwise `id`; IDs stay strings, including Auth UIDs. SDK-free maps emit ISO strings now; real Timestamp/server-timestamp conversion stays inside future Firebase adapters. Validate nullable URL fields as null or HTTPS strings; reject file/reference objects and `gs://` values. AuthState signed-out/signed-in combinations must satisfy the shared invariant; never serialize credentials/claims as profile document data.
 
@@ -864,29 +865,29 @@ const binOperations: BinOperations[] = [
 const plasticToday: DepositTransaction = {
   id: "DEP-1088", residentId: "RES-000842", sessionId: null,
   binId: "BIN-004", binLocation: "Cedar Residence", materialType: "plastic",
-  materialLabel: "PET plastic", weightKg: 0.4, pointsAwarded: 20,
+  materialLabel: "PET plastic", itemCount: 4, pointsAwarded: 20,
   status: "verified", occurredAt: "2024-05-20T10:42:00+08:00",
   verifiedAt: "2024-05-20T10:43:00+08:00"
 };
 const olderPlastic: DepositTransaction = {
-  ...plasticToday, id: "DEP-1001", weightKg: 0.26, pointsAwarded: 13,
+  ...plasticToday, id: "DEP-1001", itemCount: 2, pointsAwarded: 10,
   occurredAt: "2024-05-15T09:00:00+08:00", verifiedAt: "2024-05-15T09:01:00+08:00"
 };
 const deposits: DepositTransaction[] = [
   plasticToday,
-  { ...plasticToday, id: "DEP-1086", binId: "BIN-002", binLocation: "Maple Lobby", materialType: "aluminium", materialLabel: "Aluminium", weightKg: 0.2, pointsAwarded: 16, occurredAt: "2024-05-18T16:16:00+08:00", verifiedAt: "2024-05-18T16:17:00+08:00" },
+  { ...plasticToday, id: "DEP-1086", binId: "BIN-002", binLocation: "Maple Lobby", materialType: "aluminium", materialLabel: "Aluminium", itemCount: 2, pointsAwarded: 16, occurredAt: "2024-05-18T16:16:00+08:00", verifiedAt: "2024-05-18T16:17:00+08:00" },
   olderPlastic,
-  { ...olderPlastic, id: "DEP-1002", occurredAt: "2024-05-14T09:00:00+08:00", verifiedAt: "2024-05-14T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1003", occurredAt: "2024-05-13T09:00:00+08:00", verifiedAt: "2024-05-13T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1004", occurredAt: "2024-05-12T09:00:00+08:00", verifiedAt: "2024-05-12T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1005", occurredAt: "2024-05-11T09:00:00+08:00", verifiedAt: "2024-05-11T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1006", occurredAt: "2024-05-10T09:00:00+08:00", verifiedAt: "2024-05-10T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1007", occurredAt: "2024-05-09T09:00:00+08:00", verifiedAt: "2024-05-09T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1008", occurredAt: "2024-05-08T09:00:00+08:00", verifiedAt: "2024-05-08T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1009", occurredAt: "2024-05-07T09:00:00+08:00", verifiedAt: "2024-05-07T09:01:00+08:00" },
-  { ...olderPlastic, id: "DEP-1010", occurredAt: "2024-05-06T09:00:00+08:00", verifiedAt: "2024-05-06T09:01:00+08:00" },
-  { ...plasticToday, id: "DEP-1087", binId: "BIN-007", binLocation: "Town Square", materialType: "paper", materialLabel: "Paper", weightKg: 0.8, pointsAwarded: null, status: "review", occurredAt: "2024-05-16T09:08:00+08:00", verifiedAt: null },
-  { ...plasticToday, id: "DEP-1081", residentId: "RES-000843", materialLabel: "Mixed plastic container", weightKg: 0.2, pointsAwarded: null, status: "review", occurredAt: "2024-05-20T09:46:00+08:00", verifiedAt: null }
+  { ...olderPlastic, id: "DEP-1002", materialType: "paper", materialLabel: "Paper", itemCount: 2, pointsAwarded: 6, occurredAt: "2024-05-14T09:00:00+08:00", verifiedAt: "2024-05-14T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1003", materialType: "glass", materialLabel: "Glass", itemCount: 1, pointsAwarded: 10, occurredAt: "2024-05-13T09:00:00+08:00", verifiedAt: "2024-05-13T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1004", materialType: "plastic", materialLabel: "PET plastic", itemCount: 2, pointsAwarded: 10, occurredAt: "2024-05-12T09:00:00+08:00", verifiedAt: "2024-05-12T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1005", materialType: "aluminium", materialLabel: "Aluminium", itemCount: 2, pointsAwarded: 16, occurredAt: "2024-05-11T09:00:00+08:00", verifiedAt: "2024-05-11T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1006", materialType: "paper", materialLabel: "Paper", itemCount: 2, pointsAwarded: 6, occurredAt: "2024-05-10T09:00:00+08:00", verifiedAt: "2024-05-10T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1007", materialType: "glass", materialLabel: "Glass", itemCount: 1, pointsAwarded: 10, occurredAt: "2024-05-09T09:00:00+08:00", verifiedAt: "2024-05-09T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1008", materialType: "plastic", materialLabel: "PET plastic", itemCount: 2, pointsAwarded: 10, occurredAt: "2024-05-08T09:00:00+08:00", verifiedAt: "2024-05-08T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1009", materialType: "aluminium", materialLabel: "Aluminium", itemCount: 2, pointsAwarded: 16, occurredAt: "2024-05-07T09:00:00+08:00", verifiedAt: "2024-05-07T09:01:00+08:00" },
+  { ...olderPlastic, id: "DEP-1010", materialType: "plastic", materialLabel: "PET plastic", itemCount: 4, pointsAwarded: 20, occurredAt: "2024-05-06T09:00:00+08:00", verifiedAt: "2024-05-06T09:01:00+08:00" },
+  { ...plasticToday, id: "DEP-1087", binId: "BIN-007", binLocation: "Town Square", materialType: "paper", materialLabel: "Paper", itemCount: 4, pointsAwarded: null, status: "review", occurredAt: "2024-05-16T09:08:00+08:00", verifiedAt: null },
+  { ...plasticToday, id: "DEP-1081", residentId: "RES-000843", materialLabel: "Mixed plastic container", itemCount: 2, pointsAwarded: null, status: "review", occurredAt: "2024-05-20T09:46:00+08:00", verifiedAt: null }
 ];
 const tickets: VerificationTicket[] = [
   { id: "REV-1087", transactionId: "DEP-1087", predictedMaterialType: "paper", predictedMaterialLabel: "Paper / mixed packaging", confidencePercent: 62, captureDescription: "Flattened drink carton", captureImageUrl: null, flag: "uncertain", status: "awaitingReview", reviewedAt: null, reviewedByAdminId: null },
@@ -918,10 +919,10 @@ const programSettings: ProgramSettingsDocument = {
   updatedAt: MOCK_NOW
 };
 const materialRates: MaterialRate[] = [
-    { materialType: "plastic", displayName: "Plastic", pointsPerKg: 50, exampleWeightKg: 0.4, eligible: true },
-    { materialType: "aluminium", displayName: "Aluminium", pointsPerKg: 80, exampleWeightKg: 0.2, eligible: true },
-    { materialType: "paper", displayName: "Paper", pointsPerKg: 25, exampleWeightKg: 0.8, eligible: true },
-    { materialType: "glass", displayName: "Glass", pointsPerKg: 40, exampleWeightKg: 0.5, eligible: true }
+    { materialType: "plastic", displayName: "Plastic", pointsPerItem: 5, eligible: true },
+    { materialType: "aluminium", displayName: "Aluminium", pointsPerItem: 8, eligible: true },
+    { materialType: "paper", displayName: "Paper", pointsPerItem: 3, eligible: true },
+    { materialType: "glass", displayName: "Glass", pointsPerItem: 10, eligible: true }
 ];
 const admin: AdminIdentity = { id: "ADM-001", fullName: "Jamie Lee", email: "admin@ecoloop.demo" };
 const adminSession: AdminSession = { id: "ADMIN-DEMO-001", adminId: "ADM-001", isSignedIn: false, startedAt: MOCK_NOW };
@@ -931,7 +932,7 @@ const redemptions: RewardRedemption[] = [];
 const decisionReceipts: Record<string, VerificationDecisionResult> = {};
 ```
 
-The second resident's review record preserves Faris's exact resident-plan baseline of **12 verified / 3.2 kg / one pending review / 245 opening points**. Seed locations favor the resident plan where Figma admin and resident examples conflict. Four active rewards match that plan; the fifth, draft tote, mirrors the admin-only draft example without entering the resident catalog. Admin settings contain a glass rate; the resident guide can keep its source-specific three-row projection using the same `MaterialRate` fields.
+The second resident's review record preserves Faris's exact resident-plan baseline of **12 verified / 26 pcs / 1.04 kg derived weight / one pending review / 245 opening points**. Seed locations favor the resident plan where Figma admin and resident examples conflict. Four active rewards match that plan; the fifth, draft tote, mirrors the admin-only draft example without entering the resident catalog. Admin settings contain points-per-item rates only; weight conversion remains an internal derived-summary concern.
 
 #### C. Mock semantics — `data/mockRepositories.ts`
 
@@ -953,7 +954,7 @@ Implement the following in this file, using private helpers rather than extra mo
 5. Bin search covers ID/locationName/locationDetail. `create` requires a unique nonblank string document ID with no `/`, nonblank location fields, integer capacity 0–100, at least one known accepted material and boolean online state. BIN-020 is a valid demo choice, not an enforced production ID pattern. Update preserves ID; validate with the shared document codec. Delete fails `conflict` for any deposit/alert reference; unreferenced-bin CRUD must work.
 6. New bins get `notScheduled` operations. When create/update/simulate reaches `programSettings.capacityAlertThreshold`, create exactly one active alert for that bin and set operations `pending`; do not duplicate an active alert. New alert IDs use `idFactory("capacityAlerts")`. A resolved historical alert is never reopened or overwritten.
 7. Alert lifecycle: active+pending/notScheduled → `schedule` → scheduled → `collect` → collected and capacity **10%** → `resolve` → resolved with `resolvedAt`. Wrong transitions fail `invalidTransition`; repeated actions cannot manufacture a second reset. Active alerts stay active after collection until explicit Resolve.
-8. `verification.get/list` and their watchers join ticket, transaction, resident and bin by IDs. Approve only an awaiting-review ticket with a review transaction, known accepted material and eligible configured rate. Calculate `Math.floor(weightKg * pointsPerKg)`; atomically update flat transaction classification/status/verifiedAt/points, ticket metadata and WalletDocument balance/version/updatedAt. After commit compose WalletSnapshot with its computed next reward cost; never store that projection in the wallet document.
+8. `verification.get/list` and their watchers join ticket, transaction, resident and bin by IDs. Approve only an awaiting-review ticket with a review transaction, known accepted material and eligible configured rate. Calculate `itemCount * pointsPerItem`; atomically update flat transaction classification/status/verifiedAt/points, ticket metadata and WalletDocument balance/version/updatedAt. After commit compose WalletSnapshot with its computed next reward cost; never store that projection in the wallet document.
 9. Reject sets transaction status `rejected`, points `0`, verifiedAt null, and ticket status `rejected`; wallet is unchanged. Same decision/idempotency key returns its stored receipt; using the key for a different ticket/decision or deciding an already finalized ticket with another key fails `conflict`. Neither repeated button clicks nor refreshes can double-credit. The seeded review deposits have null session IDs, so no invented session mutation is needed.
 10. Reward Create/Update validates every `RewardInput` field, known category, positive integer cost, future expiry relative to `MOCK_NOW`, max redemptions >=1, nonnegative sortOrder, valid art0–art3, nullable HTTPS `imageUrl` and nonblank title/merchant/description. New IDs use `idFactory("rewards")`; stored records are RewardDocument, never include `residentRedemptionCount`. Compose that field as 0 in admin views (there is no selected resident); resident adapters derive the owner's actual count. Delete fails for issued voucher/redemption references. Draft/Active maps to `isActive` only.
 11. Compute each returned WalletSnapshot's next higher active/unexpired reward cost from catalog documents, preserving stored wallet balance. Do not write computed nextRewardCost to WalletDocument or issue/consume a voucher when editing catalog records.
@@ -1003,10 +1004,10 @@ Until Phase 10, these contracts already work; Phase 10 audits and hardens them r
 Working directory: `apps/admin-web`.
 
 1. Extend `tests/contracts.test.ts` with fresh factories and `await auth.login(MOCK_LOGIN)` for business tests; use zero delays in most tests and one short-delay test proving async behavior.
-2. Assert baseline dashboard: **5 bins, 0 active alerts, 12 verified deposits, 166 issued points, 3.2 kg**; use tolerance for floating-point weights. Assert Faris wallet 245 and next target 350.
+2. Assert baseline dashboard: **5 bins, 0 active alerts, 12 verified deposits, 150 issued points, 1.04 kg derived weight**; use tolerance for floating-point weights. Assert Faris wallet 245 and next target 350.
 3. Create BIN-020 → read/list it → update location/capacity → delete it; assert mutation counts and no orphan operations record. Deleting referenced BIN-004 must fail without changing state.
 4. Simulate BIN-004 to 85 twice → one alert → schedule → collect to 10 → resolve; assert active/resolved counts and reject skipped transitions.
-5. Approve REV-1087 → Faris 265, 13 verified, 4.0 kg; repeat same key → still 265. Reject REV-1081 → Aina remains 120. This is an admin approval of the existing **0.8 kg** pending deposit, not the resident scan's new 0.4 kg deposit.
+5. Approve REV-1087 → Faris 257, 13 verified, 1.24 kg derived weight; repeat same key → still 257. Reject REV-1081 → Aina remains 120. This is an admin approval of the existing **4 pcs** pending deposit, not the resident scan's new 2 pcs deposit.
 6. Test reward create/edit/activate/delete, thresholds, AND filtering/sort/pagination, named failure once/rollback, invalid settings, malformed records, and independent factories. Include a fresh-state paper-rate-30 approval test expecting 24 awarded/269 wallet; test failed writes do not emit revision.
 7. Run `npm run check:tests`, `npm run check -- src/app/services.ts`, `npm test`, `npm run lint`, and `npm run build` separately. The explicit services check covers the not-yet-mounted hook module. Start the dev server and confirm the bootstrap still renders; business pages are deliberately not introduced yet.
 8. Subscribe to every watch API: verify delayed initial snapshot, post-commit updates, filter isolation, no rollback/replay event, no events after unsubscribe and recovery after a named initial failure. Test mocked user-role/UID changes deny admin access and clear private state; no Firebase/network calls occur.
@@ -1425,7 +1426,7 @@ Validate the same rules as the repository. Save calls `bins.create(form.id, inpu
 Working directory: `apps/admin-web`; run commands after each screen, not only after the pair.
 
 1. Run `npm run lint`, `npm run check:tests`, `npm test`, and `npm run build` separately.
-2. Login → Overview: confirm baseline 5/0/12/166, material total 3.2 kg, seven real dates, and attention bins from data. Simulate 85 → count/badge/banner update without reload.
+2. Login → Overview: confirm baseline 5/0/12/150, material total 1.04 kg derived from item counts, seven real dates, and attention bins from data. Simulate 85 → count/badge/banner update without reload.
 3. Bins: search Cedar, apply capacity+collection+online filters together, sort capacity numerically, switch page size and verify URL/direct refresh semantics.
 4. Create BIN-020 with valid data → appears; edit its location → persists across routes; delete → disappears. Try duplicate BIN-004, negative/101 capacity, no materials, and deleting BIN-004; all must show errors without partial changes.
 5. Check table scrolling, charts and CRUD modal at 390/800/1440 widths; verify loading, no-match empty state, busy buttons and error display.
@@ -1520,7 +1521,7 @@ Working directory: `apps/admin-web`; check after each screen.
 
 1. Run `npm run lint`, `npm run check:tests`, `npm test`, and `npm run build` separately.
 2. Fresh session: simulate BIN-004 85 → alert → Schedule → confirm Collect (10%) → Resolve. Active count becomes 0, resolved 1; Overview/Bins/header agree.
-3. Verification: both queue items are selectable; approve REV-1087, verify +20 and finalized metadata. Navigate away/back; it must not credit twice. Reject REV-1081; its points are 0 and no wallet credit is reported.
+3. Verification: both queue items are selectable; approve REV-1087, verify 4 pcs paper and +12 pts with finalized metadata. Navigate away/back; it must not credit twice. Reject REV-1081; its points are 0 and no wallet credit is reported.
 4. Change queue status/search, exercise pagination, open `/verification?ticketId=REV-1087`, and test unknown IDs; selected details must not depend on row indexes.
 5. On a fresh seed, check mobile list/detail access at 390px, all confirmation keyboard behavior, empty queues after decisions, and source-style workflow/review layouts at desktop widths.
 6. Observe the selected UID's wallet/snapshot in repository tests while deciding: only committed credit emits, retry cannot double-credit, unsubscribe stops events, and all URL/UID fields stay string/null without Firebase calls.
@@ -1598,7 +1599,7 @@ type SettingsFormErrors = Partial<Record<"capacityAlertThreshold" | "acceptedMat
   "plastic" | "aluminium" | "paper" | "glass", string>>;
 ```
 
-The rate section iterates `AdminSettings.materialRates` in repository order, preserving `materialType`, `displayName`, `exampleWeightKg` and mapping edited integer strings to `pointsPerKg`; `eligible` matches selected accepted materials. Threshold options 75/80/85 are structural enum choices. Save calls `settings.update(input: SettingsInput)`; input does **not** include `id` or `updatedAt`.
+The rate section iterates `AdminSettings.materialRates` in repository order, preserving `materialType` and `displayName` and mapping edited integer strings to `pointsPerItem`; `eligible` matches selected accepted materials. Threshold options 75/80/85 are structural enum choices. Save calls `settings.update(input: SettingsInput)`; input does **not** include `id` or `updatedAt`.
 
 Validate accepted materials nonempty, exact four distinct rates, integer 0–1000 values and valid threshold before submission. Disable repeated saves, show field-level errors and a source-style success banner; failed writes preserve the draft. Cancel restores the last successfully fetched/saved state.
 
@@ -1623,7 +1624,7 @@ Working directory: `apps/admin-web`; check after each screen.
 1. Run `npm run lint`, `npm run check:tests`, `npm test`, and `npm run build` separately.
 2. Create a valid draft reward, filter Draft, edit its title/cost/date, activate, find it under Active, delete and confirm removal. Validate blank title, noninteger/negative cost, unknown category and past expiry failures.
 3. Settings: change threshold to 75, toggle material acceptance and change paper rate; Save, navigate away/back, confirm saved values. Cancel a draft and exercise dirty-navigation Stay/Discard.
-4. Set paper rate to 30 on fresh state, approve existing REV-1087; award must be floor(0.8×30)=24 and Faris wallet 269, while older credited transactions stay unchanged. Verify the screen result here; the repository variant was required in Phase 3 and the browser variant is required in Phase 10. Do not edit an unlisted test file in this phase.
+4. Set paper rate to 10 on fresh state, approve existing REV-1087; award must be `4 pcs × 10 pts = 40` and Faris wallet 285, while older credited transactions stay unchanged. Verify the screen result here; the repository variant was required in Phase 3 and the browser variant is required in Phase 10. Do not edit an unlisted test file in this phase.
 5. Verify all six routes now render implemented screens, no PendingFeaturePage references remain, and forms/table actions fit 390/800/1440 widths.
 6. Confirm saved mock rule/catalog changes emit across observable readers, stored rows stay flat, computed counts/nextRewardCost are omitted, and imageUrl is null/HTTPS text without live uploads or SDK initialization.
 
@@ -1704,9 +1705,9 @@ Required test cases:
 1. **Entry/routes:** protected URL → Login → demo-fill → requested destination; all six routes and breadcrumbs; unknown route recovery; Logout blocks access.
 2. **Fleet CRUD:** create BIN-020 → search + capacity/online filters → numeric sort → edit → delete; invalid form and referenced-delete conflict preserve data.
 3. **Alert lifecycle:** simulate 85 → sidebar/header/dashboard count 1 → schedule → collect resets 10 → resolve → count 0; revisiting does not recreate/reset again.
-4. **Moderation:** select REV-1087 and approve once → verified result/+20; navigate/reopen and verify no repeat action. Reject REV-1081 → zero credit; queue tabs reflect decisions.
+4. **Moderation:** select REV-1087 and approve once → verified result/4 pcs/+12 pts; navigate/reopen and verify no repeat action. Reject REV-1081 → zero credit; queue tabs reflect decisions.
 5. **Catalog CRUD:** create/edit/activate/delete draft; filter/search/sort/page-size state follows URL; errors retain form values.
-6. **Settings effect:** paper rate 30 → Save → approve REV-1087 → +24; dirty form Stay/Discard; saved values survive route changes.
+6. **Settings effect:** paper rate 10 → Save → approve REV-1087 → +40; dirty form Stay/Discard; saved values survive route changes.
 7. **Responsive:** 390×844 drawer open/close, table local horizontal scroll, accessible review queue, modal focus and keyboard dismissal.
 
 Unit-level named read/write failure, rollback, idempotency, all watch APIs/unsubscribe behavior, UID/claim transitions, flat document maps, Timestamp conversion and URL/shared JSON checks remain in `tests/contracts.test.ts` from Phases 2–3. UI failure states must also be inspected by `services.controls.failNext` only in a temporary debugger expression while paused in services; simulate claim changes similarly with `services.controls.setAuthState`. Do not add production test buttons, globals or endpoints.
