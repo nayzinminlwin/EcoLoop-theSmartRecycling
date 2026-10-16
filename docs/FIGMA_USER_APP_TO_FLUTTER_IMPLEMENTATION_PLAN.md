@@ -51,6 +51,11 @@ The Firebase project ID, web app config and Storage bucket are not specified by 
 4. Use widget-test hosts with repository/provider overrides to exercise an individual feature before all destinations exist. Full navigation coverage is the Phase 9 gate.
 5. Complete the phase's checklist and the common verification gate before advancing. Record any intentional visual deviation in the handoff document introduced in Phase 1.
 6. Do not silently treat a placeholder control in the React prototype as completed functionality. Implement the bounded local behavior specified below.
+7. Commit the completed phase before starting the next phase. When one request
+   spans multiple phases, preserve separate phase commits where file
+   boundaries allow and place only inseparable cross-phase integration in a
+   final commit. Commit every request and code edit unless the moderator
+   explicitly says not to commit or manually stops the process.
 
 All paths below are **repository-root-relative**. Source line ranges are discovery aids; resolve by symbol if lines move. “Create” means create when absent and reconcile with existing work when present. Model field notation uses `?` for nullable fields and `List<T>` for immutable collections; it is a contract description, not implementation code.
 

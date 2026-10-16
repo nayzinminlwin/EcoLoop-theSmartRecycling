@@ -1,4 +1,9 @@
-enum MockScenario { normal, readFailureOnce, emptyActivity }
+enum MockScenario {
+  normal,
+  readFailureOnce,
+  emptyActivity,
+  redemptionFailureOnce,
+}
 
 class MockScenarioState {
   MockScenarioState({this.scenario = MockScenario.normal});

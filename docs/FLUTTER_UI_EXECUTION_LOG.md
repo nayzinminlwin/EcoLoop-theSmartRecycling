@@ -155,3 +155,69 @@
 
 Detailed implementation notes are recorded in
 `docs/dev_logs/2026-10-16_App_Phase5RecyclingGuide.md`.
+
+## Phase 7 — Rewards catalog, redemption, and owned vouchers
+
+**Status:** Completed
+**Date:** 16 October 2026
+
+### Completed
+
+- Added typed reward categories, catalog documents/read models, resident
+  vouchers, redemptions, and composed redemption receipts.
+- Added a stateful mock rewards repository with simulated delays, injected demo
+  clock expiry checks, resident limits, atomic wallet debits, rollback-safe
+  validation, idempotency, and live catalog/voucher streams.
+- Added the responsive rewards marketplace with category chips, confirmation
+  dialog, retryable failure copy, success feedback, and wallet/catalog/voucher
+  invalidation after redemption.
+- Added voucher list/detail routes with typed status filters and clipboard
+  feedback; no voucher is consumed by opening or copying it.
+- Added reward fixtures and registered `/rewards`, `/vouchers`, and
+  `/vouchers/:voucherId`.
+- Follow-up audit wired the repository to the declared JSON fixtures, scoped
+  voucher reads to the active resident, normalized unknown filters, and made
+  wallet reward thresholds derive from the active catalog.
+
+### Verification
+
+- `flutter analyze` passes with no issues.
+- `flutter test` passes all 34 tests, including the focused rewards suite.
+- `flutter build web` succeeds.
+- DTD connection was available, but no Flutter application was connected; the
+  required hot restart therefore could not run.
+- No Firebase initialization, network calls, Storage access, or protected
+  Android configuration changes were introduced.
+
+Detailed implementation notes are recorded in
+`docs/dev_logs/2026-10-16_App_Phase7Rewards.md`.
+
+## Phase 8 — Settings, editable account forms, notifications, and demo sign-out
+
+**Status:** Completed
+**Date:** 16 October 2026
+
+### Completed
+
+- Added JSON contracts for profile updates, account security, password
+  changes, notification preferences, and the local demo session.
+- Extended the stateful mock account repository with delayed profile/security/
+  preference/session reads and writes, validation, update streams, sign-out,
+  and resume behavior. No Firebase SDK or network calls were introduced.
+- Added Settings, Profile, Account security, Notifications, and signed-out
+  screens with editable local state, validation feedback, confirmation, and
+  retry-safe asynchronous writes.
+- Registered the Phase 8 settings and signed-out routes and connected the
+  account repository to the shared mock data store so profile edits remain
+  visible to other resident surfaces.
+- Added security, notification, and demo-session fixtures plus focused
+  repository and settings widget tests.
+
+### Verification
+
+- `flutter analyze` passes with no issues.
+- `flutter test test/features/account` passes all 7 tests.
+- `flutter test` passes all 39 tests.
+- `flutter build web` succeeds.
+- DTD was connected, but no Flutter app was active in VS Code; the required
+  hot restart could not connect to an app.

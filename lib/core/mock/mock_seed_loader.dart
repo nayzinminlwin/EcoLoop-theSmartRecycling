@@ -16,4 +16,6 @@ class MockSeedLoader {
     final envelope = await loadMap(path);
     return JsonReaders.maps(envelope, 'items');
   }
+
+  Future<List<JsonMap>> loadRewardDocuments(String path) => loadItems(path);
 }

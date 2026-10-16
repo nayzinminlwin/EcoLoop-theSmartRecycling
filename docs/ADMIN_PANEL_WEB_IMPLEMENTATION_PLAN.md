@@ -105,6 +105,11 @@ Firestore-specific Timestamp conversion belongs to adapters in Goals 3–4. Goal
 8. Call React hooks unconditionally before loading/error early returns. Conditional resource reads belong in a private child component mounted only when its required ID is known, not in a conditionally called hook.
 9. Copy interface/type/seed/config blocks as written. Function/class signature blocks define the exact public API: implement their bodies and variable initializers in the assigned file; do not paste bodyless declarations into runtime `.ts`/`.tsx` modules or invent additional exports.
 10. The Firebase/mock-only boundary and protected Android files above apply in **every** phase. Do not add Firebase config/SDK files to a target list, increase a phase past five files, rename shared contracts, or invent observable props not declared below.
+11. Commit each completed phase before beginning the next one. If a request spans
+    multiple phases, preserve separate phase commits when file boundaries allow
+    it and place only inseparable integration in a final commit. Commit every
+    request and code/documentation edit unless the moderator explicitly says not
+    to commit or manually stops the process.
 
 ### Final file map and per-phase budget
 
