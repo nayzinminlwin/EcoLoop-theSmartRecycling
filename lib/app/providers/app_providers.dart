@@ -17,7 +17,9 @@ import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final appRouterProvider = Provider((ref) => createAppRouter());
+final appRouterProvider = Provider(
+  (ref) => createAppRouter(ref.watch(accountRepositoryProvider)),
+);
 final appClockProvider = Provider<AppClock>((ref) => AppClock());
 final mockDataStoreProvider = Provider<MockDataStore>(
   (ref) => MockDataStore(

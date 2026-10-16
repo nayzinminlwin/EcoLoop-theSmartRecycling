@@ -192,6 +192,41 @@ Detailed implementation notes are recorded in
 Detailed implementation notes are recorded in
 `docs/dev_logs/2026-10-16_App_Phase7Rewards.md`.
 
+## Phase 9 — Centralized navigation, resident shell, and cross-feature state integration
+
+**Status:** Completed
+**Date:** 16 October 2026
+
+### Completed
+
+- Replaced the flat route list with one guarded `StatefulShellRoute.indexedStack`
+  containing Home, Scan, and Settings branch navigators.
+- Added the source-style resident top bar and raised circular Scan affordance,
+  with branch selection preserving nested branch stacks and a safe-area-aware
+  78 logical pixel navigation surface.
+- Added centralized opaque-ID, calendar-date, history-status, and voucher-status
+  parsing with malformed query normalization and recoverable unknown-route UI.
+- Connected mock auth observation to synchronous router guards: resident paths
+  require the signed-in `user` projection, signed-out sessions are isolated,
+  and Continue demo resumes the resident shell. No admin route or role switch
+  was introduced.
+- Added router and shell widget coverage for all named route families, query
+  conversion, branch visibility, and branch switching.
+
+### Verification
+
+- `dart format --output=none --set-exit-if-changed lib/app test/app` passes.
+- `flutter analyze` passes with no issues.
+- `flutter test test/app`, focused scan/bootstrap tests, and `flutter test`
+  pass.
+- `flutter build web` succeeds.
+- Protected Android SHA-256 checksums remain unchanged:
+  `13A662F4ADCAB37EEF0CD7F5FE61B5144EDF2B252EEF99DA7F2E9CCE8C542092`,
+  `0B3842D2BEE62AE3992642D449FAB99B69006A39606D6942FAECEDD3F5169FA6`,
+  `41D6F3137C47DB4A18D827EBBDBA4E1757C8A82102485080D893E35270840C92`.
+- Dart SDK hot reload/hot restart was unavailable because no Dart/Flutter MCP
+  client was connected and no active VS Code Flutter app was present.
+
 ## Phase 8 — Settings, editable account forms, notifications, and demo sign-out
 
 **Status:** Completed
