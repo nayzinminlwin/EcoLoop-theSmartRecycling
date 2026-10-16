@@ -1,0 +1,18 @@
+{
+  "items": [{
+    "id": "default",
+    "scannerTitle": "Scan a smart bin",
+    "scannerDescription": "Point your camera at the bin QR code to begin.",
+    "binFoundTitle": "Smart bin found",
+    "readyTitle": "Ready to recycle?",
+    "readyDescription": "Insert your items, then press the red finish button.",
+    "itemDetectedTitle": "Items detected",
+    "itemDetectedDescription": "We are checking your recyclable items.",
+    "processingTitle": "Identifying your items",
+    "processingDescription": "This usually takes a few seconds.",
+    "verifiedTitle": "Deposit verified",
+    "reviewTitle": "Deposit sent for review",
+    "rejectedTitle": "Deposit not eligible",
+    "pointsTimingNotice": "Verified points are added after classification."
+  }]
+}
