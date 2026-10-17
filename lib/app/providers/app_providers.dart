@@ -1,4 +1,5 @@
 import 'package:eco_loop/app/router/app_router.dart';
+import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
 import 'package:eco_loop/features/account/data/mock_account_repository.dart';
 import 'package:eco_loop/features/account/domain/repositories/account_repository.dart';
 import 'package:eco_loop/features/activity/data/mock_activity_repository.dart';
@@ -20,9 +21,15 @@ import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouterProvider = Provider(
-  (ref) => createAppRouter(ref.watch(accountRepositoryProvider)),
+  (ref) => createAppRouter(
+    accountRepository: ref.watch(accountRepositoryProvider),
+    utcOffsetMinutes: ref.watch(appClockProvider).utcOffsetMinutes,
+  ),
 );
 final appClockProvider = Provider<AppClock>((ref) => AppClock());
+final leaveDecisionProvider = Provider<LeaveDecisionCoordinator>(
+  (ref) => LeaveDecisionCoordinator(),
+);
 final mockScenarioProvider = Provider<MockScenarioState>(
   (ref) => MockScenarioState.fromEnvironment(),
 );
@@ -33,8 +40,8 @@ final mockDataStoreProvider = Provider<MockDataStore>(
   (ref) => MockDataStore(
     profile: const {
       'id': 'RES-000842',
-      'fullName': 'Faris Rahman',
-      'email': 'faris@example.com',
+      'fullName': 'Faris Rezza',
+      'email': 'rezza@example.com',
       'avatarUrl': null,
       'createdAt': '2024-01-12T08:00:00+08:00',
     },

@@ -15,7 +15,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Faris Rahman'), findsOneWidget);
+    expect(find.text('Faris Rezza'), findsOneWidget);
     expect(find.text('Profile & personal details'), findsOneWidget);
     expect(find.text('Account security'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);

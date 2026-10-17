@@ -36,12 +36,23 @@ void main() {
       'status': 'verified',
     });
 
-    expect(filter.from, DateTime(2024, 5, 18));
-    expect(filter.toExclusive, DateTime(2024, 5, 21));
+    // Calendar days are interpreted as demo display (+08:00) days.
+    expect(filter.from, DateTime.utc(2024, 5, 17, 16));
+    expect(filter.toExclusive, DateTime.utc(2024, 5, 20, 16));
     expect(filter.status, DepositStatus.verified);
     expect(RouteParameterParsers.opaqueId('  voucher-1 '), 'voucher-1');
     expect(RouteParameterParsers.opaqueId(''), isNull);
     expect(RouteParameterParsers.opaqueId('%ZZ'), isNull);
     expect(RouteParameterParsers.depositStatus('not-a-status'), isNull);
+  });
+
+  test('rejects malformed calendar dates instead of coercing them', () {
+    expect(RouteParameterParsers.calendarDate('not-a-date'), isNull);
+    expect(RouteParameterParsers.calendarDate('2024-5-18'), isNull);
+    expect(RouteParameterParsers.calendarDate('2024-05-18T99:00'), isNull);
+    expect(
+      RouteParameterParsers.calendarDate('2024-05-18'),
+      DateTime.utc(2024, 5, 17, 16),
+    );
   });
 }

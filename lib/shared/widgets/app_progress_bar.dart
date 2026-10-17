@@ -7,11 +7,15 @@ class AppProgressBar extends StatelessWidget {
     super.key,
     this.label,
     this.height = 8,
+    this.color,
+    this.trackColor,
   });
 
   final double value;
   final String? label;
   final double height;
+  final Color? color;
+  final Color? trackColor;
 
   @override
   Widget build(BuildContext context) {
@@ -24,8 +28,8 @@ class AppProgressBar extends StatelessWidget {
         child: LinearProgressIndicator(
           value: progress,
           minHeight: height,
-          backgroundColor: AppColors.sage,
-          color: AppColors.primary,
+          backgroundColor: trackColor ?? AppColors.sage,
+          color: color ?? AppColors.primary,
         ),
       ),
     );

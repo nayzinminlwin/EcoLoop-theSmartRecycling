@@ -62,9 +62,11 @@ class AppButton extends StatelessWidget {
       enabled: !isLoading && onPressed != null,
       label: label,
       child: SizedBox(
-        height: 48,
         width: expand ? double.infinity : null,
-        child: button,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: button,
+        ),
       ),
     );
   }

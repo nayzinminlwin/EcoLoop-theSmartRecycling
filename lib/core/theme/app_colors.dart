@@ -21,4 +21,9 @@ abstract final class AppColors {
   static const grayBackground = Color(0xFFF0F2EF);
   static const scanner = Color(0xFF16251D);
   static const scannerCorner = Color(0xFF65BF8F);
+  static const navMuted = Color(0xFF808880);
+  static const topBarBorder = Color(0xB3E2E8E0);
+  static const onPrimaryPale = Color(0xFFD6EADF);
+  static const leafOrbit = Color(0xFFA7D1B8);
+  static const walletCardPole = Color(0xFFBFDBCA);
 }

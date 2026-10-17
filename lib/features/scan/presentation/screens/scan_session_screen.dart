@@ -44,13 +44,13 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
         data: (session) {
           _syncCanonicalRoute(session);
           return FutureBuilder(
-          future: ref.read(scanRepositoryProvider).getBin(session.binId),
-          builder: (context, binState) {
-            if (!binState.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return _content(session, binState.data!);
-          },
+            future: ref.read(scanRepositoryProvider).getBin(session.binId),
+            builder: (context, binState) {
+              if (!binState.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return _content(session, binState.data!);
+            },
           );
         },
       ),
@@ -104,7 +104,9 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
             'Items detected. Continue when you are ready to verify them.',
           ),
         if (session.stage == ScanStage.processing)
-          const Text('Verification is in progress. You can leave this screen safely.'),
+          const Text(
+            'Verification is in progress. You can leave this screen safely.',
+          ),
         if (session.stage == ScanStage.completed && session.resultId != null)
           FutureBuilder(
             future: repository.getResult(session.resultId!),

@@ -1,4 +1,6 @@
 import 'package:eco_loop/core/presentation/app_copy.dart';
+import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
@@ -40,7 +42,10 @@ class _GuideContent extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('LEARN', style: Theme.of(context).textTheme.labelMedium),
+      Text(
+        'LEARN',
+        style: AppTypography.eyebrow.copyWith(color: AppColors.primary),
+      ),
       const SizedBox(height: 4),
       Text('How to recycle', style: Theme.of(context).textTheme.headlineMedium),
       const SizedBox(height: 16),

@@ -1,6 +1,7 @@
 import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_spacing.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,9 +20,10 @@ class HomeGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = (clock ?? AppClock()).now;
+    final clock = this.clock ?? AppClock();
+    final date = clock.toDisplay(clock.now);
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
@@ -29,25 +31,24 @@ class HomeGreeting extends StatelessWidget {
             children: [
               Text(
                 DateFormat('EEEE, d MMM').format(date).toUpperCase(),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+                style: AppTypography.eyebrow.copyWith(color: AppColors.primary),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Good morning, $name',
+                style: AppTypography.homeGreeting.copyWith(
+                  color: AppColors.text,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Good morning, $name',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
                 'Ready to make today a little greener?',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: AppTypography.body.copyWith(color: AppColors.muted),
               ),
             ],
           ),
         ),
+        const SizedBox(width: AppSpacing.md),
         AppAvatar(initials: initials),
       ],
     );

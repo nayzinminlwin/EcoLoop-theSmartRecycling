@@ -15,6 +15,7 @@ class RouteGuards extends ChangeNotifier {
   StreamSubscription<AuthState>? _subscription;
   AuthState? _authState;
   Object? _error;
+  String? _pendingLocation;
 
   bool get isResolved => _authState != null;
   bool get hasError => _error != null;
@@ -44,14 +45,30 @@ class RouteGuards extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? redirect(String location) {
+  String? redirect(Uri uri) {
+    final location = uri.path;
     final isSignedOut = location == AppRoutes.signedOut;
     final isRoot = location == AppRoutes.root;
     if (hasError) return isRoot ? null : AppRoutes.root;
-    if (!isResolved) return isRoot ? null : AppRoutes.root;
-    if (!isResident) return isSignedOut ? null : AppRoutes.signedOut;
-    if (isSignedOut || isRoot) return AppRoutes.home;
+    if (!isResolved) {
+      // Park cold-start deep links on the bootstrap screen and remember the
+      // full URI (path, query, fragment) so restoration can resume it.
+      if (!isRoot) _pendingLocation = uri.toString();
+      return isRoot ? null : AppRoutes.root;
+    }
+    if (!isResident) {
+      if (!isSignedOut && !isRoot) _pendingLocation = uri.toString();
+      return isSignedOut ? null : AppRoutes.signedOut;
+    }
+    if (isSignedOut) return _consumePending();
+    if (isRoot) return _consumePending();
     return null;
+  }
+
+  String _consumePending() {
+    final pending = _pendingLocation;
+    _pendingLocation = null;
+    return pending ?? AppRoutes.home;
   }
 
   @override

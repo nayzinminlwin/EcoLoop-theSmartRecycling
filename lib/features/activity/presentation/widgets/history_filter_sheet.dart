@@ -5,15 +5,21 @@ import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dar
 import 'package:eco_loop/features/activity/presentation/controllers/history_controller.dart';
 import 'package:flutter/material.dart';
 
+/// Section a filter control opened the sheet from, so the sheet can focus
+/// the relevant group first.
+enum FilterSheetSection { date, status }
+
 class HistoryFilterSheet extends StatefulWidget {
   const HistoryFilterSheet({
     required this.initial,
     required this.clock,
     super.key,
+    this.initialSection = FilterSheetSection.date,
   });
 
   final HistoryFilterState initial;
   final AppClock clock;
+  final FilterSheetSection initialSection;
 
   @override
   State<HistoryFilterSheet> createState() => _HistoryFilterSheetState();
@@ -21,6 +27,8 @@ class HistoryFilterSheet extends StatefulWidget {
 
 class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
   late HistoryFilterState _filter = widget.initial;
+  final _dateKey = GlobalKey();
+  final _statusKey = GlobalKey();
 
   void _setPreset(HistoryDatePreset preset) {
     setState(
@@ -34,89 +42,110 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Filter history', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
-          Text('Date', style: Theme.of(context).textTheme.titleSmall),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final preset in HistoryDatePreset.values)
-                ChoiceChip(
-                  label: Text(_presetLabel(preset)),
-                  selected: _filter.datePreset == preset,
-                  onSelected: (_) => _setPreset(preset),
-                ),
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focusSection());
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Filter history',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Text('Date', style: Theme.of(context).textTheme.titleSmall),
+            Wrap(
+              key: _dateKey,
+              spacing: 8,
+              children: [
+                for (final preset in HistoryDatePreset.values)
+                  ChoiceChip(
+                    label: Text(_presetLabel(preset)),
+                    selected: _filter.datePreset == preset,
+                    onSelected: (_) => _setPreset(preset),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text('Status', style: Theme.of(context).textTheme.titleSmall),
+            Wrap(
+              key: _statusKey,
+              spacing: 8,
+              children: [
+                _statusChip(null, 'All'),
+                _statusChip(DepositStatus.verified, 'Verified'),
+                _statusChip(DepositStatus.review, 'Review'),
+                _statusChip(DepositStatus.rejected, 'Rejected'),
+              ],
+            ),
+            if (_filter.datePreset == HistoryDatePreset.custom) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pickDate(isStart: true),
+                      child: Text(
+                        _filter.customFrom == null
+                            ? 'Start date'
+                            : AppFormatters.date(_filter.customFrom!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pickDate(isStart: false),
+                      child: Text(
+                        _filter.customTo == null
+                            ? 'End date'
+                            : AppFormatters.date(_filter.customTo!),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Text('Status', style: Theme.of(context).textTheme.titleSmall),
-          Wrap(
-            spacing: 8,
-            children: [
-              _statusChip(null, 'All'),
-              _statusChip(DepositStatus.verified, 'Verified'),
-              _statusChip(DepositStatus.review, 'Review'),
-              _statusChip(DepositStatus.rejected, 'Rejected'),
-            ],
-          ),
-          if (_filter.datePreset == HistoryDatePreset.custom) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickDate(isStart: true),
-                    child: Text(
-                      _filter.customFrom == null
-                          ? 'Start date'
-                          : AppFormatters.date(_filter.customFrom!),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(const HistoryFilterState()),
+                  child: const Text('Reset'),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(AppCopy.cancel),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickDate(isStart: false),
-                    child: Text(
-                      _filter.customTo == null
-                          ? 'End date'
-                          : AppFormatters.date(_filter.customTo!),
-                    ),
-                  ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(_filter),
+                  child: const Text('Apply'),
                 ),
               ],
             ),
           ],
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(const HistoryFilterState()),
-                child: const Text('Reset'),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(AppCopy.cancel),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(_filter),
-                child: const Text('Apply'),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  void _focusSection() {
+    if (!mounted) return;
+    final target = widget.initialSection == FilterSheetSection.date
+        ? _dateKey.currentContext
+        : _statusKey.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 250),
+      );
+    }
+  }
 
   Widget _statusChip(DepositStatus? status, String label) => ChoiceChip(
     label: Text(label),

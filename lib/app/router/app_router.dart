@@ -24,7 +24,10 @@ import 'package:eco_loop/features/rewards/presentation/screens/vouchers_screen.d
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-GoRouter createAppRouter([AccountRepository? accountRepository]) {
+GoRouter createAppRouter({
+  AccountRepository? accountRepository,
+  int utcOffsetMinutes = 480,
+}) {
   final guards = RouteGuards(
     accountRepository ??
         MockAccountRepository(api: MockApi(readDelay: Duration.zero)),
@@ -70,15 +73,28 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
           final query = state.uri.queryParameters;
           final hasInvalidDate =
               (query['from'] != null &&
-                  RouteParameterParsers.calendarDate(query['from']) == null) ||
+                  RouteParameterParsers.calendarDate(
+                        query['from'],
+                        utcOffsetMinutes: utcOffsetMinutes,
+                      ) ==
+                      null) ||
               (query['to'] != null &&
-                  RouteParameterParsers.calendarDate(query['to']) == null);
+                  RouteParameterParsers.calendarDate(
+                        query['to'],
+                        utcOffsetMinutes: utcOffsetMinutes,
+                      ) ==
+                      null);
           final hasInvalidStatus =
               query['status'] != null &&
               RouteParameterParsers.depositStatus(query['status']) == null;
           return hasInvalidDate || hasInvalidStatus ? AppRoutes.history : null;
         },
-        builder: (context, state) => const HistoryScreen(),
+        builder: (context, state) => HistoryScreen(
+          routeFilter: RouteParameterParsers.historyFilter(
+            state.uri.queryParameters,
+            utcOffsetMinutes: utcOffsetMinutes,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.rewards,
@@ -190,7 +206,7 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
   return GoRouter(
     initialLocation: AppRoutes.root,
     refreshListenable: guards,
-    redirect: (context, state) => guards.redirect(state.uri.path),
+    redirect: (context, state) => guards.redirect(state.uri),
     routes: [
       GoRoute(
         path: AppRoutes.root,

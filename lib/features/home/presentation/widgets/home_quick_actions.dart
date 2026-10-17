@@ -1,9 +1,10 @@
 import 'package:eco_loop/core/theme/app_colors.dart';
-import 'package:eco_loop/core/theme/app_spacing.dart';
-import 'package:eco_loop/shared/widgets/app_card.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 
+/// Two white bordered quick-action cards with mint icon tiles.
 class HomeQuickActions extends StatelessWidget {
   const HomeQuickActions({
     required this.onGuide,
@@ -25,7 +26,7 @@ class HomeQuickActions extends StatelessWidget {
           onTap: onGuide,
         ),
       ),
-      const SizedBox(width: AppSpacing.md),
+      const SizedBox(width: 12),
       Expanded(
         child: _Action(
           icon: 'history',
@@ -51,17 +52,49 @@ class _Action extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    onTap: onTap,
-    padding: const EdgeInsets.all(AppSpacing.lg),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppIcon(icon, color: AppColors.primary, size: 24),
-        const SizedBox(height: AppSpacing.md),
-        Text(title, style: Theme.of(context).textTheme.titleSmall),
-        Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-      ],
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      side: const BorderSide(color: AppColors.border),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.mint,
+                borderRadius: BorderRadius.circular(AppRadii.iconTile),
+              ),
+              child: Center(
+                child: AppIcon(icon, size: 20, color: AppColors.primary),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: AppTypography.activityTitle.copyWith(
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: AppTypography.activityMetadata.copyWith(
+                fontSize: 11,
+                color: AppColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
