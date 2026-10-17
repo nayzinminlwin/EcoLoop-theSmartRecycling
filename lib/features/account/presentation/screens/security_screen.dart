@@ -1,5 +1,6 @@
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
+import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
 import 'package:eco_loop/shared/widgets/app_button.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
 import 'package:eco_loop/shared/widgets/app_page_header.dart';
@@ -21,67 +22,134 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   final _newPassword = TextEditingController();
   final _confirm = TextEditingController();
   String? _error;
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  VoidCallback? _removeLeaveGuard;
+
+  bool get _dirty =>
+      _current.text.isNotEmpty ||
+      _newPassword.text.isNotEmpty ||
+      _confirm.text.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _removeLeaveGuard = ref
+        .read(leaveDecisionProvider)
+        .register(
+          () async => await _confirmDiscard()
+              ? LeaveDecision.leave
+              : LeaveDecision.stay,
+        );
+  }
 
   @override
   void dispose() {
     _current.dispose();
     _newPassword.dispose();
     _confirm.dispose();
+    _removeLeaveGuard?.call();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(securityControllerProvider);
-    return AppPage(
-      header: AppPageHeader(
-        title: 'Account security',
-        onBack: () => context.go(AppRoutes.settings),
-      ),
-      child: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Text('Security information is unavailable.'),
-        data: (security) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              security.isProtected
-                  ? 'Account protected'
-                  : 'Protection unavailable',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Password updated ${_age(security.passwordUpdatedAt)} days ago.',
-            ),
-            const SizedBox(height: 24),
-            AppTextField(
-              controller: _current,
-              label: 'Current password',
-              obscureText: true,
-              errorText: _error,
-            ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _newPassword,
-              label: 'New password',
-              helperText: 'At least 8 characters with a letter and number.',
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _confirm,
-              label: 'Confirm new password',
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            AppButton(
-              label: 'Save password',
-              onPressed: () => _save(),
-              isLoading: state.isLoading,
-              expand: true,
-            ),
-          ],
+    final security = state.value;
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leaveToSettings();
+      },
+      child: AppPage(
+        header: AppPageHeader(
+          title: 'Account security',
+          onBack: _leaveToSettings,
         ),
+        child: security == null
+            ? state.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Security information is unavailable.'),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(securityControllerProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+                data: (_) => const SizedBox.shrink(),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    security.isProtected
+                        ? 'Account protected'
+                        : 'Protection unavailable',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Password updated ${_age(security.passwordUpdatedAt)} days ago.',
+                  ),
+                  const SizedBox(height: 24),
+                  AppTextField(
+                    controller: _current,
+                    label: 'Current password',
+                    obscureText: _obscureCurrent,
+                    suffixIcon: IconButton(
+                      onPressed: () =>
+                          setState(() => _obscureCurrent = !_obscureCurrent),
+                      icon: Icon(
+                        _obscureCurrent
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                    ),
+                    errorText: _error,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: _newPassword,
+                    label: 'New password',
+                    helperText:
+                        'At least 8 characters with a letter and number.',
+                    obscureText: _obscureNew,
+                    suffixIcon: IconButton(
+                      onPressed: () =>
+                          setState(() => _obscureNew = !_obscureNew),
+                      icon: Icon(
+                        _obscureNew ? Icons.visibility : Icons.visibility_off,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: _confirm,
+                    label: 'Confirm new password',
+                    obscureText: _obscureConfirm,
+                    suffixIcon: IconButton(
+                      onPressed: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
+                      icon: Icon(
+                        _obscureConfirm
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    label: 'Save password',
+                    onPressed: () => _save(),
+                    isLoading: state.isLoading,
+                    expand: true,
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -118,5 +186,31 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       _newPassword.clear();
       _confirm.clear();
     }
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!_dirty || !mounted) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard password changes?'),
+        content: const Text('Your password form has not been saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _leaveToSettings() async {
+    if (await _confirmDiscard() && mounted) context.go(AppRoutes.settings);
   }
 }

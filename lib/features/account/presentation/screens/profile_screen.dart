@@ -1,18 +1,27 @@
+import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
+import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
+import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
+import 'package:eco_loop/core/theme/app_spacing.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
+import 'package:eco_loop/features/account/domain/models/profile_update_request.dart';
+import 'package:eco_loop/features/account/domain/models/resident_profile.dart';
+import 'package:eco_loop/features/account/presentation/controllers/profile_controller.dart';
+import 'package:eco_loop/shared/widgets/app_avatar.dart';
 import 'package:eco_loop/shared/widgets/app_button.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
 import 'package:eco_loop/shared/widgets/app_page_header.dart';
 import 'package:eco_loop/shared/widgets/app_text_field.dart';
-import 'package:eco_loop/features/account/domain/models/profile_update_request.dart';
-import 'package:eco_loop/features/account/presentation/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
+
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -20,11 +29,27 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
+  VoidCallback? _removeLeaveGuard;
   bool _editing = false;
   String? _error;
 
+  bool get _dirty => _editing;
+
+  @override
+  void initState() {
+    super.initState();
+    _removeLeaveGuard = ref
+        .read(leaveDecisionProvider)
+        .register(
+          () async => await _confirmDiscard()
+              ? LeaveDecision.leave
+              : LeaveDecision.stay,
+        );
+  }
+
   @override
   void dispose() {
+    _removeLeaveGuard?.call();
     _name.dispose();
     _email.dispose();
     super.dispose();
@@ -33,77 +58,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(profileControllerProvider);
-    return AppPage(
-      header: AppPageHeader(
-        title: 'Profile',
-        onBack: () => context.go(AppRoutes.settings),
-      ),
-      child: state.when(
-        loading: () => const AppLoadingView(message: 'Loading profile'),
-        error: (_, _) => AppErrorView(
-          message: 'We could not load your profile.',
-          onRetry: () => ref.invalidate(profileControllerProvider),
+    final profile = state.value;
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leaveToSettings();
+      },
+      child: AppPage(
+        header: AppPageHeader(
+          eyebrow: 'SETTINGS',
+          title: 'Profile & personal details',
+          onBack: _leaveToSettings,
         ),
-        data: (profile) {
-          if (!_editing && _name.text.isEmpty) {
-            _name.text = profile.fullName;
-            _email.text = profile.email;
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTextField(
-                controller: _name,
-                label: 'Full name',
-                enabled: _editing,
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _email,
-                label: 'Email',
-                enabled: _editing,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-              const SizedBox(height: 24),
-              if (!_editing)
-                AppButton(
-                  label: 'Edit profile',
-                  onPressed: () => setState(() => _editing = true),
-                  expand: true,
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        label: 'Cancel',
-                        variant: AppButtonVariant.secondary,
-                        onPressed: () => setState(() {
-                          _editing = false;
-                          _error = null;
-                          _name.text = profile.fullName;
-                          _email.text = profile.email;
-                        }),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppButton(
-                        label: 'Save',
-                        onPressed: () => _save(profile.avatarUrl),
-                        isLoading: state.isLoading,
-                      ),
-                    ),
-                  ],
+        child: profile == null
+            ? state.when(
+                loading: () => const AppLoadingView(message: 'Loading profile'),
+                error: (_, _) => AppErrorView(
+                  message: 'We could not load your profile.',
+                  onRetry: () => ref.invalidate(profileControllerProvider),
                 ),
-            ],
-          );
-        },
+                data: (_) => const SizedBox.shrink(),
+              )
+            : _content(profile, state.isLoading),
       ),
+    );
+  }
+
+  Widget _content(ResidentProfile profile, bool saving) {
+    if (!_editing && _name.text.isEmpty) {
+      _name.text = profile.fullName;
+      _email.text = profile.email;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ProfileSummary(profile: profile),
+        const SizedBox(height: AppSpacing.lg),
+        if (_editing) ...[
+          AppTextField(
+            controller: _name,
+            label: 'Full name',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            controller: _email,
+            label: 'Email',
+            keyboardType: TextInputType.emailAddress,
+            onChanged: (_) => setState(() {}),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(_error!, style: const TextStyle(color: AppColors.red)),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: 'Cancel',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => _cancel(profile),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: AppButton(
+                  label: 'Save',
+                  onPressed: () => _save(profile.avatarUrl),
+                  isLoading: saving,
+                ),
+              ),
+            ],
+          ),
+        ] else
+          AppButton(
+            label: 'Edit profile',
+            expand: true,
+            onPressed: () => setState(() => _editing = true),
+          ),
+      ],
     );
   }
 
@@ -125,8 +159,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
     if (!mounted) return;
-    final state = ref.read(profileControllerProvider);
-    if (state.hasError) {
+    if (ref.read(profileControllerProvider).hasError) {
       setState(() => _error = 'Profile could not be saved. Try again.');
     } else {
       setState(() {
@@ -135,4 +168,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       });
     }
   }
+
+  void _cancel(ResidentProfile profile) => setState(() {
+    _editing = false;
+    _error = null;
+    _name.text = profile.fullName;
+    _email.text = profile.email;
+  });
+
+  Future<bool> _confirmDiscard() async {
+    if (!_dirty || !mounted) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text('Your profile edits have not been saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _leaveToSettings() async {
+    if (await _confirmDiscard() && mounted) context.go(AppRoutes.settings);
+  }
+}
+
+class _ProfileSummary extends StatelessWidget {
+  const _ProfileSummary({required this.profile});
+
+  final ResidentProfile profile;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(AppSpacing.md),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      border: Border.all(color: AppColors.border),
+      borderRadius: BorderRadius.circular(AppRadii.card),
+    ),
+    child: Row(
+      children: [
+        AppAvatar(initials: profile.initials, radius: 26),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(profile.fullName, style: AppTypography.sectionHeading),
+              Text(profile.email, style: AppTypography.textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

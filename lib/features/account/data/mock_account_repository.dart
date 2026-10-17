@@ -34,6 +34,7 @@ class MockAccountRepository implements AccountRepository {
   final MockSeedLoader _loader;
   final AppClock _clock;
   final _authChanges = StreamController<AuthState>.broadcast();
+  final _profileChanges = StreamController<Map<String, Object?>>.broadcast();
   final _securityChanges = StreamController<AccountSecurityInfo?>.broadcast();
   final _preferenceChanges =
       StreamController<NotificationPreferences?>.broadcast();
@@ -44,6 +45,16 @@ class MockAccountRepository implements AccountRepository {
   AuthState _readAuthState() => _signedIn
       ? const AuthState(uid: 'RES-000842', role: AppRole.user, isSignedIn: true)
       : const AuthState(uid: null, role: null, isSignedIn: false);
+
+  void _ensureSignedIn() {
+    if (!_signedIn) {
+      throw const AppFailure(
+        code: AppFailureCodes.unauthenticated,
+        messageKey: 'auth.signedOut',
+        retryable: false,
+      );
+    }
+  }
 
   @override
   Future<AuthState> getAuthState() =>
@@ -56,6 +67,7 @@ class MockAccountRepository implements AccountRepository {
   }
 
   Future<ResidentProfile> _readProfile() async {
+    _ensureSignedIn();
     final json =
         _store?.profile ??
         await _loader.loadMap('assets/mock/account/profile.json');
@@ -104,19 +116,21 @@ class MockAccountRepository implements AccountRepository {
       });
 
   @override
-  Future<AccountSecurityInfo> getSecurityInfo() => _api.read(
-    'account.getSecurityInfo',
-    () async => AccountSecurityInfo.fromJson(
-      await _fixture(
-        'assets/mock/account/security.json',
-        _store?.security ?? const {},
-      ),
-    ),
-  );
+  Future<AccountSecurityInfo> getSecurityInfo() =>
+      _api.read('account.getSecurityInfo', () async {
+        _ensureSignedIn();
+        return AccountSecurityInfo.fromJson(
+          await _fixture(
+            'assets/mock/account/security.json',
+            _store?.security ?? const {},
+          ),
+        );
+      });
 
   @override
   Future<AccountSecurityInfo> changePassword(PasswordChangeRequest request) =>
       _api.write('account.changePassword', () async {
+        _ensureSignedIn();
         if (request.currentPassword !=
             (_store?.mockCurrentPassword ?? _mockCurrentPassword)) {
           throw const AppFailure(
@@ -145,20 +159,22 @@ class MockAccountRepository implements AccountRepository {
       });
 
   @override
-  Future<NotificationPreferences> getNotificationPreferences() => _api.read(
-    'account.getNotificationPreferences',
-    () async => NotificationPreferences.fromJson(
-      await _fixture(
-        'assets/mock/account/notification_preferences.json',
-        _store?.notificationPreferences ?? const {},
-      ),
-    ),
-  );
+  Future<NotificationPreferences> getNotificationPreferences() =>
+      _api.read('account.getNotificationPreferences', () async {
+        _ensureSignedIn();
+        return NotificationPreferences.fromJson(
+          await _fixture(
+            'assets/mock/account/notification_preferences.json',
+            _store?.notificationPreferences ?? const {},
+          ),
+        );
+      });
 
   @override
   Future<NotificationPreferences> updateNotificationPreferences(
     NotificationPreferences preferences,
   ) => _api.write('account.updateNotificationPreferences', () async {
+    _ensureSignedIn();
     final saved = NotificationPreferences(
       residentId: 'RES-000842',
       recyclingUpdates: preferences.recyclingUpdates,
@@ -186,6 +202,9 @@ class MockAccountRepository implements AccountRepository {
   Future<void> signOut() => _api.write('account.signOut', () async {
     _signedIn = false;
     _authChanges.add(_readAuthState());
+    _profileChanges.add({});
+    _securityChanges.add(null);
+    _preferenceChanges.add(null);
     final session = await getDemoSession();
     _sessionChanges.add(session.copyWith(isSignedIn: false));
   });

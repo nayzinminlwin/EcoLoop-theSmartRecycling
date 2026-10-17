@@ -51,14 +51,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile & personal details'));
     await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Profile & personal details'), findsOneWidget);
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Good morning, Faris'), findsOneWidget);
     await tester.tap(find.text('Settings').last);
     await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Profile & personal details'), findsOneWidget);
 
     // Same-branch reselect returns to the settings root.
     await tester.tap(find.text('Settings').last);

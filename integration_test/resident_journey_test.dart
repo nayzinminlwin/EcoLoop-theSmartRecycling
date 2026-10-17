@@ -50,7 +50,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.text('Profile & personal details'));
     await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Profile & personal details'), findsOneWidget);
   });
 
   testWidgets('invalid direct voucher links recover to the voucher list', (
