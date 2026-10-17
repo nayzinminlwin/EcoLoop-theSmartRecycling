@@ -153,6 +153,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
   void _openRedemption(Reward reward) {
     _pendingReward = reward;
     _redemptionError = null;
+    _redeeming = false;
     _idempotencyKey =
         'redeem-${reward.id}-${DateTime.now().microsecondsSinceEpoch}';
     showDialog<void>(
@@ -180,6 +181,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
           .read(rewardsRepositoryProvider)
           .redeemReward(reward.id, _idempotencyKey!);
       if (!mounted) return;
+      _redeeming = false;
       Navigator.pop(context);
       ref
         ..invalidate(walletSnapshotProvider)

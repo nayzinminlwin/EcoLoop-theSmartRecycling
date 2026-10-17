@@ -133,9 +133,21 @@ class MockScanRepository implements ScanRepository {
       _transition(sessionId, ScanStage.itemDetected, ScanStage.processing);
 
   @override
-  Future<DepositSession> completeVerification(String sessionId) =>
-      _completionOperations[sessionId] ??= _completeVerification(sessionId)
-        ..whenComplete(() => _completionOperations.remove(sessionId));
+  Future<DepositSession> completeVerification(String sessionId) {
+    final existing = _completionOperations[sessionId];
+    if (existing != null) return existing;
+    final operation = _completeVerification(sessionId);
+    _completionOperations[sessionId] = operation;
+    unawaited(
+      operation.then<void>(
+        (_) => _completionOperations.remove(sessionId),
+        onError: (_) {
+          _completionOperations.remove(sessionId);
+        },
+      ),
+    );
+    return operation;
+  }
 
   Future<DepositSession> _completeVerification(String sessionId) =>
       _api.write('scan.completeVerification', () async {
@@ -162,21 +174,10 @@ class MockScanRepository implements ScanRepository {
           classifiedAt: now,
           explanation: 'Two recyclable PET plastic bottles were verified.',
         );
-        _results[result.id] = result;
         final completed = current.copyWith(
           stage: ScanStage.completed,
           updatedAt: now,
           resultId: result.id,
-        );
-        _sessions[sessionId] = completed;
-        _bin = SmartBin(
-          id: _bin.id,
-          locationName: _bin.locationName,
-          locationDetail: _bin.locationDetail,
-          capacityPercent: 85,
-          acceptedMaterials: _bin.acceptedMaterials,
-          isOnline: _bin.isOnline,
-          lastUpdatedAt: now,
         );
         if (_store != null) {
           await _store.transaction<void>((profile, wallet, deposits) {
@@ -214,6 +215,17 @@ class MockScanRepository implements ScanRepository {
             });
           });
         }
+        _results[result.id] = result;
+        _sessions[sessionId] = completed;
+        _bin = SmartBin(
+          id: _bin.id,
+          locationName: _bin.locationName,
+          locationDetail: _bin.locationDetail,
+          capacityPercent: (_bin.capacityPercent + 20).clamp(0, 100),
+          acceptedMaterials: _bin.acceptedMaterials,
+          isOnline: _bin.isOnline,
+          lastUpdatedAt: now,
+        );
         _emit(sessionId, completed);
         _emit(result.id, result);
         _emit(_bin.id, _bin);

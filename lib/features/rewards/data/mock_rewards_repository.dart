@@ -59,6 +59,21 @@ class MockRewardsRepository implements RewardsRepository {
     if (!_usesSeedFixtures) {
       return;
     }
+    if (_store != null && _store.rewards.isNotEmpty) {
+      _categories
+        ..clear()
+        ..addAll(_store.rewardCategories.map(RewardCategory.fromMap));
+      _documents
+        ..clear()
+        ..addAll(_store.rewards.map(RewardDocument.fromMap));
+      _vouchers
+        ..clear()
+        ..addAll(_store.vouchers.map(ResidentVoucher.fromMap));
+      _redemptions
+        ..clear()
+        ..addAll(_store.redemptions.map(RewardRedemption.fromMap));
+      return;
+    }
     final categoryItems = await _seedLoader.loadItems(
       'assets/mock/rewards/categories.json',
     );
@@ -163,13 +178,16 @@ class MockRewardsRepository implements RewardsRepository {
     final now = _now;
     final newBalance = wallet.balance - reward.pointsCost;
     final redemption = RewardRedemption(
-      id: 'redemption-${_redemptions.length + 1}',
+      id:
+          _store?.newId('redemption') ??
+          'redemption-${_redemptions.length + 1}',
       residentId: wallet.residentId,
       rewardId: reward.id,
       idempotencyKey: idempotencyKey,
       pointsSpent: reward.pointsCost,
       redeemedAt: now,
-      voucherId: 'voucher-${_redemptions.length + 1}',
+      voucherId:
+          _store?.newId('voucher') ?? 'voucher-${_redemptions.length + 1}',
       walletBalanceAfter: newBalance,
       walletVersion: wallet.version + 1,
     );
@@ -188,7 +206,7 @@ class MockRewardsRepository implements RewardsRepository {
       usedAt: null,
     );
     if (_store != null) {
-      await _store.transaction<void>((profile, walletMap, deposits) {
+      await _store.transactionRewards<void>((walletMap, vouchers, redemptions) {
         final document = walletMap['wallet'] is Map
             ? (walletMap['wallet'] as Map).map(
                 (key, value) => MapEntry(key.toString(), value),
@@ -200,6 +218,8 @@ class MockRewardsRepository implements RewardsRepository {
         if (walletMap['wallet'] is Map) {
           walletMap['wallet'] = document;
         }
+        vouchers.add(voucher.toMap());
+        redemptions.add(redemption.toMap());
       });
     }
     _redemptions.add(redemption);

@@ -12,15 +12,23 @@ import 'package:eco_loop/features/scan/data/mock_scan_repository.dart';
 import 'package:eco_loop/features/scan/domain/repositories/scan_repository.dart';
 import 'package:eco_loop/features/rewards/data/mock_rewards_repository.dart';
 import 'package:eco_loop/features/rewards/domain/repositories/rewards_repository.dart';
-import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/mock/mock_data_store.dart';
+import 'package:eco_loop/core/mock/mock_api.dart';
+import 'package:eco_loop/core/mock/mock_scenario.dart';
+import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouterProvider = Provider(
   (ref) => createAppRouter(ref.watch(accountRepositoryProvider)),
 );
 final appClockProvider = Provider<AppClock>((ref) => AppClock());
+final mockScenarioProvider = Provider<MockScenarioState>(
+  (ref) => MockScenarioState.fromEnvironment(),
+);
+final mockApiProvider = Provider<MockApi>(
+  (ref) => MockApi(scenario: ref.watch(mockScenarioProvider)),
+);
 final mockDataStoreProvider = Provider<MockDataStore>(
   (ref) => MockDataStore(
     profile: const {
@@ -43,6 +51,7 @@ final mockDataStoreProvider = Provider<MockDataStore>(
 final accountRepositoryProvider = Provider<AccountRepository>(
   (ref) => MockAccountRepository(
     store: ref.watch(mockDataStoreProvider),
+    api: ref.watch(mockApiProvider),
     clock: ref.watch(appClockProvider),
   ),
 );
@@ -50,6 +59,7 @@ final accountRepositoryProvider = Provider<AccountRepository>(
 final walletRepositoryProvider = Provider<WalletRepository>(
   (ref) => MockWalletRepository(
     store: ref.watch(mockDataStoreProvider),
+    api: ref.watch(mockApiProvider),
     clock: ref.watch(appClockProvider),
   ),
 );
@@ -61,15 +71,17 @@ final recyclingGuideRepositoryProvider = Provider<RecyclingGuideRepository>(
 final activityRepositoryProvider = FutureProvider<ActivityRepository>((
   ref,
 ) async {
-  final items = await const MockSeedLoader().loadItems(
-    'assets/mock/activity/deposits.json',
-  );
   final store = ref.watch(mockDataStoreProvider);
-  store.replaceDeposits(items);
+  final items = store.deposits.isNotEmpty
+      ? store.deposits
+      : await const MockSeedLoader().loadItems(
+          'assets/mock/activity/deposits.json',
+        );
   return MockActivityRepository(
     deposits: items.map(DepositTransaction.fromJson).toList(),
     residentId: 'RES-000842',
     store: store,
+    api: ref.watch(mockApiProvider),
   );
 });
 
@@ -89,6 +101,7 @@ final scanRepositoryProvider = Provider<ScanRepository>(
   (ref) => MockScanRepository(
     clock: ref.watch(appClockProvider),
     store: ref.watch(mockDataStoreProvider),
+    api: ref.watch(mockApiProvider),
   ),
 );
 
@@ -96,5 +109,6 @@ final rewardsRepositoryProvider = Provider<RewardsRepository>(
   (ref) => MockRewardsRepository(
     clock: ref.watch(appClockProvider),
     store: ref.watch(mockDataStoreProvider),
+    api: ref.watch(mockApiProvider),
   ),
 );

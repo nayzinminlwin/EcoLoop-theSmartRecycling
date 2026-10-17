@@ -3,12 +3,30 @@
   "items": [
     {
       "id": "BIN-004",
-      "locationName": "Central Market",
-      "locationDetail": "North entrance, level 1",
+      "locationName": "Cedar Residence",
+      "locationDetail": "Ground Floor",
       "capacityPercent": 65,
-      "acceptedMaterials": ["plastic", "aluminium", "paper"],
+      "acceptedMaterials": ["plastic", "aluminium"],
       "isOnline": true,
       "lastUpdatedAt": "2024-05-20T10:55:00+08:00"
+    },
+    {
+      "id": "BIN-002",
+      "locationName": "Maple Lobby",
+      "locationDetail": "Main entrance",
+      "capacityPercent": 42,
+      "acceptedMaterials": ["plastic", "paper"],
+      "isOnline": true,
+      "lastUpdatedAt": "2024-05-20T10:50:00+08:00"
+    },
+    {
+      "id": "BIN-007",
+      "locationName": "Town Square",
+      "locationDetail": "East entrance",
+      "capacityPercent": 78,
+      "acceptedMaterials": ["paper", "glass"],
+      "isOnline": true,
+      "lastUpdatedAt": "2024-05-20T10:45:00+08:00"
     }
   ]
 }

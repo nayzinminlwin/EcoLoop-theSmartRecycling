@@ -15,9 +15,16 @@ class SecurityController extends AsyncNotifier<AccountSecurityInfo> {
       ref.watch(accountRepositoryProvider).getSecurityInfo();
 
   Future<void> change(PasswordChangeRequest request) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final previous = state;
+    state = AsyncLoading<AccountSecurityInfo>().copyWithPrevious(previous);
+    final next = await AsyncValue.guard(
       () => ref.read(accountRepositoryProvider).changePassword(request),
     );
+    state = next.hasError
+        ? AsyncError<AccountSecurityInfo>(
+            next.error!,
+            next.stackTrace ?? StackTrace.current,
+          ).copyWithPrevious(previous)
+        : next;
   }
 }

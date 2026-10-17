@@ -29,7 +29,7 @@ class MockActivityRepository implements ActivityRepository {
   final MockApi _api;
 
   List<DepositTransaction> _current() {
-    if (_store == null) return _deposits;
+    if (_store == null || _store.deposits.isEmpty) return _deposits;
     return _store.deposits
         .map(DepositTransaction.fromJson)
         .toList(growable: false);

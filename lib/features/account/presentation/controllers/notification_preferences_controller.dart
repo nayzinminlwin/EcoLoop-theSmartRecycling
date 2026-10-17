@@ -16,11 +16,18 @@ class NotificationPreferencesController
       ref.watch(accountRepositoryProvider).getNotificationPreferences();
 
   Future<void> save(NotificationPreferences preferences) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final previous = state;
+    state = AsyncLoading<NotificationPreferences>().copyWithPrevious(previous);
+    final next = await AsyncValue.guard(
       () => ref
           .read(accountRepositoryProvider)
           .updateNotificationPreferences(preferences),
     );
+    state = next.hasError
+        ? AsyncError<NotificationPreferences>(
+            next.error!,
+            next.stackTrace ?? StackTrace.current,
+          ).copyWithPrevious(previous)
+        : next;
   }
 }
