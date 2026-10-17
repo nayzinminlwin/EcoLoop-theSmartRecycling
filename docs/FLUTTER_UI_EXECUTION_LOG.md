@@ -267,3 +267,43 @@ Detailed implementation notes are recorded in
 - `flutter build web` succeeds.
 - DTD was connected, but no Flutter app was active in VS Code; the required
   hot restart could not connect to an app.
+
+## Phase 10 — Resident journey acceptance, visual audit, and backend-ready handoff
+
+**Status:** Offline acceptance artifacts completed; device execution pending
+**Date:** 16 October 2026
+
+### Completed
+
+- Added fixture integrity coverage for IDs, references, dates, nullable review
+  and rejection fields, opening wallet values, and derived verified totals.
+- Added a device-runnable resident journey integration test covering Home,
+  guide, all scan stages, verified result, wallet refresh, Settings, and
+  Profile.
+- Added [`docs/FLUTTER_UI_ACCEPTANCE.md`](FLUTTER_UI_ACCEPTANCE.md) with
+  resident route coverage, visual review boundaries, commands, and deferred
+  backend work.
+- Added [`docs/FLUTTER_MOCK_CONTRACTS.md`](FLUTTER_MOCK_CONTRACTS.md) with
+  actual JSON contracts, repository seams, latency/scenario behavior, and the
+  Firebase handoff boundary.
+- Added the required development log at
+  [`docs/dev_logs/2026-10-16_App_Phase10ResidentAcceptanceAndHandoff.md`](dev_logs/2026-10-16_App_Phase10ResidentAcceptanceAndHandoff.md).
+- Added one-shot classification, profile-save, and redemption write-failure
+  controls to the mock API so retry acceptance can be exercised with injected
+  repository scenarios.
+- Updated the README and bootstrap widget test with final verification
+  instructions.
+
+### Verification
+
+- `flutter analyze` passes.
+- `flutter test` passes all 44 tests, including the new fixture-integrity test.
+- `flutter build web` succeeds as the offline build check for this phase.
+- `dart format --output=none --set-exit-if-changed lib test integration_test`
+  passes.
+- `flutter test integration_test/resident_journey_test.dart -d <device-id>`
+  requires an available emulator or physical device; no device target was
+  available in this workspace, so this is recorded as pending rather than
+  claimed as executed.
+- No live Firebase initialization/calls, network dependency, or protected
+  Android-file changes were introduced.

@@ -30,6 +30,13 @@ class MockApi {
 
   Future<T> write<T>(String operation, FutureOr<T> Function() action) async {
     await Future<void>.delayed(writeDelay);
+    if (scenario.consumeWriteFailure(operation)) {
+      throw const AppFailure(
+        code: AppFailureCodes.unavailable,
+        messageKey: 'mock.writeUnavailable',
+        retryable: true,
+      );
+    }
     return action();
   }
 }
