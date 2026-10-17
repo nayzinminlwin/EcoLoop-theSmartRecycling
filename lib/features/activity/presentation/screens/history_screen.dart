@@ -88,6 +88,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final value = ref.watch(historyControllerProvider);
+    final filterState = ref.watch(historyFilterProvider);
     return AppPage(
       header: const AppPageHeader(
         title: 'Recycling history',
@@ -95,7 +96,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       ),
       child: value.when(
         loading: () => value.hasValue
-            ? _content(context, value.requireValue)
+            ? _content(context, value.requireValue, filterState)
             : const SizedBox(
                 height: 500,
                 child: AppLoadingView(message: 'Loading activity'),
@@ -104,12 +105,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           message: AppCopy.loadHistoryFailed,
           onRetry: () => ref.read(historyControllerProvider.notifier).refresh(),
         ),
-        data: (data) => _content(context, data),
+        data: (data) => _content(context, data, filterState),
       ),
     );
   }
 
-  Widget _content(BuildContext context, HistoryViewData data) => Column(
+  Widget _content(
+    BuildContext context,
+    HistoryViewData data,
+    HistoryFilterState filterState,
+  ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       if (data.refreshFailed) ...[
@@ -120,14 +125,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         children: [
           Expanded(
             child: _FilterControl(
-              label: _dateLabel(),
+              label: _dateLabel(filterState),
               onPressed: () => _openFilters(dateSection: true),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _FilterControl(
-              label: _statusLabel(),
+              label: _statusLabel(filterState),
               onPressed: () => _openFilters(dateSection: false),
             ),
           ),
@@ -223,8 +228,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     ),
   );
 
-  String _dateLabel() {
-    final filter = ref.read(historyFilterProvider);
+  String _dateLabel(HistoryFilterState filter) {
     return switch (filter.datePreset) {
       HistoryDatePreset.all => 'All dates',
       HistoryDatePreset.today => 'Today',
@@ -237,8 +241,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     };
   }
 
-  String _statusLabel() {
-    final filter = ref.read(historyFilterProvider);
+  String _statusLabel(HistoryFilterState filter) {
     return switch (filter.status) {
       null => 'All statuses',
       DepositStatus.verified => 'Verified',

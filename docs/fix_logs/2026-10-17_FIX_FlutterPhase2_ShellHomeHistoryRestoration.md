@@ -105,4 +105,27 @@ pending-URI preservation across startup auth restoration.
 
 ## 📝 APPENDED FOLLOW-UP FIXES
 
-_(none yet)_
+### Follow-up Fix: 2026-10-17 (pre-retest self-review)
+
+- **Status:** Completed
+- **Additional Changes:** Self-review before QA handover found and corrected:
+  1. `RouteParameterParsers.calendarDate` decoded query values without a
+     try/catch; a `%` surviving go_router's decode could throw inside the
+     router redirect. Now decodes defensively and returns null (covered by a
+     new guard test).
+  2. The header bell's hit region was 42px; the plan requires ≥48px
+     interactive targets, so the tap area is now 48px around the 42px visual.
+  3. `AppPage` constrained the whole header+content Column, so full-height
+     page states (the scan session's centered loading/error) shrank to their
+     intrinsic size. The viewport minimum now applies to the page content
+     itself.
+  4. Scan CTA title set to the source's 15px; Home avatar set to the source's
+     40px.
+  5. The Rewards screen's MARKETPLACE eyebrow now uses the shared eyebrow
+     role (shared-chrome fix owned by Phase 2).
+  6. History filter control labels watch the filter provider so they update
+     immediately on filter changes instead of waiting for the reload.
+  7. Added `test/app/route_guards_test.dart`: deep links parked during
+     startup keep path+query (last link wins, consumed once), signed-out
+     resume restores the requested destination, and malformed query values do
+     not crash guard redirects.

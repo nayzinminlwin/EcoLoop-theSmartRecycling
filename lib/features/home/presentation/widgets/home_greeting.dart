@@ -49,7 +49,7 @@ class HomeGreeting extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.md),
-        AppAvatar(initials: initials),
+        AppAvatar(initials: initials, radius: 20),
       ],
     );
   }

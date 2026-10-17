@@ -2,6 +2,7 @@ import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -56,7 +57,9 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                   children: [
                     Text(
                       'MARKETPLACE',
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: AppTypography.eyebrow.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     Text(
                       'Rewards',

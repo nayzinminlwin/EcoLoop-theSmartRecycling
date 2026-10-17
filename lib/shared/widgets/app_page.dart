@@ -25,18 +25,20 @@ class AppPage extends StatelessWidget {
     child: LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: padding.add(const EdgeInsets.only(bottom: AppSpacing.section)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (header != null) ...[
-                header!,
-                const SizedBox(height: AppSpacing.section),
-              ],
-              child,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (header != null) ...[
+              header!,
+              const SizedBox(height: AppSpacing.section),
             ],
-          ),
+            // The page content keeps the full viewport minimum so
+            // full-height states (loading/error centering) keep working.
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: child,
+            ),
+          ],
         ),
       ),
     ),

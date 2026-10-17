@@ -53,6 +53,7 @@ class ScanCallToAction extends StatelessWidget {
                       Text(
                         'Scan Recycling Bin',
                         style: AppTypography.body.copyWith(
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: AppColors.text,
                         ),

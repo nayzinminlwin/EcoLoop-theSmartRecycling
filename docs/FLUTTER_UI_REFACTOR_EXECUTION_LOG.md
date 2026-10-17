@@ -133,3 +133,16 @@
 - Pre-existing test-infrastructure limitation (confirmed on the base branch):
   a second `EcoLoopApp` pump within one test file never settles, so shell
   scenarios are consolidated into a single `testWidgets`.
+
+### Pre-retest self-review corrections (2026-10-17)
+
+- Hardened `RouteParameterParsers.calendarDate` against undecodable query
+  values (defensive decode, no redirect crash).
+- Bell hit region expanded to 48px around the 42px source visual; scan CTA
+  title set to the source 15px; Home avatar set to the source 40px.
+- `AppPage` applies the viewport minimum to the page content so full-height
+  loading/error states (scan session) stay centered.
+- Rewards MARKETPLACE eyebrow moved to the shared eyebrow role; History filter
+  labels watch the filter provider for immediate updates.
+- Added `test/app/route_guards_test.dart` covering pending-URI parking,
+  signed-out resume, and malformed-query safety. Suite now 52 tests.

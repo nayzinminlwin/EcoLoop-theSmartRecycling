@@ -29,43 +29,49 @@ class ResidentTopBar extends StatelessWidget implements PreferredSizeWidget {
     ),
     actions: [
       Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.page),
+        padding: const EdgeInsets.only(right: 17),
         child: Semantics(
           button: true,
           label: 'Notifications',
-          child: Material(
-            color: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.button),
-              side: const BorderSide(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => context.go(AppRoutes.history),
-              child: Tooltip(
-                message: 'Notifications',
-                child: SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const AppIcon('bell', color: AppColors.text),
-                      Positioned(
-                        right: 7,
-                        top: 7,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: AppColors.red,
-                            shape: BoxShape.circle,
-                            border: Border.fromBorderSide(
-                              BorderSide(color: Colors.white, width: 2),
+          child: InkWell(
+            onTap: () => context.go(AppRoutes.history),
+            customBorder: const CircleBorder(),
+            child: Tooltip(
+              message: 'Notifications',
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: Material(
+                    color: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.button),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const AppIcon('bell', color: AppColors.text),
+                          Positioned(
+                            right: 7,
+                            top: 7,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: AppColors.red,
+                                shape: BoxShape.circle,
+                                border: Border.fromBorderSide(
+                                  BorderSide(color: Colors.white, width: 2),
+                                ),
+                              ),
+                              child: SizedBox(width: 7, height: 7),
                             ),
                           ),
-                          child: SizedBox(width: 7, height: 7),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

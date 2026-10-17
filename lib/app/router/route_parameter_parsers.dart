@@ -27,7 +27,14 @@ abstract final class RouteParameterParsers {
   /// instant of that day's midnight at the demo display offset.
   static DateTime? calendarDate(String? value, {int utcOffsetMinutes = 480}) {
     if (value == null || value.isEmpty) return null;
-    final raw = Uri.decodeComponent(value);
+    final String raw;
+    try {
+      raw = Uri.decodeComponent(value).trim();
+    } on FormatException {
+      return null;
+    } on ArgumentError {
+      return null;
+    }
     if (!_calendarDayPattern.hasMatch(raw)) return null;
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) return null;
