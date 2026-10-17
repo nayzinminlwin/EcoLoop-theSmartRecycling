@@ -23,6 +23,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(settingsProfileProvider);
+    final session = ref.watch(demoSessionControllerProvider);
     return AppPage(
       header: const AppPageHeader(title: 'Settings', eyebrow: 'ACCOUNT'),
       child: profile.when(
@@ -76,11 +77,23 @@ class SettingsScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: TextButton.icon(
-                  onPressed: () => _signOut(context, ref),
+                  onPressed: session.isLoading
+                      ? null
+                      : () => _signOut(context, ref),
                   icon: const Icon(Icons.logout, size: 18),
-                  label: const Text('Sign out'),
+                  label: session.isLoading
+                      ? const Text('Signing out...')
+                      : const Text('Sign out'),
                 ),
               ),
+              if (session.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    'We could not sign you out. Please try again.',
+                    style: TextStyle(color: AppColors.red),
+                  ),
+                ),
             ],
           );
         },

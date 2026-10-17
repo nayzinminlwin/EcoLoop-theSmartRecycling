@@ -83,7 +83,7 @@ class MockAccountRepository implements AccountRepository {
     yield await _api.read('account.watchProfile', _readProfile);
     if (_store != null) {
       await for (final json in _store.watchProfile()) {
-        yield ResidentProfile.fromJson(json);
+        yield json.isEmpty ? null : ResidentProfile.fromJson(json);
       }
     }
   }

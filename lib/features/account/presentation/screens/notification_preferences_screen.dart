@@ -155,10 +155,17 @@ class _NotificationPreferencesScreenState
           ),
         );
     if (!mounted) return;
+    final next = ref.read(notificationPreferencesControllerProvider);
+    if (next.hasError || next.value == null) {
+      setState(() => _error = 'Preferences could not be saved. Try again.');
+      return;
+    }
     setState(() {
-      _error = ref.read(notificationPreferencesControllerProvider).hasError
-          ? 'Preferences could not be saved. Try again.'
-          : null;
+      _saved = next.value;
+      _recycling = next.value!.recyclingUpdates;
+      _points = next.value!.pointsCredits;
+      _rewards = next.value!.rewardReminders;
+      _error = null;
     });
   }
 

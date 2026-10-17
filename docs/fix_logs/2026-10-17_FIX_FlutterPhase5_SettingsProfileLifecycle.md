@@ -48,3 +48,15 @@ repository, related account/shell tests.
 ## 5. Ready for Retest
 
 - [x] Yes — the Tester agent should append a new retest to the relevant QA log.
+
+### Follow-up Fix: 2026-10-17
+
+- **Status:** Completed
+- **Additional Changes:** Signed-out profile streams now emit `null` instead
+  of parsing the owner-cleared marker as a profile. Sign-out is represented by
+  one guarded controller operation with disabled duplicate submission and
+  visible retry feedback. Successful preference writes refresh the local saved
+  baseline so Save/Cancel and dirty-form navigation remain correct. Added a
+  signed-out private-read regression test.
+- **Verification:** Account tests and the full Flutter test suite pass;
+  `flutter analyze` reports no issues.

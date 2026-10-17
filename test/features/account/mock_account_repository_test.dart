@@ -90,4 +90,30 @@ void main() {
     expect(session.residentId, 'RES-000842');
     expect((await repository.getAuthState()).isSignedIn, isTrue);
   });
+
+  test('signed-out private profile reads fail', () async {
+    final store = MockDataStore(
+      profile: const {
+        'id': 'RES-000842',
+        'fullName': 'Faris Rezza',
+        'email': 'rezza@example.com',
+        'createdAt': '2024-01-12T08:00:00+08:00',
+      },
+      wallet: const {'residentId': 'RES-000842', 'balance': 245},
+      deposits: const [],
+      session: const {
+        'id': 'demo-session',
+        'residentId': 'RES-000842',
+        'isSignedIn': true,
+        'startedAt': '2024-05-20T11:00:00+08:00',
+      },
+    );
+    final repository = MockAccountRepository(
+      store: store,
+      api: MockApi(readDelay: Duration.zero, writeDelay: Duration.zero),
+    );
+
+    await repository.signOut();
+    await expectLater(repository.getProfile(), throwsA(isA<AppFailure>()));
+  });
 }
