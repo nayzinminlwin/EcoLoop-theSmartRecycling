@@ -134,9 +134,15 @@ bin; completion is automatic through the mock service.
 
 | Pair | Status | Captures |
 |---|---|---|
-| V09 rewards 2×2 | pending | |
-| V10 guide page 1 | pending | |
-| V11 guide page 2 | pending | |
+| V09 rewards 2×2 | partial | Implementation covers responsive 2-column catalog at 390/480, differentiated artwork tones, intrinsic compact cards, live success banner, and voucher tile; live capture pending because no Flutter target was connected |
+| V10 guide page 1 | partial | Implementation covers shared LEARN/header, sage hero with white medallion, compact two-column material cards, and distinct To-do/To-avoid panels; live capture pending because no Flutter target was connected |
+| V11 guide page 2 | partial | Implementation covers connecting-line steps and responsive count-based points table; examples are 2 pcs = 10/16 and 4 pcs = 12; live capture pending because no Flutter target was connected |
+
+Phase 4 semantic/accessibility notes: the catalog falls back to one column
+below 340 logical pixels or at text scale 1.35+, preserving action labels and
+reading order. The guide table retains points per piece (not points per kg);
+example counts come from the guide fixture and points are calculated through
+the same `MaterialRate.pointsFor` rule used by scan classification.
 
 ## Phase 5 — Settings/Profile
 

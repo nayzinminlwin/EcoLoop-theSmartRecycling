@@ -50,7 +50,7 @@
 
 ## Phase 2 — Restore the shell, Home, and History
 
-**Status:** Completed  
+**Status:** Completed
 **Date:** 17 October 2026
 
 ### Implemented
@@ -220,3 +220,60 @@
 - Voucher/guide surfaces remain on their Phase 4 scope; scan reads guide
   rates through the shared store while the guide screen keeps its own
   repository until Phase 4 unifies it.
+
+---
+
+## Phase 4 — Restore Rewards and Guide density and styling
+
+**Status:** Completed
+**Date:** 17 October 2026
+
+### Implemented
+
+- **Rewards marketplace (4.1):** replaced the unreachable 560px grid
+  breakpoint with a constrained-width breakpoint that renders two compact
+  columns at normal 390/480 layouts and falls back to one column below 340
+  logical pixels or at enlarged text scales. Cards use content-aware
+  metadata/action placement, white bordered surfaces, the bundled outline
+  gift icon, and four art-key tone families (sage, pale amber, warm neutral,
+  and blue-gray). Category chips and the balance pill remain actionable and
+  compact; the Welcome voucher remains immediately below the catalog.
+- **Redemption feedback/state (4.2):** all reward catalog family instances
+  are invalidated after a successful redemption, not only the selected
+  category. The catalog and voucher providers consume the repository's live
+  streams, so visited filters receive redemption updates without a manual
+  refresh. Successful redemption now shows an in-page success banner with an
+  Open voucher action while SnackBars remain available for secondary
+  transient feedback. Existing repository idempotency and shared-wallet
+  transaction behavior remain unchanged.
+- **Guide composition (4.3):** restored the shared LEARN/page-heading
+  composition, white recycle medallion, compact two-column material cards,
+  mint/pale-red guidance panels, and a vertical numbered step rhythm with a
+  connecting line. Added fixture-backed rate examples and a three-column
+  Material / Points per pc / Example table; displayed examples are calculated
+  with `MaterialRate.pointsFor` (plastic 2 = 10, aluminium 2 = 16, paper
+  4 = 12). Intrinsic reward-card sizing avoids a fixed grid aspect ratio;
+  the guide table reflows into labeled rows below 360 logical pixels or at
+  enlarged text scales, preventing the prior fixed-ratio/column overflow.
+
+### Verification
+
+- `dart format lib test integration_test` — clean.
+- `flutter analyze` — no issues.
+- Focused Rewards/Guide tests — all passed.
+- `flutter test` — passed (full suite, exit code 0).
+- `flutter build web` — succeeded.
+- No Flutter app was connected to the VS Code DTD, so hot reload/restart and
+  live capture were unavailable in this session; the DTD connection was
+  established proactively and the visual checklist records the structural
+  acceptance evidence.
+- Phase checklist updated in
+  `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`.
+
+### Remaining Phase 4 notes / deferred
+
+- Device/browser comparison captures should be produced when a supported
+  Flutter target is connected; no new screenshot files are claimed here.
+- Voucher deep-link stream hardening and a full connected resident journey
+  remain in the plan's broader acceptance work and are not expanded into an
+  unrelated repository rewrite in this phase.
