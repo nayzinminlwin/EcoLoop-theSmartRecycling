@@ -59,6 +59,7 @@ class MockRecyclingGuideRepository implements RecyclingGuideRepository {
       materials: materials,
       steps: steps,
       rates: rates,
+      rateExamples: content.rateExamples,
     );
     return guide;
   }

@@ -2,6 +2,9 @@ import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
+import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
+import 'package:eco_loop/core/theme/app_spacing.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -23,6 +26,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(homeControllerProvider);
+    final clock = ref.watch(appClockProvider);
     return AppPage(
       child: state.when(
         loading: () => const SizedBox(
@@ -33,8 +37,7 @@ class HomeScreen extends ConsumerWidget {
           message: AppCopy.loadDashboardFailed,
           onRetry: () => _refresh(context, ref),
         ),
-        data: (data) =>
-            _HomeContent(data: data, clock: ref.watch(appClockProvider)),
+        data: (data) => _HomeContent(data: data, clock: clock),
       ),
     );
   }
@@ -66,35 +69,59 @@ class _HomeContent extends StatelessWidget {
         initials: data.profile.initials,
         clock: clock,
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: AppSpacing.section),
       WalletSummaryCard(
         wallet: data.wallet,
         progress: data.rewardProgress,
         onBrowseRewards: () => context.go(AppRoutes.rewards),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.section),
       ScanCallToAction(onPressed: () => context.go(AppRoutes.scan)),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.section),
       ImpactSummaryCard(summary: data.summary),
-      const SizedBox(height: 16),
+      const SizedBox(height: AppSpacing.section),
       HomeQuickActions(
         onGuide: () => context.go(AppRoutes.guide),
         onHistory: () => context.go(AppRoutes.history),
       ),
-      const SizedBox(height: 24),
+      const SizedBox(height: AppSpacing.section),
       AppSectionHeader(
         title: 'Recent recycling',
+        eyebrow: 'ACTIVITY',
         actionLabel: 'View all',
         onAction: () => context.go(AppRoutes.history),
       ),
+      const SizedBox(height: AppSpacing.md),
       if (data.recentDeposits.isEmpty)
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Text('No recycling activity yet.'),
         )
       else
-        ...data.recentDeposits.map(
-          (deposit) => DepositActivityTile(deposit: deposit),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadii.card),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.card),
+            child: Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < data.recentDeposits.length;
+                  index++
+                ) ...[
+                  if (index > 0) Container(height: 1, color: AppColors.border),
+                  DepositActivityTile(
+                    deposit: data.recentDeposits[index],
+                    clock: clock,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
     ],
   );

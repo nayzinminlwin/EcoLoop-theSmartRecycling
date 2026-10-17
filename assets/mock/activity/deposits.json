@@ -1,6 +1,6 @@
 {
   "items": [
-    {"id":"DEP-001","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"plastic","materialLabel":"PET plastic","itemCount":4,"pointsAwarded":20,"status":"verified","occurredAt":"2024-05-20T10:42:00+08:00","verifiedAt":"2024-05-20T10:42:30+08:00"},
+    {"id":"DEP-001","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"plastic","materialLabel":"PET plastic","itemCount":2,"pointsAwarded":10,"status":"verified","occurredAt":"2024-05-20T10:42:00+08:00","verifiedAt":"2024-05-20T10:42:30+08:00"},
     {"id":"DEP-002","residentId":"RES-000842","sessionId":null,"binId":"BIN-002","binLocation":"BIN-002 · Maple Lobby","materialType":"aluminium","materialLabel":"Aluminium","itemCount":2,"pointsAwarded":16,"status":"verified","occurredAt":"2024-05-18T16:16:00+08:00","verifiedAt":"2024-05-18T16:16:30+08:00"},
     {"id":"DEP-003","residentId":"RES-000842","sessionId":null,"binId":"BIN-007","binLocation":"BIN-007 · Town Square","materialType":"paper","materialLabel":"Paper","itemCount":4,"pointsAwarded":null,"status":"review","occurredAt":"2024-05-16T09:08:00+08:00","verifiedAt":null},
     {"id":"DEP-004","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"plastic","materialLabel":"PET plastic","itemCount":2,"pointsAwarded":10,"status":"verified","occurredAt":"2024-05-15T12:00:00+08:00","verifiedAt":"2024-05-15T12:00:30+08:00"},
@@ -13,6 +13,6 @@
     {"id":"DEP-011","residentId":"RES-000842","sessionId":null,"binId":"BIN-002","binLocation":"BIN-002 · Maple Lobby","materialType":"plastic","materialLabel":"PET plastic","itemCount":2,"pointsAwarded":10,"status":"verified","occurredAt":"2024-05-08T12:00:00+08:00","verifiedAt":"2024-05-08T12:00:30+08:00"},
     {"id":"DEP-012","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"aluminium","materialLabel":"Aluminium","itemCount":2,"pointsAwarded":16,"status":"verified","occurredAt":"2024-05-07T12:00:00+08:00","verifiedAt":"2024-05-07T12:00:30+08:00"},
     {"id":"DEP-013","residentId":"RES-000842","sessionId":null,"binId":"BIN-007","binLocation":"BIN-007 · Town Square","materialType":"unknown","materialLabel":"Unclassified material","itemCount":1,"pointsAwarded":0,"status":"rejected","occurredAt":"2024-05-06T12:00:00+08:00","verifiedAt":null},
-    {"id":"DEP-014","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"plastic","materialLabel":"PET plastic","itemCount":4,"pointsAwarded":20,"status":"verified","occurredAt":"2024-05-05T12:00:00+08:00","verifiedAt":"2024-05-05T12:00:30+08:00"}
+    {"id":"DEP-014","residentId":"RES-000842","sessionId":null,"binId":"BIN-004","binLocation":"BIN-004 · Cedar Residence","materialType":"plastic","materialLabel":"PET plastic","itemCount":6,"pointsAwarded":30,"status":"verified","occurredAt":"2024-05-05T12:00:00+08:00","verifiedAt":"2024-05-05T12:00:30+08:00"}
   ]
 }

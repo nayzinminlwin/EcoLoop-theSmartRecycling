@@ -2,9 +2,11 @@ import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
+import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +33,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
   String? _redemptionError;
   String? _idempotencyKey;
   bool _redeeming = false;
+  String? _successMessage;
+  String? _successVoucherId;
 
   @override
   void initState() {
@@ -56,7 +60,9 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                   children: [
                     Text(
                       'MARKETPLACE',
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: AppTypography.eyebrow.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
                     Text(
                       'Rewards',
@@ -68,14 +74,42 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
               wallet.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
-                data: (value) => Chip(
-                  avatar: const Icon(Icons.eco, color: AppColors.primary),
-                  label: Text('${value.balance}'),
+                data: (value) => Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.mint,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AppIcon('leaf', size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${value.balance} pts',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 18),
+          if (_successMessage != null) ...[
+            _SuccessBanner(
+              message: _successMessage!,
+              onOpen: _successVoucherId == null
+                  ? null
+                  : () => context.push(
+                      '${AppRoutes.vouchers}/$_successVoucherId',
+                    ),
+            ),
+            const SizedBox(height: 16),
+          ],
           categories.when(
             loading: () => const LinearProgressIndicator(),
             error: (_, _) => const SizedBox.shrink(),
@@ -153,8 +187,10 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
   void _openRedemption(Reward reward) {
     _pendingReward = reward;
     _redemptionError = null;
+    _redeeming = false;
     _idempotencyKey =
         'redeem-${reward.id}-${DateTime.now().microsecondsSinceEpoch}';
+    _successMessage = null;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -180,21 +216,16 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
           .read(rewardsRepositoryProvider)
           .redeemReward(reward.id, _idempotencyKey!);
       if (!mounted) return;
+      _redeeming = false;
       Navigator.pop(context);
       ref
         ..invalidate(walletSnapshotProvider)
-        ..invalidate(rewardsProvider(_selectedCategory))
+        ..invalidate(rewardsProvider)
         ..invalidate(vouchersProvider(null));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${receipt.voucher.title} redeemed.'),
-          action: SnackBarAction(
-            label: 'Open voucher',
-            onPressed: () =>
-                context.push('${AppRoutes.vouchers}/${receipt.voucher.id}'),
-          ),
-        ),
-      );
+      setState(() {
+        _successMessage = '${receipt.voucher.title} added to My vouchers.';
+        _successVoucherId = receipt.voucher.id;
+      });
     } on AppFailure catch (failure) {
       if (mounted) {
         _redemptionError = switch (failure.code) {
@@ -263,24 +294,54 @@ class _RewardGrid extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 560 ? 2 : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: rewards.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: columns == 2 ? .72 : 1.3,
-          ),
-          itemBuilder: (_, index) => RewardCard(
-            reward: rewards[index],
-            balance: balance,
-            onRedeem: () => onRedeem(rewards[index]),
-          ),
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final columns = constraints.maxWidth >= 340 && textScale < 1.35 ? 2 : 1;
+        final width = columns == 2
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final reward in rewards)
+              SizedBox(
+                width: width,
+                child: RewardCard(
+                  reward: reward,
+                  balance: balance,
+                  onRedeem: () => onRedeem(reward),
+                ),
+              ),
+          ],
         );
       },
     );
   }
+}
+
+class _SuccessBanner extends StatelessWidget {
+  const _SuccessBanner({required this.message, required this.onOpen});
+
+  final String message;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppColors.mint,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.onPrimaryPale),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.check_circle, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Expanded(child: Text(message)),
+        if (onOpen != null)
+          TextButton(onPressed: onOpen, child: const Text('Open voucher')),
+      ],
+    ),
+  );
 }

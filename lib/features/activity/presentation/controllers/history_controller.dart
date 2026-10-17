@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
@@ -46,8 +48,15 @@ class HistoryFilterState {
   }
 }
 
+class HistoryViewData {
+  const HistoryViewData({required this.items, this.refreshFailed = false});
+
+  final List<DepositTransaction> items;
+  final bool refreshFailed;
+}
+
 final historyControllerProvider =
-    AsyncNotifierProvider<HistoryController, List<DepositTransaction>>(
+    AsyncNotifierProvider<HistoryController, HistoryViewData>(
       HistoryController.new,
     );
 
@@ -64,42 +73,64 @@ class HistoryFilterNotifier extends Notifier<HistoryFilterState> {
   void reset() => state = const HistoryFilterState();
 }
 
-class HistoryController extends AsyncNotifier<List<DepositTransaction>> {
-  int _requestId = 0;
+/// Observes the committed activity projection for the selected filter.
+///
+/// A filter change re-runs [build], cancelling the previous subscription;
+/// events from superseded subscriptions are ignored by generation count.
+/// Stream failures after the first projection keep the last visible content
+/// and surface an inline refresh failure instead of an error screen.
+class HistoryController extends AsyncNotifier<HistoryViewData> {
+  StreamSubscription<List<DepositTransaction>>? _subscription;
+  int _generation = 0;
 
   @override
-  Future<List<DepositTransaction>> build() {
-    final filter = ref.read(historyFilterProvider);
-    return _load(filter.toFilter(ref.read(appClockProvider).now));
-  }
+  Future<HistoryViewData> build() async {
+    final filterState = ref.watch(historyFilterProvider);
+    final clock = ref.watch(appClockProvider);
+    final repository = await ref.watch(activityRepositoryProvider.future);
+    final filter = filterState.toFilter(clock.now);
 
-  Future<List<DepositTransaction>> _load(DepositFilter filter) async {
-    final repository = await ref.read(activityRepositoryProvider.future);
-    return repository.getDeposits(filter: filter);
+    final generation = ++_generation;
+    ref.onDispose(() {
+      _subscription?.cancel();
+      _subscription = null;
+    });
+
+    final firstValue = Completer<HistoryViewData>();
+    _subscription = repository
+        .watchDeposits(filter: filter)
+        .listen(
+          (items) {
+            if (generation != _generation) return;
+            final data = HistoryViewData(items: List.unmodifiable(items));
+            if (!firstValue.isCompleted) {
+              firstValue.complete(data);
+            } else {
+              state = AsyncData(data);
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (generation != _generation) return;
+            final previous = state.valueOrNull;
+            if (!firstValue.isCompleted) {
+              firstValue.completeError(error, stackTrace);
+            } else if (previous != null) {
+              state = AsyncData(
+                HistoryViewData(items: previous.items, refreshFailed: true),
+              );
+            } else {
+              state = AsyncError(error, stackTrace);
+            }
+          },
+        );
+    return firstValue.future;
   }
 
   Future<void> apply(HistoryFilterState filter) async {
-    final requestId = ++_requestId;
-    final previous = state.valueOrNull;
-    state = const AsyncLoading();
     ref.read(historyFilterProvider.notifier).setFilter(filter);
-    try {
-      final result = await _load(
-        filter.toFilter(ref.read(appClockProvider).now),
-      );
-      if (requestId == _requestId) state = AsyncData(result);
-    } catch (error, stackTrace) {
-      if (requestId == _requestId) {
-        state = previous == null
-            ? AsyncError(error, stackTrace)
-            : AsyncData(previous);
-      }
-      rethrow;
-    }
   }
 
   Future<void> refresh() async {
-    final filter = ref.read(historyFilterProvider);
-    await apply(filter);
+    ref.invalidateSelf();
   }
 }

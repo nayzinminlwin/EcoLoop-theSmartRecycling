@@ -18,7 +18,7 @@ class MockApi {
 
   Future<T> read<T>(String operation, FutureOr<T> Function() action) async {
     await Future<void>.delayed(readDelay);
-    if (scenario.consumeReadFailure()) {
+    if (scenario.consumeReadFailure(operation)) {
       throw const AppFailure(
         code: AppFailureCodes.unavailable,
         messageKey: 'mock.readUnavailable',

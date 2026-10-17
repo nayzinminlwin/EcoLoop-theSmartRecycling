@@ -62,9 +62,11 @@ class AppButton extends StatelessWidget {
       enabled: !isLoading && onPressed != null,
       label: label,
       child: SizedBox(
-        height: 48,
         width: expand ? double.infinity : null,
-        child: button,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: button,
+        ),
       ),
     );
   }
@@ -75,7 +77,9 @@ class AppButton extends StatelessWidget {
       children: [
         if (leadingIcon != null) Icon(leadingIcon, size: 18),
         if (leadingIcon != null) const SizedBox(width: 8),
-        Text(label),
+        // Flexible so long labels wrap instead of overflowing at narrow
+        // widths or enlarged text scales.
+        Flexible(child: Text(label, textAlign: TextAlign.center)),
         if (trailingIcon != null) const SizedBox(width: 8),
         if (trailingIcon != null) Icon(trailingIcon, size: 18),
       ],

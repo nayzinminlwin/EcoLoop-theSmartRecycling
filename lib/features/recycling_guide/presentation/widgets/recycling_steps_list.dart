@@ -10,19 +10,42 @@ class RecyclingStepsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    children: steps
-        .map(
-          (step) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              radius: 15,
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              child: Text('${step.order}'),
-            ),
-            title: Text(step.instruction),
+    children: [
+      for (var index = 0; index < steps.length; index++)
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 32,
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 15,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      child: Text('${steps[index].order}'),
+                    ),
+                    if (index < steps.length - 1)
+                      Expanded(
+                        child: Container(
+                          width: 1,
+                          color: AppColors.onPrimaryPale,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 16),
+                  child: Text(steps[index].instruction),
+                ),
+              ),
+            ],
           ),
-        )
-        .toList(),
+        ),
+    ],
   );
 }

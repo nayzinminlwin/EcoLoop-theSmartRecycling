@@ -21,11 +21,29 @@ abstract final class RouteParameterParsers {
     }
   }
 
-  static DateTime? calendarDate(String? value) {
+  static final _calendarDayPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
+  /// Parses a strict `yyyy-MM-dd` calendar day and returns the absolute
+  /// instant of that day's midnight at the demo display offset.
+  static DateTime? calendarDate(String? value, {int utcOffsetMinutes = 480}) {
     if (value == null || value.isEmpty) return null;
-    final parsed = DateTime.tryParse(value);
+    final String raw;
+    try {
+      raw = Uri.decodeComponent(value).trim();
+    } on FormatException {
+      return null;
+    } on ArgumentError {
+      return null;
+    }
+    if (!_calendarDayPattern.hasMatch(raw)) return null;
+    final parsed = DateTime.tryParse(raw);
     if (parsed == null) return null;
-    return DateTime(parsed.year, parsed.month, parsed.day);
+    final day = DateTime(parsed.year, parsed.month, parsed.day);
+    return DateTime.utc(
+      day.year,
+      day.month,
+      day.day,
+    ).subtract(Duration(minutes: utcOffsetMinutes));
   }
 
   static DepositStatus? depositStatus(String? value) {
@@ -40,9 +58,15 @@ abstract final class RouteParameterParsers {
     return status == VoucherStatus.unknown ? null : status;
   }
 
-  static DepositFilter historyFilter(Map<String, String> query) {
-    final from = calendarDate(query['from']);
-    final to = calendarDate(query['to']);
+  static DepositFilter historyFilter(
+    Map<String, String> query, {
+    int utcOffsetMinutes = 480,
+  }) {
+    final from = calendarDate(
+      query['from'],
+      utcOffsetMinutes: utcOffsetMinutes,
+    );
+    final to = calendarDate(query['to'], utcOffsetMinutes: utcOffsetMinutes);
     return DepositFilter(
       from: from,
       toExclusive: to?.add(const Duration(days: 1)),

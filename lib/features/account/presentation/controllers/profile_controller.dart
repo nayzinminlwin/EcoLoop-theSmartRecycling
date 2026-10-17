@@ -15,9 +15,16 @@ class ProfileController extends AsyncNotifier<ResidentProfile> {
       ref.watch(accountRepositoryProvider).getProfile();
 
   Future<void> save(ProfileUpdateRequest request) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final previous = state;
+    state = AsyncLoading<ResidentProfile>().copyWithPrevious(previous);
+    final next = await AsyncValue.guard(
       () => ref.read(accountRepositoryProvider).updateProfile(request),
     );
+    state = next.hasError
+        ? AsyncError<ResidentProfile>(
+            next.error!,
+            next.stackTrace ?? StackTrace.current,
+          ).copyWithPrevious(previous)
+        : next;
   }
 }

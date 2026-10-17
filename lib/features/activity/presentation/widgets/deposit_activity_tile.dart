@@ -1,14 +1,28 @@
+import 'package:eco_loop/core/domain/material_weight_constants.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/presentation/app_formatters.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
 import 'package:eco_loop/shared/widgets/app_badge.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 
+/// Content-sized activity/history row: icon tile, flexible material/location/
+/// date block, and a bounded points/status block that stacks at enlarged text
+/// scales instead of overflowing.
 class DepositActivityTile extends StatelessWidget {
-  const DepositActivityTile({required this.deposit, super.key});
+  const DepositActivityTile({
+    required this.deposit,
+    super.key,
+    this.clock,
+    this.showWeight = false,
+  });
 
   final DepositTransaction deposit;
+  final AppClock? clock;
+  final bool showWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -16,32 +30,136 @@ class DepositActivityTile extends StatelessWidget {
       DepositStatus.verified => (
         'Verified',
         AppBadgeTone.green,
-        '+${deposit.pointsAwarded ?? 0}',
+        '+${AppFormatters.points(deposit.pointsAwarded ?? 0)}',
       ),
       DepositStatus.review => ('Review', AppBadgeTone.amber, 'Pending'),
       DepositStatus.rejected => ('Rejected', AppBadgeTone.red, '0'),
       DepositStatus.unknown => ('Unknown', AppBadgeTone.gray, '0'),
     };
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const CircleAvatar(
-        backgroundColor: AppColors.mint,
-        child: AppIcon('recycle', color: AppColors.primary, size: 20),
-      ),
-      title: Text(deposit.materialLabel),
-      subtitle: Text(
-        '${deposit.binId} · ${deposit.binLocation}\n${AppFormatters.dateTime(deposit.occurredAt)}',
-      ),
-      isThreeLine: true,
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(points, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          AppBadge(label: label, tone: tone),
-        ],
-      ),
+    final metadata = _metadata(context);
+
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: MediaQuery.textScalerOf(context).scale(14) > 14 * 1.3
+          ? _stackedRow(context, metadata, points, label, tone)
+          : _inlineRow(context, metadata, points, label, tone),
     );
   }
+
+  List<String> _metadata(BuildContext context) {
+    final lines = <String>[
+      AppFormatters.location(deposit.binId, deposit.binLocation),
+    ];
+    if (clock == null) {
+      lines.add(AppFormatters.dateTime(deposit.occurredAt));
+      return lines;
+    }
+    final displayNow = clock!.toDisplay(clock!.now);
+    final displayOccurred = clock!.toDisplay(deposit.occurredAt);
+    var stamp = AppFormatters.activityStamp(displayOccurred, displayNow);
+    if (showWeight) {
+      final weightKg = MaterialWeightConstants.getWeightKg(
+        deposit.materialType,
+        deposit.itemCount,
+      );
+      stamp = '$stamp · ${AppFormatters.weight(weightKg)}';
+    }
+    lines.add(stamp);
+    return lines;
+  }
+
+  Widget _iconTile() => Container(
+    width: 38,
+    height: 38,
+    decoration: BoxDecoration(
+      color: AppColors.mint,
+      borderRadius: BorderRadius.circular(AppRadii.icon),
+    ),
+    child: Center(
+      child: AppIcon('recycle', size: 20, color: AppColors.primary),
+    ),
+  );
+
+  Widget _textBlock(List<String> metadata) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        deposit.materialLabel,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: AppTypography.activityTitle.copyWith(color: AppColors.text),
+      ),
+      const SizedBox(height: 2),
+      for (final line in metadata)
+        Text(
+          line,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.activityMetadata.copyWith(
+            color: AppColors.muted,
+          ),
+        ),
+    ],
+  );
+
+  Widget _amountBlock(
+    BuildContext context,
+    String points,
+    String label,
+    AppBadgeTone tone,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.end,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        points,
+        style: AppTypography.activityTitle.copyWith(color: AppColors.primary),
+      ),
+      const SizedBox(height: 4),
+      AppBadge(label: label, tone: tone),
+    ],
+  );
+
+  Widget _inlineRow(
+    BuildContext context,
+    List<String> metadata,
+    String points,
+    String label,
+    AppBadgeTone tone,
+  ) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      _iconTile(),
+      const SizedBox(width: 12),
+      Expanded(child: _textBlock(metadata)),
+      const SizedBox(width: 12),
+      _amountBlock(context, points, label, tone),
+    ],
+  );
+
+  Widget _stackedRow(
+    BuildContext context,
+    List<String> metadata,
+    String points,
+    String label,
+    AppBadgeTone tone,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _iconTile(),
+          const SizedBox(width: 12),
+          Expanded(child: _textBlock(metadata)),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerRight,
+        child: _amountBlock(context, points, label, tone),
+      ),
+    ],
+  );
 }

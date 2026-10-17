@@ -80,7 +80,7 @@ The supplied process pairs start at **bin found**, not the QR scanner. The scann
 - All service behavior stays mock-only, asynchronous, deterministic, and process-local. No camera/QR plugin, HTTP service, Firebase runtime activation, or live uploads.
 - Preserve `android/build.gradle.kts`, `android/app/build.gradle.kts`, and `android/app/google-services.json`; compare their SHA-256 values against the audit baseline before and after implementation.
 - Preserve the original screenshot folder and audit as evidence. Store new comparison captures separately.
-- Check current changes before each phase. Use separate phase commits when committing is requested; this plan itself is not an instruction to commit unrelated work.
+- Check current git status before each phase. Enforce separate, clean git commits after every completed phase or request before starting subsequent work; do not commit unrelated or unverified changes.
 
 ### Shared implementation approach
 
@@ -91,15 +91,30 @@ The supplied process pairs start at **bin found**, not the QR scanner. The scann
 - Displayed live data uses repository streams with safe initial subscription, defensive snapshots, and cleanup. Explicit refresh keeps last successful data visible.
 - Keep saved data, editable drafts, and write status separate. A write failure must not become an initial-read error screen.
 
-### Per-phase verification
+### Per-phase verification, documentation, and commit workflow
 
-1. Run focused tests for changed business/state behavior and the affected width/layout regressions.
-2. Run `dart format --output=none --set-exit-if-changed lib test integration_test`, `flutter analyze`, and `flutter test` before closing the phase.
-3. Run `flutter build web` at the presentation milestones (Phases 2–5), and earlier if bootstrap/assets change.
-4. Review the phase's screenshot pairs **during that phase**, not only at the end. Record pass/fail plus deliberate semantic differences.
-5. A failed gate remains open. Screens/files existing is not acceptance.
+Every phase and task update MUST complete the following verification, documentation, and commit steps:
 
-Create `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` in Phase 1 and `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md` in Phase 2. Record phase results and new captures under `docs/refactor_visuals/`. These are execution deliverables, not files already produced by this planning task.
+1. **Automated and Visual Quality Gates:**
+   - Run focused tests for changed business/state behavior and affected width/layout regressions.
+   - Run `dart format --output=none --set-exit-if-changed lib test integration_test`, `flutter analyze`, and `flutter test` before closing the phase.
+   - Run `flutter build web` at the presentation milestones (Phases 2–5), and earlier if bootstrap/assets change.
+   - Review the phase's screenshot pairs **during that phase**, not only at the end. Record pass/fail plus deliberate semantic differences.
+   - A failed gate remains open. Screens/files merely existing is not acceptance.
+
+2. **Mandatory Documentation in Fix Logs & Execution Log (Enforced for Every Task):**
+   Agents must maintain two simultaneous documentation layers—neither can be omitted:
+   - **Keep refactor-specific living docs:** Do NOT stop writing or delete `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` (created in Phase 1) or `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md` (created in Phase 2). Keep appending phase status, verified deliverables, and remaining gate work to them. Record new comparison captures under `docs/refactor_visuals/`.
+   - **Enforce `docs/fix_logs/` documentation:** Since this is an active refactor plan, every phase and correction MUST produce or append a fix log in `docs/fix_logs/` using `.agent/templates/fix_log_template.md`. Naming convention: `[YYYY-MM-DD]_FIX_[ModuleName]_[ShortBugOrRefactorDescription].md`. For follow-up corrections on the same phase/scope, append under `## 📝 APPENDED FOLLOW-UP FIXES` in the existing fix log instead of creating duplicate files. Document trigger, root cause, changed files, verification results, and status.
+
+3. **Mandatory Git Commit Policy (Enforced After Every Phase & Update):**
+   Agents MUST commit all changes after each phase or request before moving to any subsequent phase or reporting completion:
+   - **Commit after each update/phase:** Do not leave uncommitted files or roll multiple phases into a single uncommitted working tree.
+   - **Check open issues:** Run `gh issue list --repo nayzinminlwin/EcoLoop-theSmartRecycling` to find relevant open issues.
+   - **Format commit messages strictly:**
+     - If linked to an open issue: `#[issueID] [titleCode] : [your commit message]` (e.g., `#3 P1 : Stabilize shared demo data and mutation behavior`).
+     - If not linked to an open issue, use conventional semantic commit message format (e.g., `refactor(phase1): stabilize shared demo data and mutation behavior`).
+   - **Never skip committing:** Committing is mandatory before advancing to the next phase implementation unless the moderator explicitly requests not to commit.
 
 ## Phase 1 — Stabilize shared demo data and mutation behavior
 
@@ -162,6 +177,8 @@ Create `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` in Phase 1 and `docs/FLUTTER_
 - [ ] Seed initialization occurs once, including for scan-first startup; provider recreation cannot overwrite a new deposit.
 - [ ] The same instant displays at +08:00, including a near-midnight calendar-boundary test.
 - [ ] Scenario selection reaches the production composition path, not just isolated repository constructors.
+- [ ] Task documented in `docs/fix_logs/` using `.agent/templates/fix_log_template.md` AND progress recorded in `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`.
+- [ ] Phase 1 changes formatted, analyzed, tested, and committed cleanly to git before advancing to Phase 2.
 
 **Audit coverage:** F01, F02, the write-state core of F06/F16, foundational portions of F03/F09/F11/F12/F17.
 
@@ -230,6 +247,8 @@ Create `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` in Phase 1 and `docs/FLUTTER_
 - [ ] `/history?status=review&from=2024-05-01&to=2024-05-20` actually filters and survives refresh; invalid input recovers predictably.
 - [ ] Cold-start settings/voucher links reach their requested destination after auth restoration; bell opens History.
 - [ ] V01–V03 comparison captures and shared-shell checklist are reviewed before proceeding.
+- [ ] Task documented in `docs/fix_logs/` using `.agent/templates/fix_log_template.md`, with `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` and `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md` updated.
+- [ ] Phase 2 changes formatted, analyzed, tested, and committed cleanly to git before advancing to Phase 3.
 
 **Audit coverage:** F07, F08, F12 for displayed surfaces; Home/History parts of F05/F14/F15; navigation foundation of F04.
 
@@ -297,6 +316,8 @@ Keep the visual in one stage-aware feature widget, or split only genuinely disti
 - [ ] Leave during processing, return after completion, and see the actual completed result without replaying credit.
 - [ ] Pre-processing Back and branch change both present the same cancel/continue decision.
 - [ ] Capture processing while it actually runs, using a controlled longer classification delay for review rather than adding a manual completion button.
+- [ ] Task documented in `docs/fix_logs/` using `.agent/templates/fix_log_template.md`, with `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` updated.
+- [ ] Phase 3 changes formatted, analyzed, tested, and committed cleanly to git before advancing to Phase 4.
 
 **Audit coverage:** F03, scan portions of F04/F05/F15/F16, and transaction/fixture portions of F17.
 
@@ -356,6 +377,8 @@ Keep the visual in one stage-aware feature widget, or split only genuinely disti
 - [ ] V10/V11: guide has the icon medallion, two guidance panels, compact steps, and count-based example column.
 - [ ] Guide has no RenderFlex overflow at 320/390/480; scan and table agree if a rate changes.
 - [ ] Loading/read error/empty catalog/no vouchers/zero-balance states remain intentional and retryable where appropriate.
+- [ ] Task documented in `docs/fix_logs/` using `.agent/templates/fix_log_template.md`, with `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` updated.
+- [ ] Phase 4 changes formatted, analyzed, tested, and committed cleanly to git before advancing to Phase 5.
 
 **Audit coverage:** reward/guide portions of F05/F09/F11/F14/F15/F17; maintains the F02 repair.
 
@@ -413,6 +436,8 @@ Keep the visual in one stage-aware feature widget, or split only genuinely disti
 - [ ] Main recovery/navigation cases pass using the shared production composition and deterministic overrides, not fake per-screen datasets.
 - [ ] Each visual pair has a reviewed capture/status; intentional semantic differences are recorded, not reported as defects or silently copied from the prototype.
 - [ ] All common checks pass; a device run has a real result or an explicit unavailable-target record. A web build is never reported as a device integration pass.
+- [ ] Final refactor updates documented in `docs/fix_logs/` using `.agent/templates/fix_log_template.md`, with `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` finalized.
+- [ ] All final changes formatted, analyzed, tested, and committed cleanly to git before reporting completion.
 
 **Audit coverage:** F04/F06 for account behavior, single-resident portions of F10, Settings/Profile portions of F15, scoped F18/F19.
 
@@ -453,6 +478,21 @@ flutter analyze
 flutter test
 flutter build web
 flutter devices
+```
+
+For documentation and phase commit:
+
+```powershell
+# Check open issues for commit tagging
+gh issue list --repo nayzinminlwin/EcoLoop-theSmartRecycling
+
+# Ensure documentation is written in both:
+# 1. docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md
+# 2. docs/fix_logs/ using .agent/templates/fix_log_template.md
+
+# Stage and commit phase updates
+git add <changed-files>
+git commit -m "#<issueID> <titleCode> : <description>"
 ```
 
 For manual review:

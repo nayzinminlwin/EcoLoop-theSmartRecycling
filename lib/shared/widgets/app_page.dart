@@ -1,32 +1,44 @@
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_spacing.dart';
+import 'package:eco_loop/shared/widgets/app_page_header.dart';
 import 'package:flutter/material.dart';
 
+/// One page scroll owner inside the resident shell.
+///
+/// The shell Scaffold owns app bar and bottom insets; this widget only owns
+/// the page padding, the optional content header, and the scroll view.
 class AppPage extends StatelessWidget {
   const AppPage({
     required this.child,
     super.key,
     this.header,
-    this.padding = const EdgeInsets.symmetric(horizontal: 20),
-    this.backgroundColor,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.page),
   });
 
   final Widget child;
-  final PreferredSizeWidget? header;
+  final AppPageHeader? header;
   final EdgeInsetsGeometry padding;
-  final Color? backgroundColor;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: backgroundColor ?? AppColors.background,
-    appBar: header,
-    body: SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          padding: padding,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: child,
-          ),
+  Widget build(BuildContext context) => Material(
+    color: AppColors.background,
+    child: LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: padding.add(const EdgeInsets.only(bottom: AppSpacing.section)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (header != null) ...[
+              header!,
+              const SizedBox(height: AppSpacing.section),
+            ],
+            // The page content keeps the full viewport minimum so
+            // full-height states (loading/error centering) keep working.
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: child,
+            ),
+          ],
         ),
       ),
     ),

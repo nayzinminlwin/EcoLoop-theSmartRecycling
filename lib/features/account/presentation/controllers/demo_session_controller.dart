@@ -14,11 +14,12 @@ class DemoSessionController extends AsyncNotifier<DemoSession> {
       ref.watch(accountRepositoryProvider).getDemoSession();
 
   Future<void> signOut() async {
-    state = const AsyncLoading();
-    await ref.read(accountRepositoryProvider).signOut();
-    state = await AsyncValue.guard(
-      () => ref.read(accountRepositoryProvider).getDemoSession(),
-    );
+    final previous = state;
+    state = const AsyncLoading<DemoSession>().copyWithPrevious(previous);
+    state = await AsyncValue.guard(() async {
+      await ref.read(accountRepositoryProvider).signOut();
+      return ref.read(accountRepositoryProvider).getDemoSession();
+    });
   }
 
   Future<void> resume() async {

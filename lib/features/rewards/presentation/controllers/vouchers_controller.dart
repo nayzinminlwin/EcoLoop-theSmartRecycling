@@ -4,8 +4,9 @@ import '../../../../app/providers/app_providers.dart';
 import '../../domain/models/resident_voucher.dart';
 
 final vouchersProvider =
-    FutureProvider.family<List<ResidentVoucher>, VoucherStatus?>(
-      (ref, status) => ref.watch(rewardsRepositoryProvider).getVouchers(status),
+    StreamProvider.family<List<ResidentVoucher>, VoucherStatus?>(
+      (ref, status) =>
+          ref.watch(rewardsRepositoryProvider).watchVouchers(status: status),
     );
 
 final voucherProvider = FutureProvider.family<ResidentVoucher, String>(

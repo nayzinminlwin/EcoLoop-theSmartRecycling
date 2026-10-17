@@ -1,8 +1,13 @@
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:eco_loop/core/theme/app_spacing.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
+import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 
-class AppPageHeader extends StatelessWidget implements PreferredSizeWidget {
+/// In-content page title composition: bordered back control, eyebrow, and
+/// page heading, matching the source `.page-title` row.
+class AppPageHeader extends StatelessWidget {
   const AppPageHeader({
     required this.title,
     super.key,
@@ -17,39 +22,59 @@ class AppPageHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
-
-  @override
-  Widget build(BuildContext context) => AppBar(
-    automaticallyImplyLeading: false,
-    leading: onBack == null
-        ? null
-        : IconButton(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back',
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      if (onBack != null) ...[
+        SizedBox(
+          width: 48,
+          height: 48,
+          key: const Key('app-page-header-back'),
+          child: InkWell(
+            onTap: onBack,
+            borderRadius: BorderRadius.circular(AppRadii.button),
+            child: Center(
+              child: Material(
+                color: AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.icon),
+                  side: const BorderSide(color: AppColors.border),
+                ),
+                child: SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: RotatedBox(
+                    quarterTurns: 2,
+                    child: AppIcon('arrow', color: AppColors.text, size: 22),
+                  ),
+                ),
+              ),
+            ),
           ),
-    titleSpacing: onBack == null ? 20 : 0,
-    title: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (eyebrow != null)
-          Text(
-            eyebrow!,
-            style: Theme.of(context).textTheme.labelMedium
-                ?.copyWith(color: AppColors.muted),
-          ),
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        ),
+        const SizedBox(width: AppSpacing.md),
       ],
-    ),
-    actions: trailing == null
-        ? null
-        : [
-            Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.sm),
-              child: trailing,
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (eyebrow != null)
+              Text(
+                eyebrow!,
+                style: AppTypography.eyebrow.copyWith(color: AppColors.primary),
+              ),
+            if (eyebrow != null) const SizedBox(height: AppSpacing.xs),
+            Text(
+              title,
+              style: AppTypography.pageHeading,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
+      ),
+      if (trailing != null) ?trailing,
+    ],
   );
 }

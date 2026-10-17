@@ -24,7 +24,20 @@ import 'package:eco_loop/features/rewards/presentation/screens/vouchers_screen.d
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-GoRouter createAppRouter([AccountRepository? accountRepository]) {
+String _scanStagePath(ScanStage stage, String sessionId) => switch (stage) {
+  ScanStage.binFound => AppRoutes.scanBinPath(sessionId),
+  ScanStage.ready => AppRoutes.scanReadyPath(sessionId),
+  ScanStage.itemDetected => AppRoutes.scanDetectedPath(sessionId),
+  ScanStage.processing => AppRoutes.scanProcessingPath(sessionId),
+  ScanStage.completed => AppRoutes.scanResultPath(sessionId),
+  ScanStage.cancelled => AppRoutes.scan,
+};
+
+GoRouter createAppRouter({
+  AccountRepository? accountRepository,
+  ScanStage? Function(String sessionId)? resolveSessionStage,
+  int utcOffsetMinutes = 480,
+}) {
   final guards = RouteGuards(
     accountRepository ??
         MockAccountRepository(api: MockApi(readDelay: Duration.zero)),
@@ -37,11 +50,19 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
   }) => GoRoute(
     path: path,
     name: name,
-    redirect: (context, state) =>
-        RouteParameterParsers.opaqueId(state.pathParameters['sessionId']) ==
-            null
-        ? AppRoutes.scan
-        : null,
+    redirect: (context, state) {
+      final sessionId = RouteParameterParsers.opaqueId(
+        state.pathParameters['sessionId'],
+      );
+      if (sessionId == null) return AppRoutes.scan;
+      // Canonicalize stale/future-stage URLs to the committed stage state so
+      // no stage can be skipped by typing a URL.
+      final committed = resolveSessionStage?.call(sessionId);
+      if (committed != null && committed != stage) {
+        return _scanStagePath(committed, sessionId);
+      }
+      return null;
+    },
     builder: (context, state) => ScanSessionScreen(
       sessionId: RouteParameterParsers.opaqueId(
         state.pathParameters['sessionId'],
@@ -70,15 +91,28 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
           final query = state.uri.queryParameters;
           final hasInvalidDate =
               (query['from'] != null &&
-                  RouteParameterParsers.calendarDate(query['from']) == null) ||
+                  RouteParameterParsers.calendarDate(
+                        query['from'],
+                        utcOffsetMinutes: utcOffsetMinutes,
+                      ) ==
+                      null) ||
               (query['to'] != null &&
-                  RouteParameterParsers.calendarDate(query['to']) == null);
+                  RouteParameterParsers.calendarDate(
+                        query['to'],
+                        utcOffsetMinutes: utcOffsetMinutes,
+                      ) ==
+                      null);
           final hasInvalidStatus =
               query['status'] != null &&
               RouteParameterParsers.depositStatus(query['status']) == null;
           return hasInvalidDate || hasInvalidStatus ? AppRoutes.history : null;
         },
-        builder: (context, state) => const HistoryScreen(),
+        builder: (context, state) => HistoryScreen(
+          routeFilter: RouteParameterParsers.historyFilter(
+            state.uri.queryParameters,
+            utcOffsetMinutes: utcOffsetMinutes,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.rewards,
@@ -190,7 +224,7 @@ GoRouter createAppRouter([AccountRepository? accountRepository]) {
   return GoRouter(
     initialLocation: AppRoutes.root,
     refreshListenable: guards,
-    redirect: (context, state) => guards.redirect(state.uri.path),
+    redirect: (context, state) => guards.redirect(state.uri),
     routes: [
       GoRoute(
         path: AppRoutes.root,
