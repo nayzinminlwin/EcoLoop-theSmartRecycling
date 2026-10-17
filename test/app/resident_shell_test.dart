@@ -19,7 +19,9 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.text('Scan'));
     await tester.pumpAndSettle();
-    expect(find.text('Scan a smart bin'), findsOneWidget);
+    // The scanner title appears twice by design (page heading + flow-info
+    // heading), matching the source composition.
+    expect(find.text('Scan a smart bin'), findsWidgets);
 
     // Header bell routes to History.
     await tester.tap(find.byTooltip('Notifications'));

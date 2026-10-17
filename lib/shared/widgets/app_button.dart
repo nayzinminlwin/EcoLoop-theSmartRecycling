@@ -77,7 +77,9 @@ class AppButton extends StatelessWidget {
       children: [
         if (leadingIcon != null) Icon(leadingIcon, size: 18),
         if (leadingIcon != null) const SizedBox(width: 8),
-        Text(label),
+        // Flexible so long labels wrap instead of overflowing at narrow
+        // widths or enlarged text scales.
+        Flexible(child: Text(label, textAlign: TextAlign.center)),
         if (trailingIcon != null) const SizedBox(width: 8),
         if (trailingIcon != null) Icon(trailingIcon, size: 18),
       ],

@@ -65,14 +65,70 @@ routes to History, no permanent Scan emphasis.
 
 ## Phase 3 — Scan experience
 
-| Pair | Status | Captures |
+Shared scan frame (all scan stages):
+
+| Check | Status | Notes |
 |---|---|---|
-| V04 bin found | pending | |
-| V05 ready | pending | |
-| V06 item detected | pending | |
-| V07 processing | pending | |
-| V08 result | pending | |
-| QR scanner (no supplied pair) | pending | compare against source/plan |
+| SMART BIN SESSION eyebrow + page heading + bordered back control | pass | `scanner_390.png`; titles/copy from store instructions |
+| Dark 250px stage surface, radius 22, radial overlay | pass | shared `ScannerStage`; success variant swaps to primary green |
+| Centered flow info; full-width stage actions | pass | actions: Confirm session / I pressed the finish button / Continue / Back to home |
+| Reduced-motion static equivalents; animation never drives state | pass | `MediaQuery.disableAnimations` respected |
+| Scanner is the entry point; URLs canonicalize to committed stage | pass | route redirects via store-backed stage peek; tested |
+
+V04 — `Figma_RecyclingProcess_1` / `Flutter_RecyclingProcess_1`:
+
+| Check | Status | Notes |
+|---|---|---|
+| Dark stage, white outlined bin, amber capacity 65% | pass | `scan_bin_found_390.png` |
+| Centered BIN-004 badge + Cedar Residence · Ground Floor | pass | location rendered once |
+| Split accepts/capacity detail row (Plastic · Cans / 65% · Warning) | pass | amber warning tone at source thresholds |
+| Full-width Confirm session | pass | |
+
+V05 — `Figma_RecyclingProcess_2` / `Flutter_RecyclingProcess_2`:
+
+| Check | Status | Notes |
+|---|---|---|
+| Dark bin visual with READY label | pass | `scan_ready_390.png` |
+| Centered physical-finish instruction | pass | repository readyDescription |
+| "I pressed the finish button" action | pass | |
+
+V06 — `Figma_RecyclingProcess_3` / `Flutter_RecyclingProcess_3`:
+
+| Check | Status | Notes |
+|---|---|---|
+| Camera SVG inside subtle mint pulse rings | pass | `scan_item_detected_390.png` |
+| Centered status/description; Continue action | pass | |
+
+V07 — `Figma_RecyclingProcess_4` / `Flutter_RecyclingProcess_4`:
+
+| Check | Status | Notes |
+|---|---|---|
+| Recycle/identification visual on dark surface | pass | `scan_processing_390.png`; captured while processing actually ran (controlled 30s classification delay) |
+| Amber Processing badge; timing/help copy | pass | repository pointsTimingNotice; no manual completion button |
+| Automatic completion; Retry only on error | pass | injected-failure test keeps processing and retries once |
+
+V08 — `Figma_RecyclingProcess_5` / `Flutter_RecyclingProcess_5`:
+
+| Check | Status | Notes |
+|---|---|---|
+| Green verified surface + white check success ring | pass | `scan_result_390.png` |
+| Green Verified badge; outcome-specific title/copy | pass | review/rejected alternatives covered by tests |
+| Structured `2 pcs / PET plastic bottles` count-material row | pass | count-based per data rules |
+| Mint EcoPoints earned strip (+10) | pass | only for credited results |
+| Back to home action | pass | optional new scan left to the Scan nav resume policy |
+
+QR scanner (no supplied pair — compared against the source/plan):
+
+| Check | Status | Notes |
+|---|---|---|
+| Dark stage, corner frame, scan SVG, camera-simulation caption | pass | `scanner_390.png` |
+| Simulate QR scan + ghost Cancel; distinct invalid-QR failure | pass | |
+
+Intentional semantic differences recorded: result copy is count-based
+(2 pcs / +10) not the prototype's 0.4 kg / +20; timing notice comes from the
+repository instead of the prototype's hardcoded 3-minute copy; capacity
+increases on review/rejected completions because items are physically in the
+bin; completion is automatic through the mock service.
 
 ## Phase 4 — Rewards and Guide
 

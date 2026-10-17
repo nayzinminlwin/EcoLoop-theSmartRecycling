@@ -146,3 +146,77 @@
   labels watch the filter provider for immediate updates.
 - Added `test/app/route_guards_test.dart` covering pending-URI parking,
   signed-out resume, and malformed-query safety. Suite now 52 tests.
+
+---
+
+## Phase 3 — Rebuild the scan experience as one reliable stateful flow
+
+**Status:** Completed
+**Date:** 17 October 2026
+
+### Implemented
+
+- **Fixture-driven classification (3.1):** the scan repository now reads the
+  demo QR payload, instructions, bins, classification rules, and material
+  rates exclusively from the seeded shared store (`scanConfig`,
+  `materialRates`, and the scan datasets added to `MockDataStore`). Points
+  derive as `itemCount × pointsPerItem` only for verified, eligible,
+  bin-accepted material; ineligible verified classifications downgrade to
+  rejected. Distinct `invalidQr` / offline / full-bin / invalid-transition /
+  not-found failures, including the `invalid_qr` and `full_bin` scenario
+  overrides.
+- **Atomic completion (3.1):** new `transactionScan` commits the session,
+  result, activity row, wallet credit, and bin capacity increase together on
+  copies; failed operations leave every dataset unchanged and replays never
+  duplicate credit. Session creation is idempotent per request ID; new
+  record IDs use the store's injectable ID factory.
+- **Stage visuals (3.2, V04–V08):** one dark 250px `ScannerStage` surface
+  with the radial overlay, corner-bracket scanner frame, white outlined bin
+  with amber capacity (bin found), READY label (ready), camera-in-pulse-rings
+  (item detected), spinning recycle loader (processing), and the green
+  verified surface with white check ring (result). Split Accepts/Capacity
+  detail row, structured count/material result row, mint EcoPoints-earned
+  strip, and outcome-specific titles/copy. Reduced motion falls back to
+  static equivalents. SMART BIN SESSION eyebrow, page heading/back control,
+  centered flow info, full-width stage actions, and the repository timing
+  notice (no user-approved "Complete verification" shortcut — completion is
+  automatic; Retry appears only on failure).
+- **Leave/resume/recovery (3.3):** app-scoped completion controller and
+  active-session tracker in `scan_controller.dart`; pre-processing stages
+  register the shared leave guard and present the same cancel-or-continue
+  dialog for top Back, system/browser Back (PopScope), and branch changes;
+  failed cancellation writes keep the session usable; leaving during
+  processing is unrestricted and returning resolves the committed state.
+  Route redirects canonicalize stale/future-stage URLs via a synchronous
+  store-backed stage peek; unknown session links show actionable recovery.
+  The bottom navigation resumes tracked scan work from controller state
+  instead of the current route string. `AppButton` labels wrap instead of
+  overflowing.
+
+### Verification
+
+- `dart format --output=none --set-exit-if-changed lib test integration_test`
+  — clean.
+- `flutter analyze` — no issues.
+- `flutter test` — 68 tests passed, including the scan acceptance coverage:
+  full-fixture baseline (255 balance / 13 verified / 1.09 kg / capacity 85%),
+  atomicity + idempotency, rate-driven points, review/rejected no-credit,
+  distinct bin/QR failures, failure rollback + retry-once commit,
+  stage-distinct rendering, URL canonicalization, missing-session recovery,
+  pre-processing leave dialogs (back + branch change), and
+  leave-during-processing resume without replayed credit.
+- `flutter build web` — succeeded.
+- Comparison captures recorded under `docs/refactor_visuals/phase3/`
+  (scanner + V04–V08 at 390 logical pixels, real Inter assets); processing
+  captured while it actually ran with the controlled longer classification
+  delay. Visual checklist updated.
+- Phase documented in
+  `docs/fix_logs/2026-10-17_FIX_ScanFlow_Phase3StoreDrivenStatefulFlow.md`.
+
+### Remaining Phase 3 notes / deferred
+
+- Capacity still increases on review/rejected completions because the items
+  are physically in the bin; recorded as an intentional semantic choice.
+- Voucher/guide surfaces remain on their Phase 4 scope; scan reads guide
+  rates through the shared store while the guide screen keeps its own
+  repository until Phase 4 unifies it.

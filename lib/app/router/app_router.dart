@@ -24,8 +24,18 @@ import 'package:eco_loop/features/rewards/presentation/screens/vouchers_screen.d
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+String _scanStagePath(ScanStage stage, String sessionId) => switch (stage) {
+  ScanStage.binFound => AppRoutes.scanBinPath(sessionId),
+  ScanStage.ready => AppRoutes.scanReadyPath(sessionId),
+  ScanStage.itemDetected => AppRoutes.scanDetectedPath(sessionId),
+  ScanStage.processing => AppRoutes.scanProcessingPath(sessionId),
+  ScanStage.completed => AppRoutes.scanResultPath(sessionId),
+  ScanStage.cancelled => AppRoutes.scan,
+};
+
 GoRouter createAppRouter({
   AccountRepository? accountRepository,
+  ScanStage? Function(String sessionId)? resolveSessionStage,
   int utcOffsetMinutes = 480,
 }) {
   final guards = RouteGuards(
@@ -40,11 +50,19 @@ GoRouter createAppRouter({
   }) => GoRoute(
     path: path,
     name: name,
-    redirect: (context, state) =>
-        RouteParameterParsers.opaqueId(state.pathParameters['sessionId']) ==
-            null
-        ? AppRoutes.scan
-        : null,
+    redirect: (context, state) {
+      final sessionId = RouteParameterParsers.opaqueId(
+        state.pathParameters['sessionId'],
+      );
+      if (sessionId == null) return AppRoutes.scan;
+      // Canonicalize stale/future-stage URLs to the committed stage state so
+      // no stage can be skipped by typing a URL.
+      final committed = resolveSessionStage?.call(sessionId);
+      if (committed != null && committed != stage) {
+        return _scanStagePath(committed, sessionId);
+      }
+      return null;
+    },
     builder: (context, state) => ScanSessionScreen(
       sessionId: RouteParameterParsers.opaqueId(
         state.pathParameters['sessionId'],

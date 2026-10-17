@@ -29,6 +29,7 @@ class AppPageHeader extends StatelessWidget {
         SizedBox(
           width: 48,
           height: 48,
+          key: const Key('app-page-header-back'),
           child: InkWell(
             onTap: onBack,
             borderRadius: BorderRadius.circular(AppRadii.button),

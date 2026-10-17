@@ -2,6 +2,7 @@ import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_shadows.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
+import 'package:eco_loop/features/scan/presentation/controllers/scan_controller.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,14 +23,14 @@ class ResidentBottomNavigation extends ConsumerWidget {
     if (!await coordinator.confirmLeave()) return;
     if (!context.mounted) return;
 
-    final isScan = index == 1;
-    final currentPath = GoRouterState.of(context).uri.path;
     final sameBranch = navigationShell.currentIndex == index;
-    if (isScan) {
-      final scanHasActiveSession =
-          currentPath.startsWith('/scan/sessions/') &&
-          !currentPath.endsWith('/result');
-      navigationShell.goBranch(index, initialLocation: !scanHasActiveSession);
+    if (index == 1) {
+      // Resume tracked scan work from controller state rather than the
+      // current route string; cancelled work returns to the scanner for a
+      // new request ID.
+      final active = ref.read(activeScanSessionProvider);
+      final shouldResume = active?.shouldResume ?? false;
+      navigationShell.goBranch(index, initialLocation: !shouldResume);
       return;
     }
     navigationShell.goBranch(index, initialLocation: sameBranch);

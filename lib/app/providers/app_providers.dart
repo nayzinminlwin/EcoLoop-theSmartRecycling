@@ -23,6 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final appRouterProvider = Provider(
   (ref) => createAppRouter(
     accountRepository: ref.watch(accountRepositoryProvider),
+    resolveSessionStage: (sessionId) =>
+        ref.watch(scanRepositoryProvider).peekSessionStage(sessionId),
     utcOffsetMinutes: ref.watch(appClockProvider).utcOffsetMinutes,
   ),
 );

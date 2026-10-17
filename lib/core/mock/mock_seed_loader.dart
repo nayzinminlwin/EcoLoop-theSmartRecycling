@@ -30,6 +30,8 @@ class MockSeedLoader {
       'assets/mock/account/notification_preferences.json',
     );
     final session = await loadMap('assets/mock/account/session.json');
+    final scanBins = await loadMap('assets/mock/scan/bins.json');
+    final guide = await loadMap('assets/mock/recycling_guide/guide.json');
     return MockDataStore(
       metadata: metadata,
       profile: profile,
@@ -38,13 +40,19 @@ class MockSeedLoader {
       notificationPreferences: preferences,
       session: session,
       deposits: await loadItems('assets/mock/activity/deposits.json'),
-      bins: await loadItems('assets/mock/scan/bins.json'),
+      scanConfig: {'demoQrPayload': scanBins['demoQrPayload']},
+      bins: JsonReaders.maps(scanBins, 'items'),
       scanInstructions: await loadItems('assets/mock/scan/instructions.json'),
       classifications: await loadItems(
         'assets/mock/scan/classification_scenarios.json',
       ),
       sessions: await loadItems('assets/mock/scan/sessions.json'),
       results: await loadItems('assets/mock/scan/results.json'),
+      materialRates: guide['rates'] is List
+          ? (guide['rates'] as List)
+                .map((item) => JsonReaders.map(item, 'rates'))
+                .toList(growable: false)
+          : const [],
       rewardCategories: await loadItems('assets/mock/rewards/categories.json'),
       rewards: await loadItems('assets/mock/rewards/catalog.json'),
       vouchers: await loadItems('assets/mock/rewards/vouchers.json'),

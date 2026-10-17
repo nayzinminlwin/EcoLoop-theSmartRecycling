@@ -12,11 +12,13 @@ class MockDataStore {
     Map<String, Object?>? notificationPreferences,
     Map<String, Object?>? session,
     Map<String, Object?>? metadata,
+    Map<String, Object?>? scanConfig,
     List<Map<String, Object?>>? bins,
     List<Map<String, Object?>>? scanInstructions,
     List<Map<String, Object?>>? classifications,
     List<Map<String, Object?>>? sessions,
     List<Map<String, Object?>>? results,
+    List<Map<String, Object?>>? materialRates,
     List<Map<String, Object?>>? rewardCategories,
     List<Map<String, Object?>>? rewards,
     List<Map<String, Object?>>? vouchers,
@@ -31,11 +33,13 @@ class MockDataStore {
        _notificationPreferences = _copyMap(notificationPreferences ?? const {}),
        _session = _copyMap(session ?? const {}),
        _metadata = _copyMap(metadata ?? const {}),
+       _scanConfig = _copyMap(scanConfig ?? const {}),
        _bins = _copyList(bins),
        _scanInstructions = _copyList(scanInstructions),
        _classifications = _copyList(classifications),
        _sessions = _copyList(sessions),
        _results = _copyList(results),
+       _materialRates = _copyList(materialRates),
        _rewardCategories = _copyList(rewardCategories),
        _rewards = _copyList(rewards),
        _vouchers = _copyList(vouchers),
@@ -51,11 +55,13 @@ class MockDataStore {
   Map<String, Object?> _notificationPreferences;
   Map<String, Object?> _session;
   final Map<String, Object?> _metadata;
-  final List<Map<String, Object?>> _bins;
+  final Map<String, Object?> _scanConfig;
+  List<Map<String, Object?>> _bins;
   final List<Map<String, Object?>> _scanInstructions;
   final List<Map<String, Object?>> _classifications;
-  final List<Map<String, Object?>> _sessions;
-  final List<Map<String, Object?>> _results;
+  List<Map<String, Object?>> _sessions;
+  List<Map<String, Object?>> _results;
+  final List<Map<String, Object?>> _materialRates;
   final List<Map<String, Object?>> _rewardCategories;
   final List<Map<String, Object?>> _rewards;
   List<Map<String, Object?>> _vouchers;
@@ -87,12 +93,14 @@ class MockDataStore {
       _copyMap(_notificationPreferences);
   Map<String, Object?> get session => _copyMap(_session);
   Map<String, Object?> get metadata => _copyMap(_metadata);
+  Map<String, Object?> get scanConfig => _copyMap(_scanConfig);
   List<Map<String, Object?>> get bins => _copyList(_bins);
   List<Map<String, Object?>> get scanInstructions =>
       _copyList(_scanInstructions);
   List<Map<String, Object?>> get classifications => _copyList(_classifications);
   List<Map<String, Object?>> get sessions => _copyList(_sessions);
   List<Map<String, Object?>> get results => _copyList(_results);
+  List<Map<String, Object?>> get materialRates => _copyList(_materialRates);
   List<Map<String, Object?>> get rewardCategories =>
       _copyList(_rewardCategories);
   List<Map<String, Object?>> get rewards => _copyList(_rewards);
@@ -171,6 +179,42 @@ class MockDataStore {
     _vouchers = workingVouchers;
     _redemptions = workingRedemptions;
     _walletChanges.add(wallet);
+    _revisionChanges.add(++_revision);
+    return result;
+  }
+
+  /// Atomic scan completion: session, result, activity row, wallet credit,
+  /// and bin capacity commit together or not at all. Runs on copies first,
+  /// validates inside [action], then publishes one revision after success.
+  Future<R> transactionScan<R>(
+    R Function(
+      Map<String, Object?> wallet,
+      List<Map<String, Object?>> deposits,
+      List<Map<String, Object?>> bins,
+      List<Map<String, Object?>> sessions,
+      List<Map<String, Object?>> results,
+    )
+    action,
+  ) async {
+    final workingWallet = _copyMap(_wallet);
+    final workingDeposits = _deposits.map(_copyMap).toList();
+    final workingBins = _copyList(_bins);
+    final workingSessions = _copyList(_sessions);
+    final workingResults = _copyList(_results);
+    final result = action(
+      workingWallet,
+      workingDeposits,
+      workingBins,
+      workingSessions,
+      workingResults,
+    );
+    _wallet = workingWallet;
+    _deposits = workingDeposits;
+    _bins = workingBins;
+    _sessions = workingSessions;
+    _results = workingResults;
+    _walletChanges.add(wallet);
+    _depositChanges.add(deposits);
     _revisionChanges.add(++_revision);
     return result;
   }
