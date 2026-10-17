@@ -22,15 +22,23 @@ class MaterialGuideCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.mint,
+          Container(
+            width: 40,
+            height: 40,
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: AppColors.mint,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: AppIcon(icon, color: AppColors.primary, size: 22),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(material.title, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Text(material.preparationTip),
+          const SizedBox(height: 3),
+          Text(
+            material.preparationTip,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ),
     );

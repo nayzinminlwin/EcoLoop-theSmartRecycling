@@ -13,7 +13,12 @@
       "General or hazardous waste",
       "Unaccepted materials"
     ],
-    "pointsDisclaimer": "Final points depend on verified classification, configured reward rules, and accepted deposits. Rates are adjustable by admins."
+    "pointsDisclaimer": "Final points depend on verified classification, configured reward rules, and accepted deposits. Rates are adjustable by admins.",
+    "rateExamples": [
+      {"materialType": "plastic", "itemCount": 2},
+      {"materialType": "aluminium", "itemCount": 2},
+      {"materialType": "paper", "itemCount": 4}
+    ]
   },
   "materials": [
     {"id": "plastic", "type": "plastic", "title": "Plastic bottles", "preparationTip": "Empty & rinse", "iconKey": "recycle", "sortOrder": 1},

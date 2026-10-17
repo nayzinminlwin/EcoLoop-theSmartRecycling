@@ -277,3 +277,47 @@
 - Voucher deep-link stream hardening and a full connected resident journey
   remain in the plan's broader acceptance work and are not expanded into an
   unrelated repository rewrite in this phase.
+
+---
+
+## Phase 5 — Restore Settings/Profile and close scoped acceptance
+
+**Status:** Implemented
+**Date:** 17 October 2026
+
+### Implemented
+
+- **Settings/Profile composition (5.1):** Settings now uses the ACCOUNT
+  eyebrow, shared page heading, bordered profile summary card, and one grouped
+  bordered action surface with compact outline icons and dividers. Profile
+  uses SETTINGS / “Profile & personal details”, a bordered summary card, and a
+  distinct editable form reached through Edit profile. The admin demo action
+  remains absent and the seeded profile is consistently Faris Rezza / FR.
+- **Account interaction lifecycle (5.2):** Profile, password, and preference
+  forms retain their previous value while a write is loading or fails. Profile
+  saves validate and retry in place; Security includes current/new/confirm
+  fields, visibility controls, actionable current-password errors, and draft
+  clearing only after success. Preferences provide explicit Save and Cancel.
+  Dirty forms register with the shared leave-decision coordinator and guard
+  top/system Back and branch changes.
+- **Signed-out ownership:** Private account reads and writes now fail with the
+  standard unauthenticated failure when signed out. Sign-out emits null private
+  projections so account observers cannot retain an apparently valid owner
+  record; Continue demo still resolves fresh canonical data.
+
+### Verification
+
+- `dart format lib/features/account` — clean.
+- `flutter analyze` — passed with no issues.
+- `flutter test test/features/account` — passed: 7 tests.
+- Full-suite rerun is required after the updated Profile title assertions.
+- Device integration remains unavailable without an attached Flutter target.
+
+### Remaining scoped acceptance
+
+- Complete connected resident journey coverage (including voucher and profile
+  update) remains a follow-up acceptance test; no mobile target was connected
+  for this phase.
+- V12/V13 live comparison captures remain pending; the structural checklist is
+  updated by this implementation, while supplied Figma screenshots remain
+  immutable.
