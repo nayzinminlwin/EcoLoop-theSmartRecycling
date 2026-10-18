@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P01-A COMPLETE
+Active unit and status: BK-P01-B COMPLETE
 Completed prerequisite gates: BK-P00-A inventory; BK-P00-B hosted provider probe; BK-P00-C private Cloud Run probe; BK-P00-D manifest/schema identity validation
-Current changed files and user-owned changes to preserve: `contracts/backend/v1/commands.schema.json`, `findings.schema.json`, `snapshots.schema.json`, `golden_cases.json`, `invalid_cases.json`, `docs/backend_evidence/CONTRACT_DECISIONS.md`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: Python JSON parsing and focused corpus assertions passed; `git diff --check` passed. Contract decisions are recorded in `docs/backend_evidence/CONTRACT_DECISIONS.md`.
+Current changed files and user-owned changes to preserve: `functions/package.json`, `functions/package-lock.json`, `functions/tsconfig.json`, `functions/vitest.config.ts`, `functions/src/index.ts`, `functions/src/domain/types.ts`, `functions/src/domain/errors.ts`, `functions/tests/unit/workspace.test.ts`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: `npm install`, `npm run build`, `npm run test:unit`, compiled `lib/index.js` module load, and `git diff --check` passed in `functions/`. npm reported 34 dependency audit findings (30 moderate, 2 high, 2 critical); no audit remediation was applied because it is outside this unit.
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; hosted A `waste-detection-0momv/6`, B `yolo-waste-detection/1`, D `waste-classification-rjo28/2`, Gemini `gemini-3.8-flash`; evaluation `evaluation-2026-10-18-v0`
 Unresolved defects / access blockers: Provider monetary pricing/quota references, OAuth authorized domains, and process memory profile remain open; evaluation inventory has 15 candidates but 0 labeled/frozen images
-Commit SHA or explicit uncommitted state: `faa37d6` specification/plan commit; `7f207f6` implementation/evidence commit; documentation audit corrections are currently uncommitted
-Next single task and exact read set: BK-P01-B; read `PHASES_00_02_FOUNDATION.md` BK-P01-B, this tracker checkpoint, specification sections 9-11/15, and the BK-P01-A schemas
+Commit SHA or explicit uncommitted state: BK-P01-A committed as `5a3c14d`; BK-P01-B is ready to commit
+Next single task and exact read set: BK-P01-C; read `PHASES_00_02_FOUNDATION.md` BK-P01-C, this tracker checkpoint, specification sections 8-11, and `functions/src/domain/types.ts`
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -48,7 +48,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P00-C | Private Cloud Run packaging and measured probe | VERIFIED | [DEPLOYMENT.md](../backend_evidence/DEPLOYMENT.md), [COST_AND_LATENCY.md](../backend_evidence/COST_AND_LATENCY.md); final revision and real independent probe verified |
 | BK-P00-D | Evaluation test-image manifest/provenance and preparation | IMPLEMENTED (scaffolding) | [evaluation README](../../datasets/evaluation/README.md), [manifest](../../datasets/evaluation/manifest.json), and [schema](../../datasets/evaluation/annotations.schema.json); 15 inventoried, 0 labeled, no accuracy claim |
 | BK-P01-A | Canonical schemas and golden/invalid corpus | COMPLETE | `contracts/backend/v1/`; JSON parse/corpus gate passed; decisions CD-001–CD-005 |
-| BK-P01-B | TypeScript workspace/domain entities | NOT_STARTED | - |
+| BK-P01-B | TypeScript workspace/domain entities | COMPLETE | `functions/`; `npm run build`, Vitest smoke, and compiled module load passed |
 | BK-P01-C | Typed ports, operation identity and pure policy | NOT_STARTED | - |
 | BK-P01-D | Structured/redacted diagnostics in three runtimes | NOT_STARTED | - |
 | BK-P01-E1 | Node/Python schema validation and packaging | NOT_STARTED | - |
