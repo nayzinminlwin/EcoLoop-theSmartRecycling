@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import hashlib
+import json
 import secrets
-import time
+import tempfile
 from pathlib import Path
 from typing import Annotated
 
@@ -11,8 +11,10 @@ from PIL import Image, UnidentifiedImageError
 
 from ecoloop_vision.adapters.detectors import run_roboflow
 from ecoloop_vision.adapters.specialist import run_gemini
+from ecoloop_vision.application.inspect_image import inspect_image, result_to_dict
 from ecoloop_vision.config import ProbeConfig
-from ecoloop_vision.logging import configure_logging, emit_event
+from ecoloop_vision.infrastructure.images import decode_image
+from ecoloop_vision.logging import configure_logging
 
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -46,7 +48,7 @@ async def operator_probe(
     if len(content) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image exceeds 10 MiB limit")
     suffix = _suffix(image.content_type)
-    temp_path = Path("/tmp") / f"probe-{secrets.token_hex(12)}{suffix}"
+    temp_path = Path(tempfile.gettempdir()) / f"probe-{secrets.token_hex(12)}{suffix}"
     temp_path.write_bytes(content)
     try:
         try:
@@ -58,71 +60,34 @@ async def operator_probe(
 
         config = ProbeConfig.from_environment()
         trace_id = _trace_id()
-        result = {
+        composed = inspect_image(
+            decode_image(content, image.content_type),
+            detector_provider=lambda model_id, _image: run_roboflow(
+                image_path=temp_path,
+                model_id=model_id,
+                config=config,
+            )["response"],
+            specialist_provider=(
+                lambda crop, _object_id: _run_crop_roboflow(crop.content, crop.content_type, config)
+            ) if enable_roboflow else None,
+            gemini_provider=(
+                lambda provider_image, _mode, _object_id: _run_gemini_json(provider_image.content, provider_image.content_type, config)
+            ) if enable_gemini else None,
+        )
+        return {
             "traceId": trace_id,
             "image": {
-                "sha256": hashlib.sha256(content).hexdigest(),
+                "sha256": composed.input_sha256,
                 "width": width,
                 "height": height,
                 "bytes": len(content),
                 "contentType": image.content_type,
             },
-            "providers": {},
+            "inspection": {
+                **result_to_dict(composed),
+                "inventoryState": composed.inventory_state,
+            },
         }
-        if enable_roboflow:
-            for role, model_id in (
-                ("A", "waste-detection-0momv/6"),
-                ("B", "yolo-waste-detection/1"),
-                ("D", "waste-classification-rjo28/2"),
-            ):
-                started = time.perf_counter()
-                try:
-                    response = run_roboflow(
-                        image_path=temp_path,
-                        model_id=model_id,
-                        config=config,
-                    )
-                    result["providers"][role] = {
-                        "status": "success",
-                        "modelId": model_id,
-                        "response": response["response"],
-                    }
-                except Exception as error:
-                    result["providers"][role] = {
-                        "status": "error",
-                        "modelId": model_id,
-                        **_safe_error(error),
-                    }
-                emit_event(
-                    event="vision.operator_probe_completed",
-                    provider="roboflow",
-                    model_id=model_id,
-                    status=result["providers"][role]["status"],
-                    started_at=started,
-                    details={"traceId": trace_id},
-                )
-        if enable_gemini:
-            started = time.perf_counter()
-            try:
-                result["providers"]["Gemini"] = {
-                    "status": "success",
-                    **run_gemini(image_path=temp_path, config=config),
-                }
-            except Exception as error:
-                result["providers"]["Gemini"] = {
-                    "status": "error",
-                    "modelId": config.gemini_model,
-                    **_safe_error(error),
-                }
-            emit_event(
-                event="vision.operator_probe_completed",
-                provider="gemini",
-                model_id=config.gemini_model,
-                status=result["providers"]["Gemini"]["status"],
-                started_at=started,
-                details={"traceId": trace_id},
-            )
-        return result
     finally:
         temp_path.unlink(missing_ok=True)
 
@@ -139,12 +104,26 @@ def _trace_id() -> str:
     return secrets.token_hex(16)
 
 
-def _safe_error(error: Exception) -> dict[str, str]:
-    message = " ".join(str(error).split())
-    for marker in ("api_key=", "Authorization: Bearer "):
-        if marker in message:
-            message = message.split(marker, 1)[0] + marker + "<redacted>"
-    return {
-        "errorType": type(error).__name__,
-        "errorMessage": message[:500],
-    }
+def _run_crop_roboflow(content: bytes, content_type: str, config: ProbeConfig) -> Any:
+    suffix = _suffix(content_type)
+    path = Path(tempfile.gettempdir()) / f"crop-{secrets.token_hex(8)}{suffix}"
+    path.write_bytes(content)
+    try:
+        return run_roboflow(
+            image_path=path,
+            model_id="waste-classification-rjo28/2",
+            config=config,
+        )["response"]
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def _run_gemini_json(content: bytes, content_type: str, config: ProbeConfig) -> Any:
+    suffix = _suffix(content_type)
+    path = Path(tempfile.gettempdir()) / f"gemini-{secrets.token_hex(8)}{suffix}"
+    path.write_bytes(content)
+    try:
+        result = run_gemini(image_path=path, config=config)
+        return json.loads(result["text"])
+    finally:
+        path.unlink(missing_ok=True)

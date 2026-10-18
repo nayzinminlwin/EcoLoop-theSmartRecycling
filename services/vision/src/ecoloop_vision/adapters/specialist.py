@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import mimetypes
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ from google import genai
 from google.genai import types
 
 from ecoloop_vision.config import ProbeConfig
+from ecoloop_vision.domain.models import NormalizedResult, ScoreVector
 from ecoloop_vision.logging import emit_event
 
 
@@ -24,7 +26,7 @@ def run_gemini(
             contents=[
                 types.Part.from_bytes(
                     data=image_path.read_bytes(),
-                    mime_type="image/jpeg",
+                    mime_type=mimetypes.guess_type(image_path.name)[0] or "image/jpeg",
                 ),
                 (
                     "Return a structured inventory of visible waste objects in this "
@@ -89,3 +91,38 @@ def _usage_metadata(response: Any) -> dict[str, Any] | None:
         "candidatesTokenCount": getattr(metadata, "candidates_token_count", None),
         "totalTokenCount": getattr(metadata, "total_token_count", None),
     }
+
+
+def normalize_specialist_response(
+    response: Any,
+    *,
+    model_id: str,
+) -> NormalizedResult:
+    if not isinstance(response, dict):
+        raise ValueError("Specialist response must be an object")
+    raw_scores = response.get("class_scores", response.get("scores", {}))
+    if not isinstance(raw_scores, dict):
+        raise ValueError("Specialist class scores must be an object")
+    scores: dict[str, float] = {}
+    for label, value in raw_scores.items():
+        if not isinstance(label, str) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+            raise ValueError("Specialist scores must map labels to probabilities")
+        scores[label] = float(value)
+    predicted = response.get("predicted_classes", [])
+    if not isinstance(predicted, list) or not all(isinstance(label, str) for label in predicted):
+        raise ValueError("Specialist predicted_classes must be an array of strings")
+    model_version = str(response["version"]) if response.get("version") is not None else (
+        model_id.rsplit("/", 1)[-1] if "/" in model_id else None
+    )
+    return NormalizedResult(
+        model_id=model_id,
+        model_version=model_version,
+        score_vector=ScoreVector(
+            model_id=model_id,
+            model_version=model_version,
+            predicted_classes=tuple(predicted),
+            scores=scores,
+            score_semantics="provider_probability",
+        ),
+        raw_response=response,
+    )

@@ -1,0 +1,111 @@
+import io
+import json
+import math
+from pathlib import Path
+
+from PIL import Image
+
+from ecoloop_vision.application.inspect_image import InspectionConfig, inspect_image, result_to_dict
+from ecoloop_vision.infrastructure.images import decode_image
+from ecoloop_vision.infrastructure.overlays import render_overlay
+from ecoloop_vision.tools.replay import replay
+
+
+def image_input():
+    stream = io.BytesIO()
+    Image.new("RGB", (100, 80), "white").save(stream, format="PNG")
+    return decode_image(stream.getvalue(), "image/png")
+
+
+def detector_response(label: str, x: float = 50):
+    return {
+        "version": 1,
+        "image": {"width": 100, "height": 80},
+        "predictions": [{
+            "x": x, "y": 40, "width": 20, "height": 30,
+            "class": label, "confidence": 0.9,
+        }],
+    }
+
+
+def test_inspection_composes_detectors_and_preserves_stage_evidence():
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda model_id, _image: detector_response(
+            "Pet_Bottle" if model_id.startswith("waste") else "Plastic bottle"
+        ),
+    )
+    assert len(result.groups) == 1
+    assert result.objects[0].resolution == "plastic_bottle"
+    assert set(result.detector_results) == {"A", "B"}
+    assert result_to_dict(result)["input_sha256"] == result.input_sha256
+
+
+def test_empty_detector_path_uses_bounded_full_image_fallback():
+    calls = []
+
+    def gemini(_image, mode, _object_id):
+        calls.append(mode)
+        return {"objects": [{"label": "plastic_bottle", "count": 1}]}
+
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda _model_id, _image: {
+            "image": {"width": 100, "height": 80},
+            "predictions": [],
+        },
+        gemini_provider=gemini,
+    )
+    assert calls == ["full_image"]
+    assert result.fallbacks[0].mode == "full_image"
+    assert result.fallbacks[0].result.status == "resolved"
+    assert result.objects[0].resolution == "plastic_bottle"
+    assert result.objects[0].object_id.startswith("gemini-full-")
+
+
+def test_replay_writes_manifest_and_explainable_overlay(tmp_path: Path):
+    image = image_input()
+    image_path = tmp_path / "input.png"
+    image_path.write_bytes(image.content)
+    raw_path = tmp_path / "raw.json"
+    raw_path.write_text(json.dumps({
+        "detectors": {
+            "A": detector_response("Pet_Bottle"),
+            "B": detector_response("Plastic bottle"),
+        }
+    }), encoding="utf-8")
+    output = tmp_path / "replay"
+    manifest = replay(image_path=image_path, raw_path=raw_path, output_dir=output)
+    assert manifest["input"]["sha256"] == image.sha256
+    assert len(manifest["configFingerprint"]) == 64
+    assert (output / "manifest.json").exists()
+    assert (output / "overlay.png").exists()
+    render_overlay(image.content, (), output / "empty-overlay.png")
+    assert (output / "empty-overlay.png").exists()
+
+
+def test_provider_failures_are_explicit_outcomes():
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda _model_id, _image: (_ for _ in ()).throw(RuntimeError("secret")),
+    )
+    assert all(outcome.status == "provider_error" for outcome in result.outcomes)
+    assert result.detector_results["A"].error == "RuntimeError"
+
+
+def test_result_to_dict_replaces_non_finite_values():
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda _model_id, _image: detector_response("Pet_Bottle"),
+    )
+    result.raw_responses["non_finite"] = math.inf
+    assert result_to_dict(result)["raw_responses"]["non_finite"] is None
+
+
+def test_budget_exhaustion_is_not_reported_as_provider_failure():
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda _model_id, _image: (_ for _ in ()).throw(RuntimeError("budget_exhausted")),
+        config=InspectionConfig(total_budget_ms=1000, max_retries=0),
+    )
+    assert all(outcome.status == "budget_exhausted" for outcome in result.outcomes)

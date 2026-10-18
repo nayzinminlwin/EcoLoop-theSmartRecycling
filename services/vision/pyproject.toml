@@ -14,6 +14,11 @@ dependencies = [
   "uvicorn[standard]>=0.35.0,<1",
 ]
 
+[dependency-groups]
+test = [
+  "pytest>=8.4.0,<9",
+]
+
 [project.scripts]
 ecoloop-vision-probe = "ecoloop_vision.tools.probe_models:main"
 

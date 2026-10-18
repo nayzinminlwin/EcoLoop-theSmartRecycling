@@ -61,10 +61,10 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P02-D | Actual Google adapter/sign-in flow | BLOCKED | [GOOGLE_ACCOUNT_ADAPTER.md](../backend_evidence/GOOGLE_ACCOUNT_ADAPTER.md); fake adapter/auth tests and 93-test Flutter suite passed; real Android/web smoke blocked by unavailable app and unverified OAuth/SHA configuration |
 | BK-P02-E | Routing and UID-scoped composition | IMPLEMENTED (follow-up) | [ROUTING_UID_COMPOSITION.md](../backend_evidence/ROUTING_UID_COMPOSITION.md), [PHASE_2_AUDIT_AND_FIXES.md](../backend_evidence/PHASE_2_AUDIT_AND_FIXES.md); UID profile lifecycle fixed and focused tests pass; callable/real platform blockers remain |
 | BK-P02-F | Repeatable bins/policy/images/QR/catalog seeding | COMPLETE | [SEEDING.md](../backend_evidence/SEEDING.md); Functions build, dry-run, and Firestore/Storage emulator seed gate passed |
-| BK-P03-A | Actual-output normalization and image transforms | NOT_STARTED | - |
-| BK-P03-B | Matching/taxonomy/deterministic resolution | NOT_STARTED | - |
-| BK-P03-C | Specialist and both Gemini fallback paths | NOT_STARTED | - |
-| BK-P03-D | Composed inspection/replay/overlays | NOT_STARTED | - |
+| BK-P03-A | Actual-output normalization and image transforms | IMPLEMENTED | Normalized models, provider adapters, image transforms, explicit pixel plus normalized finding geometry, regression tests, and live raster matrix; final accuracy evidence remains pending |
+| BK-P03-B | Matching/taxonomy/deterministic resolution | IMPLEMENTED | Geometry-aware reconciliation, taxonomy/eligibility resolution, cap handling, count-safe fallback materialization, regression tests, and live composed outputs; development-set threshold tuning remains pending |
+| BK-P03-C | Specialist and both Gemini fallback paths | IMPLEMENTED | Bounded crops, strict fallback validation, crop-result application, full-image finding materialization, explicit provider/invalid/review outcomes, tests, and live crop/full-image review cases |
+| BK-P03-D | Composed inspection/replay/overlays | IMPLEMENTED | Composed operator path, stage diagnostics, bounded timeout/retry controls, replay fingerprint/manifests/overlays, live provider matrix, and local operator HTTP smoke; excluded-case and final acceptance evidence remain pending |
 | BK-P04-A | Session/reservation transitions | NOT_STARTED | - |
 | BK-P04-B | Immutable submission/durable job | NOT_STARTED | - |
 | BK-P04-C | Worker gateway/fenced attempts | NOT_STARTED | - |
