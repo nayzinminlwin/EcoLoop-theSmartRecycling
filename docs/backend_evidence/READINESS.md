@@ -3,7 +3,7 @@
 **Captured:** 2026-10-18
 **Unit:** BK-P00-A — Instructions, toolchain and existing-resource inventory
 **Base revision:** `21fbb5fa3e2876c1a32b6fb8971b629211178123`
-**Status:** COMPLETE for inventory; BK-P00-B hosted access probe completed with cost evidence still pending.
+**Status:** COMPLETE for inventory; subsequent BK-P00-B and BK-P00-C gates are verified, with cost and evaluation limitations still open.
 
 ## Gate results
 
@@ -16,7 +16,7 @@
 | Firebase Android metadata matches application ID | PASS | Active app ID `1:353725053297:android:5f87dfd3ae7c99552f5ed0`, namespace `sd.idk.ecoLoop` |
 | Verified project identity recorded | PASS | `ecoloop-thesmartrecycling`, number `353725053297` |
 | Actual Firestore/Storage locations recorded | PASS | Firestore database `ecoloop-db` is in `asia-southeast1`; Storage bucket is in `US-EAST1` |
-| Billing/API permissions and authorized domains recorded | PASS WITH FOLLOW-UP | Billing is enabled and the active account has Owner; authorized domains were not queried |
+| Billing/API permissions and authorized domains recorded | PASS WITH FOLLOW-UP | Billing is enabled and the active account has Owner; OAuth authorized domains remain unverified |
 | Device/emulator and web test path recorded | PASS | Android device `qgfy7xz9eaci4tvs` / Android 15 API 35, Chrome and Edge are available |
 | Scoped Cloud Build ignore manifest created | PASS | `infra/vision.gcloudignore` |
 | Provider/model secret references recorded without contents | PASS | Roboflow and Gemini credentials were present in the local shell; values were not printed |
@@ -27,6 +27,7 @@
 
 1. Record provider pricing/quota references before claiming the M0 affordability gate.
 2. Verify OAuth authorized domains in the Firebase console during P02.
+3. Assign a labeling owner and complete a reviewed development/frozen evaluation set before the P07-B accuracy gate.
 
 The representative smoke image was supplied and the real hosted A/B/D/Gemini probe completed. The results are documented in [MODEL_ACCESS.md](MODEL_ACCESS.md). These results do not establish model accuracy or automatic settlement safety.
 
@@ -34,9 +35,9 @@ The representative smoke image was supplied and the real hosted A/B/D/Gemini pro
 
 `infra/vision.gcloudignore` includes only the future vision service, canonical contract, deployment configuration and backend tooling inputs. It excludes Flutter build/cache output, model caches, local environment/credential files, design artifacts and user screenshot folders. No source folder was deleted or altered.
 
-## Next unit
+## Subsequent units
 
-`BK-P00-C` after provider pricing/quota references are recorded and the hosted adapter choices are accepted. Required read set: [MODEL_ACCESS.md](MODEL_ACCESS.md), [ENVIRONMENT.md](ENVIRONMENT.md), the BK-P00-C section of `docs/backend_plan/PHASES_00_02_FOUNDATION.md`, and specification sections 3 and 7.
+BK-P00-B, BK-P00-C and BK-P00-D are now implemented/evidenced. Provider pricing remains an M0 affordability follow-up, not a claim of completion. The next implementation unit is BK-P01-A; the evaluation labeling work remains an external handoff and blocks accuracy claims.
 
 ## Subsequent scope clarification — 2026-10-18
 

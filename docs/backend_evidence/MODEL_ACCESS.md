@@ -99,4 +99,4 @@ The all-provider cost path remains a follow-up measurement/configuration item be
 
 ## Next unit
 
-Resolve provider pricing/quota references and proceed to `BK-P00-C` only after the hosted adapter choices are accepted. The next direct implementation dependency is the private Cloud Run packaging and operator probe.
+BK-P00-C was subsequently deployed and independently probed; see [DEPLOYMENT.md](DEPLOYMENT.md) and [COST_AND_LATENCY.md](COST_AND_LATENCY.md). Provider pricing/quota references remain open and must be resolved before claiming the M0 affordability gate. The next implementation unit is BK-P01-A.

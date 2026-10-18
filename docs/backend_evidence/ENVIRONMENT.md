@@ -1,7 +1,7 @@
 # BK-P00-A Environment Inventory
 
 **Captured:** 2026-10-18 (local time, Asia/Singapore)
-**Unit:** BK-P00-A
+**Unit:** BK-P00-A inventory, updated by BK-P00-B/C verification
 **Role:** Integration executor
 **Specification:** ECOLOOP-SPEC-001 sections 1-3, 7 and 20
 **Base revision:** `21fbb5fa3e2876c1a32b6fb8971b629211178123`
@@ -13,10 +13,10 @@
 |---|---|
 | Flutter | 3.47.0 stable, framework `4cf24164269a5ebf0c16a028a00727d0e77bbb05` |
 | Dart | 3.13.0 stable |
-| Node.js | v24.19.0 (the backend plan's Node 22 baseline is not installed) |
-| npm | 11.17.0 |
-| Python | 3.14.7 (the backend plan's Python 3.12 baseline is not installed) |
-| uv | Not installed / not on PATH |
+| Node.js | v22.23.3 |
+| npm | 10.9.9 |
+| Python | 3.12.10 |
+| uv | 0.13.1 |
 | Java on PATH | OpenJDK 25.0.4.1 LTS |
 | Flutter-configured JDK | Microsoft OpenJDK 21.0.12.1 |
 | Firebase CLI | 15.30.2 |
@@ -68,10 +68,10 @@ The available web path is Chrome or Edge with browser camera permission testing.
 | Storage bucket region | Verified: `US-EAST1` |
 | Cloud Run region choice | Candidate verified available: `asia-southeast1` |
 | Billing/API permissions | Billing enabled; active account has `roles/owner` |
-| Required API status | Firebase, Firestore, Identity Toolkit, Storage, Generative Language, Run and Artifact Registry enabled; Cloud Build, Secret Manager, Cloud Tasks and Cloud Scheduler remain disabled |
+| Required API status | Firebase, Firestore, Identity Toolkit, Storage, Generative Language, Run, Artifact Registry, Cloud Build, Secret Manager, Cloud Tasks and Cloud Scheduler enabled |
 | OAuth authorized domains/client configuration | Not verified |
-| Vision/Gemini/Roboflow secret references | None present in the repository; operator references are not yet supplied |
-| `services/vision/` source tree | Not present; BK-P00-B creates it after probe scope is confirmed |
+| Vision/Gemini/Roboflow secret references | `roboflow-api-key`, `gemini-api-key`; values are not present in the repository |
+| `services/vision/` source tree | Present; hosted adapters and Cloud Run orchestration are documented in MODEL_ACCESS.md and DEPLOYMENT.md |
 | `functions/` source tree | Not present |
 
 No secret values were read into or written to this report.
@@ -108,3 +108,7 @@ Protected files were inspected read-only and had no diff at capture:
 - `android/build.gradle.kts`
 - `android/app/build.gradle.kts`
 - `android/app/google-services.json`
+
+## Subsequent verification
+
+BK-P00-B verified the hosted providers with Python 3.12/uv from `services/vision/`. BK-P00-C verified the private Cloud Run service in `asia-southeast1` with the service and revision recorded in [DEPLOYMENT.md](DEPLOYMENT.md). The remaining Android camera/QR/push/offline and web push checks are P07 acceptance work, not completed by these foundation units.

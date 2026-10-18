@@ -23,16 +23,16 @@ Update this section at every real handoff:
 Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
-Base revision / dirty or source-bundle identity: 21fbb5fa3e2876c1a32b6fb8971b629211178123; pre-existing dirty/untracked planning, specification and screenshot paths preserved
+Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
 Active unit and status: BK-P00-D IMPLEMENTED (scaffolding); labeled evaluation set remains open
-Completed prerequisite gates: Instruction/protocol read; toolchain and Firebase registration inventory; protected-file read-only verification
-Current changed files and user-owned changes to preserve: infra/vision.gcloudignore; docs/backend_evidence/ENVIRONMENT.md; docs/backend_evidence/READINESS.md; this tracker. Preserve pre-existing Demo_Screenshots/, backend plan/specification files and backend_plan/ changes.
-Actual commands/results/evidence: BK-P00-D JSON/schema parsing and image hash/size verification passed; datasets/evaluation/README.md records 15 inventoried candidates, 0 labeled images, and the labeling gate
-Relevant trace/request/session/deposit/job IDs: None; no runtime/provider probe was executed
-Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.0; no runtime model or pipeline selected
-Unresolved defects / access blockers: Provider monetary pricing/quota references are not yet recorded; OAuth authorized domains remain unverified; process memory profile is pending; dataset work deferred by user
-Commit SHA or explicit uncommitted state: Uncommitted; no commit authorization supplied
-Next single task and exact read set: Resolve BK-P00-B access prerequisites, then read PHASES_00_02_FOUNDATION.md BK-P00-B, this tracker checkpoint, READINESS.md, ENVIRONMENT.md and specification section 7
+Completed prerequisite gates: BK-P00-A inventory; BK-P00-B hosted provider probe; BK-P00-C private Cloud Run probe; BK-P00-D manifest/schema identity validation
+Current changed files and user-owned changes to preserve: committed implementation and evidence paths; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: `uv sync --frozen`, documented hosted probe, Cloud Build/deployment probes, JSON parsing, manifest SHA-256/size checks, and `git diff --check` passed; evidence is linked in the unit ledger
+Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
+Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; hosted A `waste-detection-0momv/6`, B `yolo-waste-detection/1`, D `waste-classification-rjo28/2`, Gemini `gemini-3.8-flash`; evaluation `evaluation-2026-10-18-v0`
+Unresolved defects / access blockers: Provider monetary pricing/quota references, OAuth authorized domains, and process memory profile remain open; evaluation inventory has 15 candidates but 0 labeled/frozen images
+Commit SHA or explicit uncommitted state: `faa37d6` specification/plan commit; `7f207f6` implementation/evidence commit; documentation audit corrections are currently uncommitted
+Next single task and exact read set: BK-P01-A; read `PHASES_00_02_FOUNDATION.md` BK-P01-A, this tracker checkpoint, specification sections 2-3/7/16/18/20, and existing backend evidence
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
