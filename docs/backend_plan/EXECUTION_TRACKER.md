@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P01-C COMPLETE
+Active unit and status: BK-P01-D COMPLETE
 Completed prerequisite gates: BK-P00-A inventory; BK-P00-B hosted provider probe; BK-P00-C private Cloud Run probe; BK-P00-D manifest/schema identity validation
-Current changed files and user-owned changes to preserve: `functions/src/application/ports.ts`, `functions/src/domain/identity.ts`, `functions/src/domain/policy.ts`, `functions/tests/unit/identity.test.ts`, `functions/tests/unit/policy.test.ts`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `npm ci`, `npm run build`, `npm run test:unit` (6 tests), compiled identity module load, and `git diff --check` passed in `functions/`. npm reported 34 dependency audit findings (30 moderate, 2 high, 2 critical); no audit remediation was applied because it is outside this unit.
+Current changed files and user-owned changes to preserve: `functions/src/infrastructure/logger.ts`, `functions/tests/unit/logger.test.ts`, `services/vision/src/ecoloop_vision/logging.py`, `services/vision/tests/test_logging.py`, `lib/core/diagnostics/app_logger.dart`, `test/core/diagnostics/app_logger_test.dart`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: Node `npm run build` and Vitest (7 tests) passed; Python `uv run --with pytest pytest tests/test_logging.py` passed (2 tests); Flutter focused analyze and test passed. DTD was connected, but no active Flutter app existed for hot restart. npm reported 34 dependency audit findings (30 moderate, 2 high, 2 critical); no audit remediation was applied because it is outside this unit.
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; hosted A `waste-detection-0momv/6`, B `yolo-waste-detection/1`, D `waste-classification-rjo28/2`, Gemini `gemini-3.8-flash`; evaluation `evaluation-2026-10-18-v0`
 Unresolved defects / access blockers: Provider monetary pricing/quota references, OAuth authorized domains, and process memory profile remain open; evaluation inventory has 15 candidates but 0 labeled/frozen images
-Commit SHA or explicit uncommitted state: BK-P01-A `5a3c14d`; BK-P01-B `71d8a51`; BK-P01-C is ready to commit
-Next single task and exact read set: BK-P01-D; read `PHASES_00_02_FOUNDATION.md` BK-P01-D, `OBSERVABILITY_AND_DEBUGGING.md` D1-D5, current tracker checkpoint, and existing Python/Dart logging surfaces
+Commit SHA or explicit uncommitted state: BK-P01-A `5a3c14d`; BK-P01-B `71d8a51`; BK-P01-C `71b28f7`; BK-P01-D is ready to commit
+Next single task and exact read set: BK-P01-E1; read `PHASES_00_02_FOUNDATION.md` BK-P01-E1, BK-P01-A schemas/corpora, current tracker checkpoint, and Functions/Python packaging surfaces
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -50,7 +50,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P01-A | Canonical schemas and golden/invalid corpus | COMPLETE | `contracts/backend/v1/`; JSON parse/corpus gate passed; decisions CD-001–CD-005 |
 | BK-P01-B | TypeScript workspace/domain entities | COMPLETE | `functions/`; `npm run build`, Vitest smoke, and compiled module load passed |
 | BK-P01-C | Typed ports, operation identity and pure policy | COMPLETE | `functions/src/application/ports.ts`, domain identity/policy, 6 focused tests; build passed |
-| BK-P01-D | Structured/redacted diagnostics in three runtimes | NOT_STARTED | - |
+| BK-P01-D | Structured/redacted diagnostics in three runtimes | COMPLETE | Node/Python/Flutter loggers and focused redaction/context tests passed; no active app available for hot restart |
 | BK-P01-E1 | Node/Python schema validation and packaging | NOT_STARTED | - |
 | BK-P01-E2 | Dart envelope/error contract | NOT_STARTED | - |
 | BK-P02-A | Existing-project Firebase rules/indexes/emulators | NOT_STARTED | - |
