@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "ecoloop-thesmartrecycling"
+  },
+  "targets": {
+    "ecoloop-thesmartrecycling": {
+      "hosting": {
+        "resident": [
+          "ecoloop-thesmartrecycling"
+        ]
+      }
+    }
+  }
+}
