@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P01-E1 COMPLETE
+Active unit and status: BK-P01-E2 COMPLETE
 Completed prerequisite gates: BK-P00-A inventory; BK-P00-B hosted provider probe; BK-P00-C private Cloud Run probe; BK-P00-D manifest/schema identity validation
-Current changed files and user-owned changes to preserve: E1 validation/package files under `functions/src/transport`, `functions/tools`, `functions/tests/unit`, Python contract validation/tests, `services/vision/pyproject.toml`/`uv.lock`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: Functions `npm run build` copied canonical schemas to `functions/lib/contracts/backend/v1`; Vitest 10 tests passed. Python `uv lock` and `uv run --with pytest pytest tests/test_contracts.py tests/test_logging.py -q` passed (5 tests). `git diff --check` passed. npm reported 34 dependency audit findings; no unrelated remediation was applied.
+Current changed files and user-owned changes to preserve: `lib/core/firebase/backend_envelope.dart`, `lib/core/data/app_failure.dart`, Dart focused tests, trace fields added to `contracts/backend/v1/commands.schema.json`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: Flutter focused analyze passed; backend envelope and AppFailure tests passed (4 tests). `flutter hot_reload` was attempted after the Dart change, but no active Flutter app connection was available. `git diff --check` passed.
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; hosted A `waste-detection-0momv/6`, B `yolo-waste-detection/1`, D `waste-classification-rjo28/2`, Gemini `gemini-3.8-flash`; evaluation `evaluation-2026-10-18-v0`
 Unresolved defects / access blockers: Provider monetary pricing/quota references, OAuth authorized domains, and process memory profile remain open; evaluation inventory has 15 candidates but 0 labeled/frozen images
-Commit SHA or explicit uncommitted state: BK-P01-A `5a3c14d`; BK-P01-B `71d8a51`; BK-P01-C `71b28f7`; BK-P01-D `6c5de2b`; BK-P01-E1 is ready to commit
-Next single task and exact read set: BK-P01-E2; read `PHASES_00_02_FOUNDATION.md` BK-P01-E2, `lib/core/data/app_failure.dart`, and the E1 packaged envelope/validation behavior
+Commit SHA or explicit uncommitted state: BK-P01-A `5a3c14d`; BK-P01-B `71d8a51`; BK-P01-C `71b28f7`; BK-P01-D `6c5de2b`; BK-P01-E1 `f193995`; BK-P01-E2 is ready to commit
+Next single task and exact read set: BK-P02-A; read `PHASES_00_02_FOUNDATION.md` BK-P02-A, verified Firebase resource inventory, and existing Firebase configuration files
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -52,7 +52,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P01-C | Typed ports, operation identity and pure policy | COMPLETE | `functions/src/application/ports.ts`, domain identity/policy, 6 focused tests; build passed |
 | BK-P01-D | Structured/redacted diagnostics in three runtimes | COMPLETE | Node/Python/Flutter loggers and focused redaction/context tests passed; no active app available for hot restart |
 | BK-P01-E1 | Node/Python schema validation and packaging | COMPLETE | Node 10 tests, Python 5 tests, packaged schema lookup, and cross-runtime rejection cases passed |
-| BK-P01-E2 | Dart envelope/error contract | NOT_STARTED | - |
+| BK-P01-E2 | Dart envelope/error contract | COMPLETE | Pure Dart envelope/error parser, correlation identities, UTC timestamp validation, focused analyze/tests passed |
 | BK-P02-A | Existing-project Firebase rules/indexes/emulators | NOT_STARTED | - |
 | BK-P02-B | Idempotent account bootstrap and claims | NOT_STARTED | - |
 | BK-P02-C1 | Flutter Firebase dependencies/clients/options | NOT_STARTED | - |

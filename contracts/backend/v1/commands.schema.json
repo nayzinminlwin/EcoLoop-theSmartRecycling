@@ -39,11 +39,12 @@
     "response": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "operation", "requestId", "status", "data"],
+      "required": ["schemaVersion", "operation", "requestId", "traceId", "status", "data"],
       "properties": {
         "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
         "operation": { "$ref": "#/$defs/operation" },
         "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
         "status": { "const": "committed" },
         "data": {
           "type": "object",
@@ -62,11 +63,12 @@
     "errorResponse": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schemaVersion", "requestId", "status", "error"],
+      "required": ["schemaVersion", "requestId", "traceId", "status", "error"],
       "properties": {
         "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
         "operation": { "$ref": "#/$defs/operation" },
         "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
         "status": { "const": "error" },
         "error": {
           "type": "object",

@@ -3,11 +3,15 @@ class AppFailure implements Exception {
     required this.code,
     required this.messageKey,
     required this.retryable,
+    this.requestId,
+    this.traceId,
   });
 
   final String code;
   final String messageKey;
   final bool retryable;
+  final String? requestId;
+  final String? traceId;
 
   @override
   String toString() => 'AppFailure($code)';
