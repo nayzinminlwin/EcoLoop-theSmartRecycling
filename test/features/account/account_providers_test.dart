@@ -36,4 +36,30 @@ void main() {
       expect(values.last, isNull);
     },
   );
+
+  test('UID-scoped profile stream switches to signed-out state', () async {
+    final repository = MockAccountRepository(
+      api: MockApi(readDelay: Duration.zero),
+    );
+    final container = ProviderContainer(
+      overrides: [accountRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    final values = <String?>[];
+    final subscription = container.listen(accountProfileProvider, (
+      previous,
+      next,
+    ) {
+      next.whenData((profile) => values.add(profile?.id));
+    }, fireImmediately: true);
+    addTearDown(subscription.close);
+
+    await Future<void>.delayed(Duration.zero);
+    await repository.signOut();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(values, contains('RES-000842'));
+    expect(values.last, isNull);
+  });
 }

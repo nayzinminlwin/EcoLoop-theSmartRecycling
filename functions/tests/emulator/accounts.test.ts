@@ -24,7 +24,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await firestore.recursiveDelete(firestore.doc(`residents/${uid}`));
   const user = await auth.getUser(uid);
-  await auth.updateUser(uid, { customClaims: { role: "resident" } });
+  await auth.updateUser(uid, { customClaims: { role: "user" } });
   expect(user.uid).toBe(uid);
 });
 
@@ -54,7 +54,7 @@ describe("account bootstrap", () => {
       residentId: uid,
       displayName: "Existing",
       email: "old@example.test",
-      role: "resident",
+      role: "user",
       createdAt: now,
       updatedAt: now,
     });
@@ -105,7 +105,7 @@ describe("account bootstrap", () => {
 function authenticatedAccount(overrides: Partial<AuthenticatedAccount> = {}): AuthenticatedAccount {
   return {
     uid,
-    claims: { role: "resident" },
+    claims: { role: "user" },
     displayName: "Google Resident",
     email: "resident@example.test",
     avatarUrl: null,

@@ -117,5 +117,5 @@ export class FirestoreAccountsStore implements AccountsStore {
 function resolveRole(claims: Record<string, unknown>): string {
   if (claims.admin === true) return "admin";
   if (typeof claims.role === "string" && claims.role.length > 0) return claims.role;
-  return "resident";
+  return "user";
 }
