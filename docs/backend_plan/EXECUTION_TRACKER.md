@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P00-D IMPLEMENTED (scaffolding); labeled evaluation set remains open
+Active unit and status: BK-P01-A COMPLETE
 Completed prerequisite gates: BK-P00-A inventory; BK-P00-B hosted provider probe; BK-P00-C private Cloud Run probe; BK-P00-D manifest/schema identity validation
-Current changed files and user-owned changes to preserve: committed implementation and evidence paths; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `uv sync --frozen`, documented hosted probe, Cloud Build/deployment probes, JSON parsing, manifest SHA-256/size checks, and `git diff --check` passed; evidence is linked in the unit ledger
+Current changed files and user-owned changes to preserve: `contracts/backend/v1/commands.schema.json`, `findings.schema.json`, `snapshots.schema.json`, `golden_cases.json`, `invalid_cases.json`, `docs/backend_evidence/CONTRACT_DECISIONS.md`, and this tracker; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: Python JSON parsing and focused corpus assertions passed; `git diff --check` passed. Contract decisions are recorded in `docs/backend_evidence/CONTRACT_DECISIONS.md`.
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; hosted A `waste-detection-0momv/6`, B `yolo-waste-detection/1`, D `waste-classification-rjo28/2`, Gemini `gemini-3.8-flash`; evaluation `evaluation-2026-10-18-v0`
 Unresolved defects / access blockers: Provider monetary pricing/quota references, OAuth authorized domains, and process memory profile remain open; evaluation inventory has 15 candidates but 0 labeled/frozen images
 Commit SHA or explicit uncommitted state: `faa37d6` specification/plan commit; `7f207f6` implementation/evidence commit; documentation audit corrections are currently uncommitted
-Next single task and exact read set: BK-P01-A; read `PHASES_00_02_FOUNDATION.md` BK-P01-A, this tracker checkpoint, specification sections 2-3/7/16/18/20, and existing backend evidence
+Next single task and exact read set: BK-P01-B; read `PHASES_00_02_FOUNDATION.md` BK-P01-B, this tracker checkpoint, specification sections 9-11/15, and the BK-P01-A schemas
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -47,7 +47,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P00-B | Existing hosted A/B/D/Gemini API access and output probe | VERIFIED | [MODEL_ACCESS.md](../backend_evidence/MODEL_ACCESS.md); all hosted calls succeeded; provider cost not yet measured |
 | BK-P00-C | Private Cloud Run packaging and measured probe | VERIFIED | [DEPLOYMENT.md](../backend_evidence/DEPLOYMENT.md), [COST_AND_LATENCY.md](../backend_evidence/COST_AND_LATENCY.md); final revision and real independent probe verified |
 | BK-P00-D | Evaluation test-image manifest/provenance and preparation | IMPLEMENTED (scaffolding) | [evaluation README](../../datasets/evaluation/README.md), [manifest](../../datasets/evaluation/manifest.json), and [schema](../../datasets/evaluation/annotations.schema.json); 15 inventoried, 0 labeled, no accuracy claim |
-| BK-P01-A | Canonical schemas and golden/invalid corpus | NOT_STARTED | - |
+| BK-P01-A | Canonical schemas and golden/invalid corpus | COMPLETE | `contracts/backend/v1/`; JSON parse/corpus gate passed; decisions CD-001–CD-005 |
 | BK-P01-B | TypeScript workspace/domain entities | NOT_STARTED | - |
 | BK-P01-C | Typed ports, operation identity and pure policy | NOT_STARTED | - |
 | BK-P01-D | Structured/redacted diagnostics in three runtimes | NOT_STARTED | - |

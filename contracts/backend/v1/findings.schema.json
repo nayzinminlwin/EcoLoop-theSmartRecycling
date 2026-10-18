@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecoloop.example/contracts/backend/v1/findings.schema.json",
+  "title": "EcoLoop worker findings contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "source", "jobId", "attemptId", "image", "findings", "inventoryState"],
+  "properties": {
+    "schemaVersion": { "const": "backend.v1" },
+    "source": { "type": "string", "enum": ["worker"] },
+    "jobId": { "$ref": "#/$defs/id" },
+    "attemptId": { "$ref": "#/$defs/id" },
+    "image": {
+      "type": "object", "additionalProperties": false, "required": ["assetId", "assetVersion", "contentSha256", "width", "height"],
+      "properties": {
+        "assetId": { "$ref": "#/$defs/id" },
+        "assetVersion": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "contentSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" }, "maxItems": 100 },
+    "inventoryState": { "type": "string", "enum": ["resolved", "empty", "unreadable", "uncertain"] },
+    "diagnosticReferences": { "type": "array", "items": { "$ref": "#/$defs/id" }, "maxItems": 32 }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "box": {
+      "type": "object", "additionalProperties": false, "required": ["x1", "y1", "x2", "y2"],
+      "properties": {
+        "x1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "x2": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y2": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "finding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["objectId", "resolution", "eligibility", "box", "evidence", "confidence"],
+      "properties": {
+        "objectId": { "$ref": "#/$defs/id" },
+        "resolution": {
+          "type": "string",
+          "enum": ["plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag", "cardboard_item", "other", "unknown"]
+        },
+        "eligibility": { "type": "string", "enum": ["eligible", "excluded", "unresolved"] },
+        "box": { "anyOf": [{ "$ref": "#/$defs/box" }, { "type": "null" }] },
+        "evidence": {
+          "type": "object", "additionalProperties": false, "required": ["modelIds", "rawLabel"],
+          "properties": {
+            "modelIds": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "maxItems": 8 },
+            "rawLabel": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "specialistLabels": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 128 }, "maxItems": 16 }
+          }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "reasonCode": { "type": "string", "enum": ["matched", "fallback", "unsupported_label", "ambiguous", "false_detection"] }
+      }
+    }
+  }
+}
