@@ -1,0 +1,110 @@
+{
+  "manifestVersion": "seed.v1",
+  "fixturePrefix": "ecoloop-p02",
+  "policy": {
+    "id": "policy-v1",
+    "displayName": "EcoLoop resident acceptance policy",
+    "version": "policy-v1",
+    "acceptedObjectClasses": [
+      "plastic_bottle",
+      "aluminium_can",
+      "glass_bottle",
+      "paper_item",
+      "paper_bag"
+    ],
+    "pointsPerItemByCategory": {
+      "plastic": 5,
+      "aluminium": 8,
+      "glass": 10,
+      "paper": 3
+    },
+    "spcPerItemByClass": {
+      "plastic_bottle": 10,
+      "aluminium_can": 6,
+      "glass_bottle": 12,
+      "paper_item": 2,
+      "paper_bag": 8,
+      "cardboard_item": 15
+    }
+  },
+  "bins": [
+    {
+      "id": "bin-demo-normal",
+      "displayName": "EcoLoop Central",
+      "locationLabel": "Central entrance",
+      "capacitySpc": 2000,
+      "openingOccupiedSpc": 200,
+      "availabilityCase": "normal"
+    },
+    {
+      "id": "bin-demo-near-full",
+      "displayName": "EcoLoop North",
+      "locationLabel": "North gate",
+      "capacitySpc": 2000,
+      "openingOccupiedSpc": 1700,
+      "availabilityCase": "near_full"
+    },
+    {
+      "id": "bin-demo-full",
+      "displayName": "EcoLoop South",
+      "locationLabel": "South gate",
+      "capacitySpc": 2000,
+      "openingOccupiedSpc": 2000,
+      "availabilityCase": "full"
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset-demo-0001",
+      "sourceRef": "assets/trash_images/trash0.jpg",
+      "displayName": "Evaluation source 0001",
+      "sortOrder": 1,
+      "enabled": true
+    },
+    {
+      "id": "asset-demo-0002",
+      "sourceRef": "assets/trash_images/trash1.webp",
+      "displayName": "Evaluation source 0002",
+      "sortOrder": 2,
+      "enabled": true
+    },
+    {
+      "id": "asset-demo-0003",
+      "sourceRef": "assets/trash_images/trash11.jpg",
+      "displayName": "Evaluation source 0003",
+      "sortOrder": 3,
+      "enabled": true
+    }
+  ],
+  "rewardCategories": [
+    {
+      "id": "plastic",
+      "displayName": "Plastic",
+      "iconKey": "recycle",
+      "sortOrder": 1,
+      "isActive": true
+    },
+    {
+      "id": "paper",
+      "displayName": "Paper",
+      "iconKey": "book",
+      "sortOrder": 2,
+      "isActive": true
+    }
+  ],
+  "rewards": [
+    {
+      "id": "reward-demo-coffee",
+      "offerVersion": "2026-10-18-v1",
+      "title": "Coffee voucher",
+      "description": "A controlled demo reward.",
+      "merchant": "EcoLoop Cafe",
+      "categoryId": "plastic",
+      "pointsCost": 100,
+      "maxRedemptionsPerResident": 1,
+      "isActive": true,
+      "demoOnly": true,
+      "catalogExpiresAt": "2027-12-31T23:59:59.000Z"
+    }
+  ]
+}
