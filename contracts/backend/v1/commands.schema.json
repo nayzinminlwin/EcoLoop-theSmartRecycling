@@ -89,7 +89,9 @@
             "retryable": { "type": "boolean" },
             "details": { "type": "object", "additionalProperties": false, "maxProperties": 8 }
           }
-        },
+        }
+      }
+    },
         "baseCommand": {
           "type": "object",
           "additionalProperties": false,
@@ -173,7 +175,5 @@
             { "properties": { "operation": { "const": "simulateVoucherUse" }, "payload": { "type": "object", "additionalProperties": false, "required": ["voucherId"], "properties": { "voucherId": { "$ref": "#/$defs/id" } } } } }
           ]
         }
-      }
-    }
   }
 }
