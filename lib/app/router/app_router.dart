@@ -35,6 +35,7 @@ String _scanStagePath(ScanStage stage, String sessionId) => switch (stage) {
 
 GoRouter createAppRouter({
   AccountRepository? accountRepository,
+  WidgetBuilder? signInBuilder,
   ScanStage? Function(String sessionId)? resolveSessionStage,
   int utcOffsetMinutes = 480,
 }) {
@@ -235,7 +236,8 @@ GoRouter createAppRouter({
       GoRoute(
         path: AppRoutes.signedOut,
         name: AppRoutes.signedOutName,
-        builder: (context, state) => const DemoSessionScreen(),
+        builder: (context, state) =>
+            signInBuilder?.call(context) ?? const DemoSessionScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

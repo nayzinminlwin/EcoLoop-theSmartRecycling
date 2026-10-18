@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P02-D BLOCKED
+Active unit and status: BK-P02-E COMPLETE
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
 Current changed files and user-owned changes to preserve: Explicit mock/emulator/Firebase bootstrap selection, App Check debug gating, advancing system clock, focused C2 tests, and C2 evidence; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
 Actual commands/results/evidence: `flutter analyze` passed; `flutter test` passed with 81 tests; DTD was connected but no app was active for hot restart, so no reload pass is claimed. See [bootstrap and clock evidence](../backend_evidence/BOOTSTRAP_CLOCK.md).
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
 Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
-Commit SHA or explicit uncommitted state: BK-P02-A `24d20a1`; BK-P02-B `91f09c1`; BK-P02-C1 `d1b3d62`; BK-P02-C2 `49f9e61`; BK-P02-C3 `f0ee3f8`; BK-P02-D changes are ready to commit
-Next single task and exact read set: BK-P02-D real Android/web smoke after OAuth authorized domains and Android SHA configuration are verified
+Commit SHA or explicit uncommitted state: BK-P02-A `24d20a1`; BK-P02-B `91f09c1`; BK-P02-C1 `d1b3d62`; BK-P02-C2 `49f9e61`; BK-P02-C3 `f0ee3f8`; BK-P02-D `5299b3f`; BK-P02-E changes are ready to commit
+Next single task and exact read set: BK-P02-F; read repeatable seed requirements, current Firebase rules/indexes, and evaluation asset manifest
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -59,7 +59,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P02-C2 | Explicit composition and advancing system clock | COMPLETE | [BOOTSTRAP_CLOCK.md](../backend_evidence/BOOTSTRAP_CLOCK.md); analyze and 81 Flutter tests passed |
 | BK-P02-C3 | Durable command client/pending intent recovery | COMPLETE | [COMMAND_CLIENT.md](../backend_evidence/COMMAND_CLIENT.md); analyze, focused C3 tests and 91-test Flutter suite passed |
 | BK-P02-D | Actual Google adapter/sign-in flow | BLOCKED | [GOOGLE_ACCOUNT_ADAPTER.md](../backend_evidence/GOOGLE_ACCOUNT_ADAPTER.md); fake adapter/auth tests and 93-test Flutter suite passed; real Android/web smoke blocked by unavailable app and unverified OAuth/SHA configuration |
-| BK-P02-E | Routing and UID-scoped composition | NOT_STARTED | - |
+| BK-P02-E | Routing and UID-scoped composition | COMPLETE | [ROUTING_UID_COMPOSITION.md](../backend_evidence/ROUTING_UID_COMPOSITION.md); routing/provider-focused checks and 94-test Flutter suite passed; real platform smoke limitation recorded |
 | BK-P02-F | Repeatable bins/policy/images/QR/catalog seeding | NOT_STARTED | - |
 | BK-P03-A | Actual-output normalization and image transforms | NOT_STARTED | - |
 | BK-P03-B | Matching/taxonomy/deterministic resolution | NOT_STARTED | - |

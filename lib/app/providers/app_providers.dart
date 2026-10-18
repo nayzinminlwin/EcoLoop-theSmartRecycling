@@ -20,18 +20,30 @@ import 'package:eco_loop/core/mock/mock_scenario.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
+import 'package:eco_loop/core/data/pending_operation_store.dart';
+import 'package:eco_loop/core/firebase/command_client.dart';
+import 'package:eco_loop/core/firebase/firebase_clients.dart';
+import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
+import 'package:eco_loop/features/account/presentation/controllers/auth_controller.dart';
+import 'package:eco_loop/features/account/presentation/screens/sign_in_screen.dart';
 
 final runtimeConfigProvider = Provider<RuntimeConfig>(
   (ref) => RuntimeConfig.fromEnvironment(),
 );
-final appRouterProvider = Provider(
-  (ref) => createAppRouter(
+final appRouterProvider = Provider((ref) {
+  final config = ref.watch(runtimeConfigProvider);
+  return createAppRouter(
     accountRepository: ref.watch(accountRepositoryProvider),
-    resolveSessionStage: (sessionId) =>
-        ref.watch(scanRepositoryProvider).peekSessionStage(sessionId),
+    signInBuilder: (context) => SignInScreen(
+      controller: AuthController(ref.read(accountRepositoryProvider)),
+    ),
+    resolveSessionStage: config.mode == FirebaseMode.mock
+        ? (sessionId) =>
+              ref.watch(scanRepositoryProvider).peekSessionStage(sessionId)
+        : null,
     utcOffsetMinutes: ref.watch(appClockProvider).utcOffsetMinutes,
-  ),
-);
+  );
+});
 final appClockProvider = Provider<AppClock>((ref) => AppClock());
 final systemAppClockProvider = Provider<AppClock>(
   (ref) => AppClock.system(
@@ -75,21 +87,41 @@ final accountRepositoryProvider = Provider<AccountRepository>(
   ),
 );
 
+final authControllerProvider = ChangeNotifierProvider<AuthController>(
+  (ref) => AuthController(ref.watch(accountRepositoryProvider)),
+);
+
+AccountRepository createFirebaseAccountRepository(FirebaseClients clients) {
+  return FirebaseAccountRepository(
+    auth: FirebaseUserAuthGateway(auth: clients.auth),
+    google: FirebaseGoogleAuthGateway(),
+    commandClient: (uid) => CommandClient(
+      uid: uid,
+      store: PendingOperationStore(),
+      functions: clients.functions,
+    ),
+  );
+}
+
 final walletRepositoryProvider = Provider<WalletRepository>(
-  (ref) => MockWalletRepository(
-    store: ref.watch(mockDataStoreProvider),
-    api: ref.watch(mockApiProvider),
-    clock: ref.watch(appClockProvider),
+  (ref) => _mockOnly(
+    ref,
+    MockWalletRepository(
+      store: ref.watch(mockDataStoreProvider),
+      api: ref.watch(mockApiProvider),
+      clock: ref.watch(appClockProvider),
+    ),
   ),
 );
 
 final recyclingGuideRepositoryProvider = Provider<RecyclingGuideRepository>(
-  (ref) => MockRecyclingGuideRepository(),
+  (ref) => _mockOnly(ref, MockRecyclingGuideRepository()),
 );
 
 final activityRepositoryProvider = FutureProvider<ActivityRepository>((
   ref,
 ) async {
+  _ensureMock(ref);
   final store = ref.watch(mockDataStoreProvider);
   final items = store.deposits.isNotEmpty
       ? store.deposits
@@ -117,17 +149,37 @@ final walletSnapshotProvider = FutureProvider(
 );
 
 final scanRepositoryProvider = Provider<ScanRepository>(
-  (ref) => MockScanRepository(
-    clock: ref.watch(appClockProvider),
-    store: ref.watch(mockDataStoreProvider),
-    api: ref.watch(mockApiProvider),
+  (ref) => _mockOnly(
+    ref,
+    MockScanRepository(
+      clock: ref.watch(appClockProvider),
+      store: ref.watch(mockDataStoreProvider),
+      api: ref.watch(mockApiProvider),
+    ),
   ),
 );
 
 final rewardsRepositoryProvider = Provider<RewardsRepository>(
-  (ref) => MockRewardsRepository(
-    clock: ref.watch(appClockProvider),
-    store: ref.watch(mockDataStoreProvider),
-    api: ref.watch(mockApiProvider),
+  (ref) => _mockOnly(
+    ref,
+    MockRewardsRepository(
+      clock: ref.watch(appClockProvider),
+      store: ref.watch(mockDataStoreProvider),
+      api: ref.watch(mockApiProvider),
+    ),
   ),
 );
+
+T _mockOnly<T>(Ref ref, T value) {
+  _ensureMock(ref);
+  return value;
+}
+
+void _ensureMock(Ref ref) {
+  if (ref.watch(runtimeConfigProvider).mode != FirebaseMode.mock) {
+    throw StateError(
+      'This feature is not wired to Firebase yet; mock data is disabled '
+      'outside ECOLOOP_FIREBASE_MODE=mock.',
+    );
+  }
+}
