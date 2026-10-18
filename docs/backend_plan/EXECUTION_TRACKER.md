@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P02-C1 COMPLETE
+Active unit and status: BK-P02-C2 COMPLETE
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
-Current changed files and user-owned changes to preserve: Flutter Firebase dependency lock, explicit runtime config, typed Firebase clients/converters/options, and C1 evidence; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `flutter pub get`, `flutter analyze` (no issues), and `flutter test` (75 passed) succeeded. DTD was connected but no app was active for hot restart; no reload pass is claimed. Protected Android files are unchanged. See [Flutter Firebase client evidence](../backend_evidence/FLUTTER_FIREBASE_CLIENTS.md).
+Current changed files and user-owned changes to preserve: Explicit mock/emulator/Firebase bootstrap selection, App Check debug gating, advancing system clock, focused C2 tests, and C2 evidence; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: `flutter analyze` passed; `flutter test` passed with 81 tests; DTD was connected but no app was active for hot restart, so no reload pass is claimed. See [bootstrap and clock evidence](../backend_evidence/BOOTSTRAP_CLOCK.md).
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
-Unresolved defects / access blockers: OAuth authorized domains remain unverified; App Check activation, live callable deployment and Flutter Auth integration remain later units
-Commit SHA or explicit uncommitted state: BK-P02-A `24d20a1`; BK-P02-B `91f09c1`; BK-P02-C1 changes are ready to commit
-Next single task and exact read set: BK-P02-C2; read `PHASES_00_02_FOUNDATION.md` BK-P02-C2, current bootstrap/providers/mock clock, and C1 runtime configuration
+Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
+Commit SHA or explicit uncommitted state: BK-P02-A `24d20a1`; BK-P02-B `91f09c1`; BK-P02-C1 `d1b3d62`; BK-P02-C2 changes are ready to commit
+Next single task and exact read set: BK-P02-C3; read `PHASES_00_02_FOUNDATION.md` BK-P02-C3, Dart envelope/error contract, and C2 runtime composition
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -56,7 +56,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P02-A | Existing-project Firebase rules/indexes/emulators | COMPLETE | [FIREBASE_FOUNDATION.md](../backend_evidence/FIREBASE_FOUNDATION.md); emulator Firestore/Storage rules gate passed (5 tests) |
 | BK-P02-B | Idempotent account bootstrap and claims | COMPLETE | [ACCOUNT_BOOTSTRAP.md](../backend_evidence/ACCOUNT_BOOTSTRAP.md); Auth/Firestore emulator and regression gates passed |
 | BK-P02-C1 | Flutter Firebase dependencies/clients/options | COMPLETE | [FLUTTER_FIREBASE_CLIENTS.md](../backend_evidence/FLUTTER_FIREBASE_CLIENTS.md); pub get, analyze and 75 Flutter tests passed |
-| BK-P02-C2 | Explicit composition and advancing system clock | NOT_STARTED | - |
+| BK-P02-C2 | Explicit composition and advancing system clock | COMPLETE | [BOOTSTRAP_CLOCK.md](../backend_evidence/BOOTSTRAP_CLOCK.md); analyze and 81 Flutter tests passed |
 | BK-P02-C3 | Durable command client/pending intent recovery | NOT_STARTED | - |
 | BK-P02-D | Actual Google adapter/sign-in flow | NOT_STARTED | - |
 | BK-P02-E | Routing and UID-scoped composition | NOT_STARTED | - |

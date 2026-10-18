@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 import '../config/runtime_config.dart';
 import '../../firebase_options.dart';
@@ -51,6 +52,17 @@ class FirebaseClients {
       firestore.useFirestoreEmulator(config.firestoreHost, 8080);
       functions.useFunctionsEmulator(config.functionsHost, 5001);
       await storage.useStorageEmulator(config.storageHost, 9199);
+    }
+
+    if (config.useAppCheck) {
+      if (!config.usesEmulator || !kDebugMode) {
+        throw StateError(
+          'App Check debug activation is limited to debug emulator mode',
+        );
+      }
+      if (!kIsWeb) {
+        await appCheck.activate(providerAndroid: const AndroidDebugProvider());
+      }
     }
 
     return FirebaseClients(

@@ -19,7 +19,11 @@ import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eco_loop/core/config/runtime_config.dart';
 
+final runtimeConfigProvider = Provider<RuntimeConfig>(
+  (ref) => RuntimeConfig.fromEnvironment(),
+);
 final appRouterProvider = Provider(
   (ref) => createAppRouter(
     accountRepository: ref.watch(accountRepositoryProvider),
@@ -29,6 +33,12 @@ final appRouterProvider = Provider(
   ),
 );
 final appClockProvider = Provider<AppClock>((ref) => AppClock());
+final systemAppClockProvider = Provider<AppClock>(
+  (ref) => AppClock.system(
+    locale: ref.watch(appClockProvider).locale,
+    utcOffsetMinutes: ref.watch(appClockProvider).utcOffsetMinutes,
+  ),
+);
 final leaveDecisionProvider = Provider<LeaveDecisionCoordinator>(
   (ref) => LeaveDecisionCoordinator(),
 );
