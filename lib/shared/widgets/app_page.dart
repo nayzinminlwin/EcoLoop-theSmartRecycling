@@ -12,7 +12,12 @@ class AppPage extends StatelessWidget {
     required this.child,
     super.key,
     this.header,
-    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+    this.padding = const EdgeInsets.fromLTRB(
+      AppSpacing.page,
+      AppSpacing.page,
+      AppSpacing.page,
+      0,
+    ),
   });
 
   final Widget child;

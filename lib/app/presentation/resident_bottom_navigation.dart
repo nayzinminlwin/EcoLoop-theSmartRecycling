@@ -39,18 +39,33 @@ class ResidentBottomNavigation extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => SafeArea(
     top: false,
-    child: Container(
+    child: SizedBox(
       height: 78,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
         children: [
-          Expanded(child: _navItem(context, ref, 0, 'home', 'Home')),
-          Expanded(child: _scanItem(context, ref)),
-          Expanded(child: _navItem(context, ref, 2, 'settings', 'Settings')),
+          Container(
+            height: 78,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _navItem(context, ref, 0, 'home', 'Home')),
+                const Expanded(child: SizedBox.shrink()),
+                Expanded(
+                  child: _navItem(context, ref, 2, 'settings', 'Settings'),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: -18,
+            child: _scanItem(context, ref),
+          ),
         ],
       ),
     ),
@@ -105,40 +120,36 @@ class ResidentBottomNavigation extends ConsumerWidget {
       label: 'Scan',
       child: InkWell(
         onTap: () => _select(context, ref, 1),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Transform.translate(
-                  offset: const Offset(0, -22),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.background, width: 5),
-                      boxShadow: AppShadows.scanButton,
-                    ),
-                    child: SizedBox(
-                      width: 58,
-                      height: 58,
-                      child: Center(
-                        child: AppIcon('scan', size: 28, color: Colors.white),
-                      ),
-                    ),
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 5),
+                  boxShadow: AppShadows.scanButton,
+                ),
+                child: const SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: Center(
+                    child: AppIcon('scan', size: 28, color: Colors.white),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Scan',
-                  style: AppTypography.navLabel.copyWith(
-                    color: selected ? AppColors.primary : AppColors.navMuted,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Scan',
+                style: AppTypography.navLabel.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
