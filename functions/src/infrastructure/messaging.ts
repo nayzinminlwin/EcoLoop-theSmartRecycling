@@ -1,4 +1,5 @@
 import { getMessaging, type Messaging } from "firebase-admin/messaging";
+import type { App } from "firebase-admin/app";
 
 export interface NotificationMessage {
   readonly token: string;
@@ -18,7 +19,11 @@ export interface MessagingProvider {
 }
 
 export class FirebaseMessagingProvider implements MessagingProvider {
-  constructor(private readonly messaging: Messaging = getMessaging()) {}
+  constructor(app: App) {
+    this.messaging = getMessaging(app);
+  }
+
+  private readonly messaging: Messaging;
 
   async send(message: NotificationMessage): Promise<ProviderSendResult> {
     try {

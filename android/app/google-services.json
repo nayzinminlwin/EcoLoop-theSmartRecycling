@@ -12,7 +12,20 @@
           "package_name": "sd.idk.ecoLoop"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "353725053297-tj1h4qqqshknfq60h7ak85cr7kmhbeme.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "sd.idk.ecoLoop",
+            "certificate_hash": "c4971cac4d6eefd2aec606b0339fae607e5f8f24"
+          }
+        },
+        {
+          "client_id": "353725053297-07e3am751u46fi2fb9dhi3ot8emnm71i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAxqVn5aH6S-PTQQPJmXImXE9TeIkGwPZQ"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "353725053297-07e3am751u46fi2fb9dhi3ot8emnm71i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

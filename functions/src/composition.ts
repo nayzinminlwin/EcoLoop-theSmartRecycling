@@ -36,7 +36,7 @@ export function createComposition() {
     notifications: new FirestoreNotificationsStore(firestore),
     notificationDispatcher: new DurableNotificationDispatcher(
       new FirestoreNotificationsStore(firestore),
-      new FirebaseMessagingProvider(),
+      new FirebaseMessagingProvider(app),
     ),
     maintenance: new FirestoreMaintenanceStore(firestore, storageBucket),
   };
