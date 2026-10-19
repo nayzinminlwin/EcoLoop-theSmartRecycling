@@ -33,11 +33,14 @@ import 'package:eco_loop/features/account/data/firebase_account_repository.dart'
 import 'package:eco_loop/features/account/presentation/controllers/auth_controller.dart';
 import 'package:eco_loop/features/account/presentation/controllers/account_providers.dart';
 import 'package:eco_loop/features/account/presentation/screens/sign_in_screen.dart';
+import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
 
 final runtimeConfigProvider = Provider<RuntimeConfig>(
   (ref) => RuntimeConfig.fromEnvironment(),
 );
 final firebaseClientsProvider = Provider<FirebaseClients?>((ref) => null);
+final firebaseNotificationServiceProvider =
+    Provider<FirebaseNotificationService?>((ref) => null);
 final appRouterProvider = Provider((ref) {
   final config = ref.watch(runtimeConfigProvider);
   return createAppRouter(

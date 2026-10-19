@@ -66,6 +66,24 @@ export const registerResidentDevice = onCall(async (request) => {
   });
 });
 
+export const unregisterResidentDevice = onCall(async (request) => {
+  const identity = requireIdentity(request);
+  const data = payload(request.data);
+  if (typeof data.deviceId !== "string" || data.deviceId.trim() === "") {
+    throw new HttpsError("invalid-argument", "deviceId is required");
+  }
+  await getComposition().accounts.unregisterDevice(
+    identity.uid,
+    data.deviceId,
+    new Date().toISOString(),
+  );
+  return envelope("unregisterDevice", requestIdOrGenerated(request.data), {
+    residentId: identity.uid,
+    recordIds: [`residents/${identity.uid}/devices/${data.deviceId}`],
+    version: 0,
+  });
+});
+
 function requireIdentity(request: CallableRequest<unknown>) {
   if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
   return {

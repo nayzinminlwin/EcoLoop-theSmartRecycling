@@ -175,11 +175,13 @@ class FirebaseAccountRepository implements AccountRepository {
     required this._auth,
     required this._google,
     required this._commandClient,
+    this.beforeSignOut,
   });
 
   final FirebaseAuthGateway _auth;
   final GoogleAuthGateway _google;
   final CommandClient Function(String uid) _commandClient;
+  final Future<void> Function()? beforeSignOut;
   final _authChanges = StreamController<AuthState>.broadcast();
   final _profileChanges = StreamController<ResidentProfile?>.broadcast();
   final _preferenceChanges =
@@ -390,6 +392,7 @@ class FirebaseAccountRepository implements AccountRepository {
 
   @override
   Future<void> signOut() async {
+    await beforeSignOut?.call();
     await _google.signOut();
     await _auth.signOut();
   }

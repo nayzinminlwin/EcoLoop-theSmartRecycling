@@ -8,6 +8,7 @@ import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
+import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,6 +17,17 @@ Future<void> bootstrap() async {
   final config = RuntimeConfig.fromEnvironment();
   if (config.mode != FirebaseMode.mock) {
     final clients = await FirebaseClients.initialize(config);
+    final notificationService = FirebaseNotificationService(
+      authState: clients.auth.authStateChanges().map((user) => user?.uid),
+      messaging: FirebaseNotificationMessagingClient(
+        messaging: clients.messaging,
+      ),
+      commandClient: (uid) => CommandClient(
+        uid: uid,
+        store: PendingOperationStore(),
+        functions: clients.functions,
+      ),
+    );
     final accountRepository = FirebaseAccountRepository(
       auth: FirebaseUserAuthGateway(auth: clients.auth),
       google: FirebaseGoogleAuthGateway(),
@@ -24,12 +36,17 @@ Future<void> bootstrap() async {
         store: PendingOperationStore(),
         functions: clients.functions,
       ),
+      beforeSignOut: notificationService.unregisterCurrentDevice,
     );
+    await notificationService.start();
     runApp(
       ProviderScope(
         overrides: [
           runtimeConfigProvider.overrideWithValue(config),
           firebaseClientsProvider.overrideWithValue(clients),
+          firebaseNotificationServiceProvider.overrideWithValue(
+            notificationService,
+          ),
           accountRepositoryProvider.overrideWithValue(accountRepository),
         ],
         child: const EcoLoopApp(),

@@ -3,6 +3,7 @@ export {
   getResidentProfile,
   saveResidentPreferences,
   registerResidentDevice,
+  unregisterResidentDevice,
 } from "./transport/resident_accounts.js";
 export {
   scanBinQr,

@@ -27,6 +27,7 @@ export interface AccountsStore {
   getProfile(uid: string): Promise<Record<string, unknown> | null>;
   savePreferences(uid: string, preferences: Record<string, boolean>, now: Instant): Promise<Record<string, unknown>>;
   registerDevice(uid: string, deviceId: string, platform: string, token: string, now: Instant): Promise<Record<string, unknown>>;
+  unregisterDevice(uid: string, deviceId: string, now: Instant): Promise<void>;
 }
 
 export class FirestoreAccountsStore implements AccountsStore {
@@ -79,6 +80,14 @@ export class FirestoreAccountsStore implements AccountsStore {
     const data = { deviceId, platform, token, enabled: true, updatedAt: now, updatedAtServer: FieldValue.serverTimestamp() };
     await ref.set(data, { merge: true });
     return (await ref.get()).data() ?? data;
+  }
+
+  async unregisterDevice(uid: string, deviceId: string, now: Instant): Promise<void> {
+    await this.firestore.doc(`residents/${uid}/devices/${deviceId}`).set({
+      enabled: false,
+      updatedAt: now,
+      disabledAt: now,
+    }, { merge: true });
   }
 
   private newProfile(input: AccountInput, role: string): Record<string, unknown> {

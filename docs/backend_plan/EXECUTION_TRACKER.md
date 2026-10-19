@@ -3,7 +3,7 @@
 - **Plan:** [ECOLOOP-IMPL-001](../ECOLOOP_BACKEND_IMPLEMENTATION_PLAN.md)
 - **Specification:** [ECOLOOP-SPEC-001 v1.1](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Initial state:** Plan authored; implementation execution has started.
-- **Current/next unit:** `BK-P06-A` implemented; notification dispatcher build and focused behavior gates pass, while emulator/provider delivery evidence remains.
+- **Current/next unit:** `BK-P06-B` implemented; Flutter notification lifecycle and account-association tests pass, while real Android/web delivery evidence remains.
 - **Current role:** Integration executor; read the execution protocol and actual applicable role instructions before work.
 - **Open implementation evidence:** [BK-P00-A readiness](../backend_evidence/READINESS.md) and [environment inventory](../backend_evidence/ENVIRONMENT.md). Public model documentation reviewed during planning is not runtime or acceptance proof.
 
@@ -24,15 +24,15 @@ Last updated: 2026-10-19
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P06-A IMPLEMENTED; durable notification intent dispatch, preference gating, safe targets, bounded retry, and stale-token handling are wired and focused tests pass
+Active unit and status: BK-P06-B IMPLEMENTED; Firebase Messaging registration, permission handling, token refresh, account switching, sign-out unregistration, background initialization, and authenticated target coordination are wired and focused tests pass
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
-Current changed files and user-owned changes to preserve: `functions/src/application/notifications.ts`, `functions/src/infrastructure/firestore/notifications_store.ts`, `functions/src/infrastructure/messaging.ts`, `functions/src/transport/notification_dispatch.ts`, `functions/src/composition.ts`, `functions/src/index.ts`, and `functions/tests/unit/notifications.test.ts`; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `Set-Location functions; npm run build` passed; `npx vitest run tests/unit/notifications.test.ts` passed (3 tests); `git diff --check` passed. Provider/emulator delivery evidence was not claimed. See [BK-P06-A dev log](../dev_logs/2026-10-19_Backend_BK-P06-A_Notifications.md).
+Current changed files and user-owned changes to preserve: Flutter notification service/coordinator, bootstrap/provider/account lifecycle wiring, backend device-unregister callable/store, and focused notification lifecycle tests; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
+Actual commands/results/evidence: `flutter analyze` passed; focused notification/account tests passed (9 tests); `Set-Location functions; npm run build` passed; `git diff --check` passed. DTD connected successfully but reported no active Flutter app; hot restart was attempted and could not run. Real Android/web delivery evidence was not claimed. See [BK-P06-B dev log](../dev_logs/2026-10-19_Backend_BK-P06-B_Notifications.md).
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
 Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
 Commit SHA or explicit uncommitted state: BK-P04-A is committed as `56b2f65`; BK-P04-B is committed as `90c1915`; BK-P04-C is committed as `4f3dcd2`; BK-P04-D is committed with live deployment evidence pending; BK-P04-E is committed as `b56a527`/`33baf65`; BK-P04-F is committed as `ce8f639`; BK-P04-G is committed as `5fc2d77`; BK-P04-H is committed as `9d905be`; BK-P04-I1 is committed as `0c180a1`; BK-P04-I2 is committed as `e02a63f`; BK-P04-J is committed as `8ee4cbb`; BK-P04-K is committed as `eee2534`; BK-P04-L is committed as `b88f5fa`; unrelated untracked `Demo_Screenshots` and `assets/trash_images` remain preserved
-Next single task and exact read set: Continue with BK-P06-B Android/Flutter device and foreground message lifecycle; preserve the notification intent/provider boundary and the missing emulator/provider delivery evidence
+Next single task and exact read set: Continue with BK-P06-C web worker/Hosting/native permissions; preserve protected Android configuration files and the notification service/provider boundary
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -85,7 +85,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P05-E | Reward confirmation/receipt UI integration | IMPLEMENTED | [BK-P05-E dev log](../dev_logs/2026-10-19_Backend_BK-P05-E_RewardsFlutter.md); Firebase offer/version/cost wiring, durable command usage, committed voucher display, owner-scoped counts, focused widget/contract tests, and `flutter analyze` pass; live/emulator agreement and hot restart remain |
 | BK-P05-F | Voucher use and time-correct status lists | IMPLEMENTED | [BK-P05-F dev log](../dev_logs/2026-10-19_Backend_BK-P05-F_VoucherLifecycle.md); demo metadata, durable simulated use, committed detail refresh, copy independence, and time-aware status projections pass focused tests and analysis; emulator/live agreement remains |
 | BK-P06-A | Durable notification dispatcher | IMPLEMENTED | [BK-P06-A dev log](../dev_logs/2026-10-19_Backend_BK-P06-A_Notifications.md); Firestore intent claim/complete state machine, current preference/device re-read, combined result/credit summaries, safe target IDs, bounded retry, invalid-token disabling, scheduled transport, build, and focused tests pass; emulator/provider delivery evidence remains |
-| BK-P06-B | Android/Flutter device/message lifecycle | NOT_STARTED | - |
+| BK-P06-B | Android/Flutter device/message lifecycle | IMPLEMENTED | [BK-P06-B dev log](../dev_logs/2026-10-19_Backend_BK-P06-B_Notifications.md); Firebase Messaging service, permission-gated registration, token refresh, sign-out/account-switch unregistration, top-level background initialization, safe authenticated history routing, deduplication/deferred deep-link coordination, backend unregister callable, analysis/build, and 9 focused tests pass; real Android/web delivery evidence remains |
 | BK-P06-C | Web worker/Hosting/native permissions | NOT_STARTED | - |
 | BK-P06-D | Reconciler/deadlines/operator contract | NOT_STARTED | - |
 | BK-P06-E | Reminder/expiry/retention/cost/readonly diagnosis | NOT_STARTED | - |
