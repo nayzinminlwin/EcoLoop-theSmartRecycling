@@ -62,13 +62,12 @@ The current implementation focuses on **Goals 1–2: resident Flutter UI convers
 
 - Display item classification and verification states.
 - Present the recycling results and corresponding EcoPoints.
-- Support mock classification and failure scenarios for testing.
+- Support mock classification.
 
 ### Recycling History
 
 - View recycling activity records.
 - Display material types, bin information, timestamps, weights, and statuses.
-- Exercise empty-state and read-failure behavior through mock scenarios.
 
 ### How to Recycle
 
@@ -80,13 +79,12 @@ The current implementation focuses on **Goals 1–2: resident Flutter UI convers
 
 - Browse available rewards and their EcoPoints requirements.
 - View voucher information.
-- Simulate redemption flows and redemption failures.
+- Simulate redemption flows.
 
 ### Account Settings
 
 - View resident profile information.
 - Access profile and account settings interfaces.
-- Exercise profile-saving behavior, including simulated failures.
 
 > Current functionality uses offline assets and mock services. These interfaces do not imply that real recycling hardware, AI inference, merchant redemption, or backend services are connected.
 
