@@ -11,6 +11,8 @@ import '../config/runtime_config.dart';
 import '../../firebase_options.dart';
 
 class FirebaseClients {
+  static const firestoreDatabaseId = 'ecoloop-db';
+
   const FirebaseClients({
     required this.app,
     required this.auth,
@@ -35,10 +37,15 @@ class FirebaseClients {
     }
 
     final app = Firebase.apps.isEmpty
-        ? await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+        ? await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          )
         : Firebase.app();
     final auth = FirebaseAuth.instanceFor(app: app);
-    final firestore = FirebaseFirestore.instanceFor(app: app);
+    final firestore = FirebaseFirestore.instanceFor(
+      app: app,
+      databaseId: firestoreDatabaseId,
+    );
     final functions = FirebaseFunctions.instanceFor(
       app: app,
       region: config.region,

@@ -3,7 +3,7 @@
 - **Plan ID:** ECOLOOP-DEMO-REFACTOR-001
 - **Version/date:** 1.0 / 2026-10-20
 - **Status:** Ready for sequential execution; implementation has not started
-- **Deadline:** Demonstration on 2026-10-21; confirm the exact local presentation time in H1
+- **Deadline:** Demonstration on 2026-10-20 at 8:00 PM MYT; confirmed in H1 evidence
 - **Defect baseline:** [Ultimate audit, UA-001–UA-055](ECOLOOP_ULTIMATE_BACKEND_AUDIT.md)
 - **Original authority:** [Backend/CV specification](ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Execution tracker:** [Demo refactor tracker](demo_refactor/EXECUTION_TRACKER.md)
@@ -44,7 +44,7 @@ A1 must add a dated **demo delivery addendum** to the specification, linking thi
 
 1. Demonstration acceptance replaces frozen-dataset measurement as this release's delivery gate; accuracy statistics remain unclaimed.
 2. Low-confidence YOLO findings must reach Gemini instead of being prematurely accepted or discarded as empty.
-3. **Subject to explicit developer confirmation in H1**, a clearly identified, console-registered debug App Check token may be used for the developer's **debug Android sideload demo**, with real Firebase and enforced applicable backend attestation. This is not a production attestation claim. HTTPS web uses its configured production-suitable web provider. Until that confirmation, this is a proposed demo distribution decision, not an already-authorized production-security change.
+3. The H1 Android debug sideload demo does **not** use App Check, per explicit developer confirmation. Required Firebase services must remain configured without App Check enforcement for this checkpoint. This is not a production attestation claim. HTTPS web uses its configured production-suitable web provider if web scope is later enabled.
 4. The verified existing region/database/physical-layout mapping below is explicit.
 
 If the developer requires a release-signed Play Integrity APK rather than the debug sideload, H1 must establish that distribution before A4. Do not change distribution/signing for the first time immediately before the presentation.
@@ -261,9 +261,9 @@ For the 8-GB Windows machine, begin with serial processes and configured Java he
 - [ ] For Android, obtain the fingerprints of the certificate actually signing the demo APK. Register its SHA-1/SHA-256 where required. If `google-services.json` needs refreshing, inspect the downloaded public app/package/client metadata, back up the existing file, replace only the correct protected file yourself, and record the intentional diff. Do not paste OAuth/provider secrets into documentation.
 - [ ] Confirm Firestore database **`ecoloop-db`** and Storage bucket; do not create `(default)` as a workaround.
 - [ ] Choose distribution now:
-  - Recommended fast demo path: real Firebase debug APK on the known device; Android App Check debug provider with a console-registered debug token.
+  - Selected fast demo path: real Firebase debug APK on the known device without App Check enforcement.
   - Release-signed Play Integrity path only if its signing/distribution and successful attestation can already be established.
-- [ ] In App Check register the Android app and web provider as appropriate. For the debug APK, register the generated debug token privately after A1 exposes it; store the token only in the console/private local environment. Never commit it or publish a debug-token list in the audit.
+- [ ] Keep App Check enforcement disabled for the selected H1 Android debug APK path. Do not generate or publish a debug token unless the distribution decision changes.
 - [ ] For web, create/confirm the reCAPTCHA Enterprise site/provider registration for the actual Hosting domain and retain only public site-key/config identifiers for the agent.
 - [ ] Confirm you can use Firebase/gcloud/Secret Manager for this existing project. Sign into the tooling yourself if credentials have expired; do not share your login token in chat.
 - [ ] Confirm there is a usable Google account for a **fresh** zero-wallet resident and a second account for account-switch testing. Existing personal balances must not be reset.
