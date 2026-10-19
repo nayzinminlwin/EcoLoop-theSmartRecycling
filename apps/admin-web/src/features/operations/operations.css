@@ -1,0 +1,595 @@
+/* =============================================================================
+   operations.css — Capacity Alerts & Deposit Verification Styling
+   Phase 8 — Alert Workflows, Review Queue, Camera Preview & Classification
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. Tabs
+   --------------------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 12px 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tabs button:hover {
+  color: var(--text);
+}
+
+.tabs button.active {
+  color: var(--green);
+  border-color: var(--green);
+  font-weight: 700;
+}
+
+.tab-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef2ed;
+  color: var(--muted);
+}
+
+.tabs button.active .tab-badge {
+  background: var(--mint);
+  color: var(--green);
+}
+
+/* ---------------------------------------------------------------------------
+   2. Alert Operations Layout & Detail Panel
+   --------------------------------------------------------------------------- */
+.alerts-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.alert-detail {
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.alert-detail.resolved {
+  border-color: #cce3d4;
+}
+
+.alert-detail-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.alert-detail-top > span {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--red-bg);
+  color: var(--red);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.alert-detail.resolved .alert-detail-top > span {
+  background: var(--mint);
+  color: var(--green);
+}
+
+.alert-detail-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alert-detail-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.alert-detail-heading p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.capacity-big {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capacity-big strong {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--red);
+  line-height: 1;
+}
+
+.alert-detail.resolved .capacity-big strong {
+  color: var(--green);
+}
+
+.capacity-big small {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Workflow Progress Steps
+   --------------------------------------------------------------------------- */
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: #fafcfa;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 16px 18px;
+  gap: 12px;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+}
+
+.workflow-step:not(:last-child)::after {
+  content: "";
+  height: 2px;
+  background: var(--line);
+  flex: 1;
+  margin: 0 4px;
+}
+
+.workflow-step.done:not(:last-child)::after {
+  background: var(--green);
+}
+
+.workflow-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e8ece7;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.workflow-step.done {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.workflow-step.done .workflow-step-num {
+  background: var(--green);
+  color: white;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Alert Facts & Actions
+   --------------------------------------------------------------------------- */
+.alert-facts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  gap: 16px;
+}
+
+.alert-facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alert-facts span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.alert-facts b {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.alert-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.resolution {
+  padding: 14px 18px;
+  border-radius: var(--radius-control);
+  background: var(--mint);
+  color: var(--green-dark);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------------------------------------------------------------------------
+   5. Deposit Verification Review Layout
+   --------------------------------------------------------------------------- */
+.review-layout {
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.review-list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-item-btn {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.review-item-btn:hover {
+  background: #fafcfa;
+  border-color: #cce3d4;
+}
+
+.review-item-btn.active {
+  background: var(--mint);
+  border-color: #bed6c5;
+}
+
+.review-item-btn.active strong {
+  color: var(--green-dark);
+}
+
+.capture-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: #dfe4df;
+  color: #728078;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.capture-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.review-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.review-item-info strong {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-item-info small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------
+   6. Review Detail Panel
+   --------------------------------------------------------------------------- */
+.review-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.camera-shot {
+  height: 220px;
+  border-radius: var(--radius-control);
+  background: #1e2e25;
+  color: #91a49a;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.camera-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-shot-tag {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  backdrop-filter: blur(4px);
+}
+
+.review-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.review-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.review-heading p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.classification {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.classification > div {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.classification > div:nth-child(even) {
+  border-left: 1px solid var(--line);
+}
+
+.classification > div:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
+
+.classification span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.classification b {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.classification strong {
+  color: var(--amber);
+  font-size: 14px;
+}
+
+.decision-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.decision-meta {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 14px;
+  background: #f7f9f7;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.decision-receipt-banner {
+  padding: 14px 18px;
+  border-radius: var(--radius-control);
+  background: var(--mint);
+  color: var(--green-dark);
+  border: 1px solid #cce3d4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.decision-receipt-banner.rejected {
+  background: var(--red-bg);
+  color: var(--red);
+  border-color: #f2cfcd;
+}
+
+.review-queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.review-queue-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.simulation-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 24px;
+  padding: 12px 16px;
+  background: #f8faf8;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.empty-panel h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.empty-panel p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 440px;
+}
+
+.empty-panel-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0f4f0;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+
+.alerts-table-section {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+
+/* ---------------------------------------------------------------------------
+   7. Responsive Rules
+   --------------------------------------------------------------------------- */
+@media (max-width: 899px) {
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .workflow-step:not(:last-child)::after {
+    display: none;
+  }
+
+  .alert-facts {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 599px) {
+  .workflow {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .classification {
+    grid-template-columns: 1fr;
+  }
+
+  .classification > div:nth-child(even) {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
