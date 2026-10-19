@@ -19,7 +19,9 @@ import { OverviewPage } from "../features/fleet/OverviewPage.tsx";
 import { SmartBinsPage } from "../features/fleet/SmartBinsPage.tsx";
 import { CapacityAlertsPage } from "../features/operations/CapacityAlertsPage.tsx";
 import { DepositVerificationPage } from "../features/operations/DepositVerificationPage.tsx";
-import { AdminPageHeader, Button, AsyncState } from "../ui/primitives.tsx";
+import { RewardsVouchersPage } from "../features/program/RewardsVouchersPage.tsx";
+import { SettingsPage } from "../features/program/SettingsPage.tsx";
+import { Button, AsyncState } from "../ui/primitives.tsx";
 
 // ---------------------------------------------------------------------------
 // 1. Exported Route Paths Constant
@@ -132,33 +134,6 @@ function ProtectedAdminLayout(): React.ReactElement {
   return <AdminShell />;
 }
 
-function PendingFeaturePage({ title }: { title: string }): React.ReactElement {
-  return (
-    <div>
-      <AdminPageHeader
-        eyebrow="UPCOMING FEATURE"
-        title={title}
-        description="This admin screen will be converted in subsequent phases according to the implementation plan."
-      />
-      <div
-        style={{
-          marginTop: "24px",
-          background: "white",
-          borderRadius: "16px",
-          padding: "48px 24px",
-          border: "1px solid var(--line)",
-          textAlign: "center"
-        }}
-      >
-        <AsyncState
-          kind="empty"
-          title={`${title} is pending implementation`}
-          description="The route and navigation shell are registered and ready for conversion in Phases 7–9."
-        />
-      </div>
-    </div>
-  );
-}
 
 function RouteNotFound(): React.ReactElement {
   return (
@@ -214,11 +189,11 @@ export function createAdminRouter(): ReturnType<typeof createBrowserRouter> {
         },
         {
           path: ADMIN_PATHS.vouchers,
-          element: <PendingFeaturePage title="Rewards & Vouchers" />
+          element: <RewardsVouchersPage />
         },
         {
           path: ADMIN_PATHS.settings,
-          element: <PendingFeaturePage title="Settings" />
+          element: <SettingsPage />
         }
       ]
     },
