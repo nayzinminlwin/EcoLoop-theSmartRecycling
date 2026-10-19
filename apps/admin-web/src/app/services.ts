@@ -71,6 +71,14 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
       })
       .catch((err) => {
         if (!isCurrent || currentKeyRef.current !== activeKey) return;
+        if (
+          err &&
+          typeof err === "object" &&
+          "code" in err &&
+          (err.code === "unauthenticated" || err.code === "permissionDenied")
+        ) {
+          setData(null);
+        }
         const msg = err instanceof Error ? err.message : String(err);
         setError(msg);
         setLoading(false);
@@ -145,32 +153,57 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
 
 export function useMutation(): MutationState {
   const [pending, setPending] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
+  const errorRef = useRef<string | null>(null);
   const inFlightRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const clearError = useCallback(() => {
-    setError(null);
+    errorRef.current = null;
+    if (isMountedRef.current) {
+      setError(null);
+    }
   }, []);
 
   const run = useCallback(async <T>(operation: () => Promise<T>): Promise<T | null> => {
     if (inFlightRef.current) return null;
     inFlightRef.current = true;
+    errorRef.current = null;
     setPending(true);
     setError(null);
 
     try {
       const result = await operation();
-      setPending(false);
+      if (isMountedRef.current) {
+        setPending(false);
+      }
       inFlightRef.current = false;
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      setPending(false);
+      errorRef.current = msg;
+      if (isMountedRef.current) {
+        setError(msg);
+        setPending(false);
+      }
       inFlightRef.current = false;
       return null;
     }
   }, []);
 
-  return { pending, error, run, clearError };
+  return {
+    pending,
+    get error() {
+      return errorRef.current;
+    },
+    run,
+    clearError
+  };
 }

@@ -43,7 +43,7 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
 
   const handleHeaderClick = (sortKey?: K) => {
     if (!sortKey) return;
-    if (sort.key === sortKey) {
+    if (sort && sort.key === sortKey) {
       onSortChange({
         key: sortKey,
         direction: sort.direction === "asc" ? "desc" : "asc"
@@ -56,6 +56,8 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
     }
   };
 
+  const colSpanCount = Math.max(1, columns.length);
+
   return (
     <div className="table-wrap">
       <table className="data-table">
@@ -63,7 +65,7 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
         <thead>
           <tr>
             {columns.map((col) => {
-              const isSorted = col.sortKey !== undefined && sort.key === col.sortKey;
+              const isSorted = Boolean(col.sortKey && sort && sort.key === col.sortKey);
               const ariaSort = !col.sortKey
                 ? undefined
                 : isSorted
@@ -107,7 +109,7 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={columns.length} className="table-state-cell">
+              <td colSpan={colSpanCount} className="table-state-cell">
                 <AsyncState kind="loading" title="Loading data..." />
               </td>
             </tr>
@@ -115,7 +117,7 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
 
           {!loading && error && (
             <tr>
-              <td colSpan={columns.length} className="table-state-cell">
+              <td colSpan={colSpanCount} className="table-state-cell">
                 <AsyncState kind="error" title="Unable to load data" description={error} onRetry={onRetry} />
               </td>
             </tr>
@@ -123,7 +125,7 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
 
           {!loading && !error && rows.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="table-state-cell">
+              <td colSpan={colSpanCount} className="table-state-cell">
                 <AsyncState kind="empty" title={emptyTitle} />
               </td>
             </tr>
