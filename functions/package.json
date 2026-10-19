@@ -23,6 +23,9 @@
     "test:submission:runner": "vitest run --config vitest.submission.config.ts",
     "test:jobs": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:jobs:runner\"",
     "test:jobs:runner": "vitest run --config vitest.jobs.config.ts",
+    "test:dispatch": "vitest run --config vitest.dispatch.config.ts",
+    "test:outbox": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:outbox:runner\"",
+    "test:outbox:runner": "vitest run --config vitest.outbox.config.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },

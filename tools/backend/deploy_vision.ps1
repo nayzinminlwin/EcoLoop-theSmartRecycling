@@ -8,7 +8,10 @@ param(
     [string]$GeminiSecretName,
     [string]$ProjectId = "ecoloop-thesmartrecycling",
     [string]$Region = "asia-southeast1",
-    [string]$ServiceName = "ecoloop-vision"
+    [string]$ServiceName = "ecoloop-vision",
+    [Parameter(Mandatory = $true)]
+    [string]$TaskInvokerServiceAccount,
+    [string]$QueueName = "vision-processing"
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,6 +64,39 @@ gcloud run deploy $ServiceName `
     --set-env-vars="ECOLOOP_GEMINI_MODEL=gemini-3.8-flash"
 if ($LASTEXITCODE -ne 0) {
     throw "Cloud Run deployment failed."
+}
+
+gcloud run services add-iam-policy-binding $ServiceName `
+    --project=$ProjectId `
+    --region=$Region `
+    --member="serviceAccount:$TaskInvokerServiceAccount" `
+    --role="roles/run.invoker"
+if ($LASTEXITCODE -ne 0) {
+    throw "Cloud Tasks invoker grant failed."
+}
+
+$queuePath = "projects/$ProjectId/locations/$Region/queues/$QueueName"
+gcloud tasks queues describe $queuePath --project=$ProjectId *> $null
+if ($LASTEXITCODE -ne 0) {
+    gcloud tasks queues create $queuePath `
+        --project=$ProjectId `
+        --location=$Region `
+        --max-concurrent-dispatches=1 `
+        --max-attempts=3 `
+        --max-retry-duration=300s `
+        --min-backoff=5s `
+        --max-backoff=30s
+} else {
+    gcloud tasks queues update $queuePath `
+        --project=$ProjectId `
+        --max-concurrent-dispatches=1 `
+        --max-attempts=3 `
+        --max-retry-duration=300s `
+        --min-backoff=5s `
+        --max-backoff=30s
+}
+if ($LASTEXITCODE -ne 0) {
+    throw "Cloud Tasks queue configuration failed."
 }
 
 Write-Output "Deployed private service '$ServiceName' with image '$image'."
