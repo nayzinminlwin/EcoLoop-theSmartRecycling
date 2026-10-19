@@ -83,11 +83,16 @@ class FirebaseNotificationMessagingClient
 
   @override
   // ignore: deprecated_member_use
-  Future<String?> getToken() => _messaging.getToken(
-    vapidKey: kIsWeb
-        ? const String.fromEnvironment('ECOLOOP_WEB_VAPID_KEY')
-        : null,
-  );
+  Future<String?> getToken() {
+    final vapidKey = const String.fromEnvironment('ECOLOOP_WEB_VAPID_KEY');
+    if (kIsWeb && vapidKey.isEmpty) {
+      throw StateError(
+        'ECOLOOP_WEB_VAPID_KEY must be supplied for web notification builds',
+      );
+    }
+    // ignore: deprecated_member_use
+    return _messaging.getToken(vapidKey: kIsWeb ? vapidKey : null);
+  }
 
   @override
   Future<void> setForegroundPresentation({required bool alert}) =>
