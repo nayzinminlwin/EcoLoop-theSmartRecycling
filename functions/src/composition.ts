@@ -11,6 +11,7 @@ import { FirestoreRewardsStore } from "./infrastructure/firestore/rewards_store.
 import { FirestoreNotificationsStore } from "./infrastructure/firestore/notifications_store.js";
 import { FirebaseMessagingProvider } from "./infrastructure/messaging.js";
 import { DurableNotificationDispatcher } from "./application/notifications.js";
+import { FirestoreMaintenanceStore } from "./infrastructure/firestore/maintenance_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -34,6 +35,7 @@ export function createComposition() {
       new FirestoreNotificationsStore(firestore),
       new FirebaseMessagingProvider(),
     ),
+    maintenance: new FirestoreMaintenanceStore(firestore),
   };
 }
 
