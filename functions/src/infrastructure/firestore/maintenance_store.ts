@@ -9,6 +9,9 @@ export interface MaintenanceSummary {
   readonly jobsRecovered: number;
   readonly jobsReferred: number;
   readonly reservationsExpired: number;
+  readonly remindersCreated: number;
+  readonly vouchersExpired: number;
+  readonly artifactsPurged: number;
 }
 
 export interface CollectionResult {
@@ -18,6 +21,14 @@ export interface CollectionResult {
   readonly cycleId: string;
   readonly actorId: string;
   readonly environment: string;
+}
+
+interface StorageFileLike {
+  delete(options: { readonly ignoreNotFound: boolean }): Promise<unknown>;
+}
+
+interface StorageBucketLike {
+  file(path: string, options: { readonly generation: string }): StorageFileLike;
 }
 
 export interface MaintenanceStore {
@@ -31,10 +42,12 @@ export interface MaintenanceStore {
     readonly runId: string;
     readonly now: Instant;
   }): Promise<CollectionResult>;
+  runDaily(now: Instant, limit?: number): Promise<Pick<MaintenanceSummary, "remindersCreated" | "vouchersExpired" | "artifactsPurged">>;
+  inspect(input: { readonly batchId?: string; readonly residentId?: string; readonly now: Instant }): Promise<Record<string, unknown>>;
 }
 
 export class FirestoreMaintenanceStore implements MaintenanceStore {
-  constructor(private readonly firestore: Firestore) {}
+  constructor(private readonly firestore: Firestore, private readonly bucket?: StorageBucketLike) {}
 
   async reconcileJobs(now: Instant, limit = 50): Promise<MaintenanceSummary> {
     validateLimit(limit, "Job reconciliation");
@@ -49,7 +62,129 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
       jobsRecovered += result === "retry_wait" ? 1 : 0;
       jobsReferred += result === "review" ? 1 : 0;
     }
-    return { jobsRecovered, jobsReferred, reservationsExpired: 0 };
+    return { jobsRecovered, jobsReferred, reservationsExpired: 0, remindersCreated: 0, vouchersExpired: 0, artifactsPurged: 0 };
+  }
+
+  async runDaily(now: Instant, limit = 50): Promise<Pick<MaintenanceSummary, "remindersCreated" | "vouchersExpired" | "artifactsPurged">> {
+    validateLimit(limit, "Daily maintenance");
+    const remindersCreated = await this.createVoucherReminders(now, limit);
+    const vouchersExpired = await this.expireVouchers(now, limit);
+    const artifactsPurged = await this.purgeDiagnostics(now, limit);
+    return { remindersCreated, vouchersExpired, artifactsPurged };
+  }
+
+  async inspect(input: { readonly batchId?: string; readonly residentId?: string; readonly now: Instant }): Promise<Record<string, unknown>> {
+    if (input.batchId === undefined && input.residentId === undefined) {
+      throw new DomainError("invalid_input", "Inspect requires batchId or residentId");
+    }
+    const result: Record<string, unknown> = { inspectedAt: input.now, mode: "readonly" };
+    if (input.batchId !== undefined) {
+      const [batch, job, outcome, review] = await Promise.all([
+        this.firestore.doc(`deposits/${input.batchId}`).get(),
+        this.firestore.collection("inferenceJobs").where("batchId", "==", input.batchId).limit(1).get(),
+        this.firestore.doc(`depositResults/result-${hash(input.batchId)}`).get(),
+        this.firestore.doc(`reviewTickets/${input.batchId}`).get(),
+      ]);
+      result.batch = batch.exists ? batch.data() : null;
+      result.job = job.empty ? null : job.docs[0]?.data() ?? null;
+      result.result = outcome.exists ? outcome.data() : null;
+      result.review = review.exists ? review.data() : null;
+    }
+    if (input.residentId !== undefined) {
+      const [profile, vouchers] = await Promise.all([
+        this.firestore.doc(`residents/${input.residentId}`).get(),
+        this.firestore.collection("vouchers").where("residentId", "==", input.residentId).limit(50).get(),
+      ]);
+      result.resident = profile.exists ? profile.data() : null;
+      result.vouchers = vouchers.docs.map((document) => document.data());
+    }
+    return result;
+  }
+
+  private async createVoucherReminders(now: Instant, limit: number): Promise<number> {
+    const windowEnd = new Date(Date.parse(now) + 4 * 24 * 60 * 60 * 1000).toISOString();
+    const windowStart = new Date(Date.parse(now) + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const snapshot = await this.firestore.collection("vouchers")
+      .where("status", "==", "available").where("expiresAt", ">=", windowStart).where("expiresAt", "<=", windowEnd)
+      .limit(limit).get();
+    let created = 0;
+    for (const document of snapshot.docs) {
+      const voucher = document.data();
+      const reminderId = `voucher-expiry-${document.id}`;
+      const reminderRef = this.firestore.doc(`rewardReminders/${reminderId}`);
+      const eventRef = this.firestore.doc(`notificationEvents/${reminderId}`);
+      const createdForVoucher = await this.firestore.runTransaction(async (transaction) => {
+        const [currentVoucher, reminder, event, preferences] = await Promise.all([
+          transaction.get(document.ref),
+          transaction.get(reminderRef),
+          transaction.get(eventRef),
+          transaction.get(this.firestore.doc(`residents/${String(voucher.residentId)}/preferences/current`)),
+        ]);
+        const current = currentVoucher.data() ?? {};
+        if (!currentVoucher.exists || current.status !== "available" ||
+            !isWithinReminderWindow(String(current.expiresAt), now) ||
+            reminder.exists || event.exists || preferences.data()?.rewardReminders !== true) return false;
+        transaction.create(reminderRef, {
+          id: reminderId, voucherId: document.id, residentId: String(current.residentId),
+          expiresAt: String(current.expiresAt), createdAt: now,
+        });
+        transaction.create(eventRef, {
+          id: reminderId, recipientUid: String(current.residentId), batchId: document.id,
+          targetType: "voucher", targetId: document.id, kind: "voucher_reminder",
+          outcome: "voucher_expiry_reminder", pointsAwarded: null, state: "pending", createdAt: now,
+        });
+        return true;
+      });
+      if (createdForVoucher) created += 1;
+    }
+    return created;
+  }
+
+  private async expireVouchers(now: Instant, limit: number): Promise<number> {
+    const snapshot = await this.firestore.collection("vouchers")
+      .where("status", "==", "available").where("expiresAt", "<=", now).limit(limit).get();
+    let expired = 0;
+    for (const document of snapshot.docs) {
+      const changed = await this.firestore.runTransaction(async (transaction) => {
+        const currentSnapshot = await transaction.get(document.ref);
+        const current = currentSnapshot.data() ?? {};
+        if (!currentSnapshot.exists || current.status !== "available" ||
+            Date.parse(String(current.expiresAt)) > Date.parse(now)) return false;
+        transaction.update(document.ref, { status: "expired", expiredAt: now, updatedAt: now });
+        return true;
+      });
+      if (changed) expired += 1;
+    }
+    return expired;
+  }
+
+  private async purgeDiagnostics(now: Instant, limit: number): Promise<number> {
+    const snapshot = await this.firestore.collection("diagnosticArtifacts")
+      .where("state", "==", "eligible").where("purgeAfterAt", "<=", now).limit(limit).get();
+    let purged = 0;
+    for (const document of snapshot.docs) {
+      const data = document.data();
+      const path = String(data.storagePath ?? "");
+      const generation = String(data.generation ?? "");
+      if (!/^inspection-evidence\/[^/]+\/[^/]+\/[^/]+\/.+$/.test(path) || !/^\d+$/.test(generation)) continue;
+      const deleted = await this.deleteGeneration(path, generation);
+      await document.ref.set({
+        state: deleted ? "purged" : "purge_pending",
+        ...(deleted ? { purgedAt: now } : { lastPurgeError: "storage_delete_failed" }),
+      }, { merge: true });
+      if (deleted) purged += 1;
+    }
+    return purged;
+  }
+
+  private async deleteGeneration(path: string, generation: string): Promise<boolean> {
+    if (this.bucket === undefined) return false;
+    try {
+      await this.bucket.file(path, { generation }).delete({ ignoreNotFound: true });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async expireAbandonedReservations(now: Instant, limit = 50): Promise<number> {
@@ -63,6 +198,7 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
       const didExpire = await this.expireSession(document.id, document.data(), now);
       if (didExpire) expired += 1;
     }
+
     return expired;
   }
 
@@ -205,6 +341,11 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
       return true;
     });
   }
+}
+
+function isWithinReminderWindow(expiresAt: string, now: string): boolean {
+  const remaining = Date.parse(expiresAt) - Date.parse(now);
+  return remaining >= 2 * 24 * 60 * 60 * 1000 && remaining <= 4 * 24 * 60 * 60 * 1000;
 }
 
 function validateLimit(limit: number, label: string): void {

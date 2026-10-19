@@ -23,4 +23,4 @@ export {
 } from "./transport/resident_rewards.js";
 export { dispatchPendingJobs } from "./transport/dispatch.js";
 export { dispatchPendingNotifications } from "./transport/notification_dispatch.js";
-export { reconcileBackendState } from "./transport/schedules.js";
+export { reconcileBackendState, runDailyMaintenance } from "./transport/schedules.js";

@@ -53,6 +53,17 @@ export class DurableNotificationDispatcher implements NotificationDispatcher {
 
 function buildMessage(claimed: ClaimedNotification): Omit<Parameters<MessagingProvider["send"]>[0], "token"> | null {
   const { intent, preferences } = claimed;
+  if (intent.kind === "voucher_reminder") {
+    if (!preferences.rewardReminders) return null;
+    return {
+      notification: { title: "EcoLoop voucher reminder", body: "Your voucher expires in about three days." },
+      data: {
+        eventId: intent.id,
+        targetType: intent.targetType ?? "voucher",
+        targetId: intent.targetId ?? intent.batchId,
+      },
+    };
+  }
   const hasResult = preferences.recyclingUpdates;
   const hasCredit = preferences.pointsCredits && intent.pointsAwarded !== null && intent.pointsAwarded > 0;
   if (!hasResult && !hasCredit) return null;

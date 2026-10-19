@@ -12,6 +12,9 @@ export interface NotificationIntent {
   readonly outcome: string;
   readonly pointsAwarded: number | null;
   readonly createdAt: string;
+  readonly kind?: string;
+  readonly targetType?: string;
+  readonly targetId?: string;
 }
 
 export interface NotificationDevice {
@@ -156,6 +159,9 @@ export class FirestoreNotificationsStore implements NotificationsStore {
           outcome: String(data.outcome ?? ""),
           pointsAwarded: data.pointsAwarded === null ? null : Number(data.pointsAwarded ?? 0),
           createdAt: String(data.createdAt ?? now),
+          kind: String(data.kind ?? ""),
+          targetType: String(data.targetType ?? "deposit"),
+          targetId: String(data.targetId ?? data.batchId ?? ""),
         },
         preferences,
         devices,

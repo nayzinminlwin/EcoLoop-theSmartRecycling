@@ -13,3 +13,16 @@ export const reconcileBackendState = onSchedule({
   const dispatcher = new CloudTasksDispatcher(composition.firestore, createDispatchConfig());
   await reconcileMaintenance(composition.maintenance, dispatcher, new Date().toISOString());
 });
+
+export const runDailyMaintenance = onSchedule({
+  schedule: "0 3 * * *",
+  timeZone: "Asia/Kuala_Lumpur",
+  region: process.env.ECOLOOP_TASKS_REGION ?? "asia-southeast1",
+  timeoutSeconds: 120,
+  memory: "256MiB",
+  concurrency: 1,
+  minInstances: 0,
+  maxInstances: 1,
+}, async () => {
+  await getComposition().maintenance.runDaily(new Date().toISOString(), 50);
+});
