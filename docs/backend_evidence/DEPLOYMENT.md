@@ -1,5 +1,7 @@
 # BK-P00-C Cloud Run Deployment Evidence
 
+> This document records the historical BK-P00-C probe. The BK-P08-B release manifest and rehearsal status are in [ADMIN_HANDOFF.md](ADMIN_HANDOFF.md) and [ACCEPTANCE.md](ACCEPTANCE.md). The deployment recorded below is not current-release evidence.
+
 **Captured:** 2026-10-18
 **Unit:** BK-P00-C — Private Cloud Run packaging and cold/warm probe
 **Role:** Integration executor
