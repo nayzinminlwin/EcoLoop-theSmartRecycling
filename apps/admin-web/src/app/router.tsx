@@ -15,6 +15,8 @@ import { services, useObservableQuery } from "./services.ts";
 import type { AuthState } from "../contracts/shared.ts";
 import { AdminShell } from "./AdminShell.tsx";
 import { LoginPage } from "./LoginPage.tsx";
+import { OverviewPage } from "../features/fleet/OverviewPage.tsx";
+import { SmartBinsPage } from "../features/fleet/SmartBinsPage.tsx";
 import { AdminPageHeader, Button, AsyncState } from "../ui/primitives.tsx";
 
 // ---------------------------------------------------------------------------
@@ -194,11 +196,11 @@ export function createAdminRouter(): ReturnType<typeof createBrowserRouter> {
       children: [
         {
           path: ADMIN_PATHS.overview,
-          element: <PendingFeaturePage title="Overview" />
+          element: <OverviewPage />
         },
         {
           path: ADMIN_PATHS.bins,
-          element: <PendingFeaturePage title="Smart Bins" />
+          element: <SmartBinsPage />
         },
         {
           path: ADMIN_PATHS.alerts,
