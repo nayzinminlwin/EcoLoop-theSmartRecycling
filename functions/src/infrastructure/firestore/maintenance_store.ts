@@ -1,6 +1,7 @@
 import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import type { Instant } from "../../domain/types.js";
 import { DomainError } from "../../domain/errors.js";
+import type { SettlementStore } from "./settlement_store.js";
 
 const MAX_ATTEMPTS = 3;
 const UNSUBMITTED_STAGES = new Set(["binFound", "ready", "itemDetected"]);
@@ -32,7 +33,7 @@ interface StorageBucketLike {
 }
 
 export interface MaintenanceStore {
-  reconcileJobs(now: Instant, limit?: number): Promise<MaintenanceSummary>;
+  reconcileJobs(now: Instant, limit?: number, settlements?: SettlementStore): Promise<MaintenanceSummary>;
   expireAbandonedReservations(now: Instant, limit?: number): Promise<number>;
   recordCollection(input: {
     readonly binId: string;
@@ -43,13 +44,20 @@ export interface MaintenanceStore {
     readonly now: Instant;
   }): Promise<CollectionResult>;
   runDaily(now: Instant, limit?: number): Promise<Pick<MaintenanceSummary, "remindersCreated" | "vouchersExpired" | "artifactsPurged">>;
-  inspect(input: { readonly batchId?: string; readonly residentId?: string; readonly now: Instant }): Promise<Record<string, unknown>>;
+  inspect(input: {
+    readonly batchId?: string;
+    readonly sessionId?: string;
+    readonly jobId?: string;
+    readonly residentId?: string;
+    readonly now: Instant;
+    readonly limit?: number;
+  }): Promise<Record<string, unknown>>;
 }
 
 export class FirestoreMaintenanceStore implements MaintenanceStore {
   constructor(private readonly firestore: Firestore, private readonly bucket?: StorageBucketLike) {}
 
-  async reconcileJobs(now: Instant, limit = 50): Promise<MaintenanceSummary> {
+  async reconcileJobs(now: Instant, limit = 50, settlements?: SettlementStore): Promise<MaintenanceSummary> {
     validateLimit(limit, "Job reconciliation");
     const snapshot = await this.firestore.collection("inferenceJobs")
       .where("state", "in", ["running", "retry_wait", "queued"])
@@ -58,7 +66,7 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
     let jobsRecovered = 0;
     let jobsReferred = 0;
     for (const document of snapshot.docs) {
-      const result = await this.reconcileJob(document.id, document.data(), now);
+      const result = await this.reconcileJob(document.id, document.data(), now, settlements);
       jobsRecovered += result === "retry_wait" ? 1 : 0;
       jobsReferred += result === "review" ? 1 : 0;
     }
@@ -73,30 +81,70 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
     return { remindersCreated, vouchersExpired, artifactsPurged };
   }
 
-  async inspect(input: { readonly batchId?: string; readonly residentId?: string; readonly now: Instant }): Promise<Record<string, unknown>> {
-    if (input.batchId === undefined && input.residentId === undefined) {
-      throw new DomainError("invalid_input", "Inspect requires batchId or residentId");
+  async inspect(input: {
+    readonly batchId?: string;
+    readonly sessionId?: string;
+    readonly jobId?: string;
+    readonly residentId?: string;
+    readonly now: Instant;
+    readonly limit?: number;
+  }): Promise<Record<string, unknown>> {
+    if (input.batchId === undefined && input.sessionId === undefined &&
+        input.jobId === undefined && input.residentId === undefined) {
+      throw new DomainError("invalid_input", "Inspect requires sessionId, batchId, jobId, or residentId");
     }
+    const limit = input.limit ?? 50;
+    validateLimit(limit, "Inspection");
     const result: Record<string, unknown> = { inspectedAt: input.now, mode: "readonly" };
-    if (input.batchId !== undefined) {
-      const [batch, job, outcome, review] = await Promise.all([
-        this.firestore.doc(`deposits/${input.batchId}`).get(),
-        this.firestore.collection("inferenceJobs").where("batchId", "==", input.batchId).limit(1).get(),
-        this.firestore.doc(`depositResults/result-${hash(input.batchId)}`).get(),
-        this.firestore.doc(`reviewTickets/${input.batchId}`).get(),
+    let batchId = input.batchId;
+    let sessionId = input.sessionId;
+    let jobId = input.jobId;
+    if (jobId !== undefined) {
+      const job = await this.firestore.doc(`inferenceJobs/${jobId}`).get();
+      const data = job.data() ?? {};
+      batchId ??= typeof data.batchId === "string" ? data.batchId : undefined;
+      sessionId ??= typeof data.sessionId === "string" ? data.sessionId : undefined;
+    }
+    if (batchId !== undefined && (jobId === undefined || sessionId === undefined)) {
+      const jobs = await this.firestore.collection("inferenceJobs").where("batchId", "==", batchId).limit(1).get();
+      const data = jobs.docs[0]?.data() ?? {};
+      jobId ??= jobs.docs[0]?.id;
+      sessionId ??= typeof data.sessionId === "string" ? data.sessionId : undefined;
+    }
+    if (batchId !== undefined) {
+      const [batch, outcome, review, capacity, wallet, notifications] = await Promise.all([
+        this.firestore.doc(`deposits/${batchId}`).get(),
+        this.firestore.doc(`depositResults/result-${hash(batchId)}`).get(),
+        this.firestore.doc(`reviewTickets/${batchId}`).get(),
+        this.firestore.collection("capacityEntries").where("batchId", "==", batchId).limit(limit).get(),
+        this.firestore.collection("walletEntries").where("sourceId", "==", batchId).limit(limit).get(),
+        this.firestore.collection("notificationEvents").where("batchId", "==", batchId).limit(limit).get(),
       ]);
-      result.batch = batch.exists ? batch.data() : null;
-      result.job = job.empty ? null : job.docs[0]?.data() ?? null;
-      result.result = outcome.exists ? outcome.data() : null;
-      result.review = review.exists ? review.data() : null;
+      result.batch = redact(batch.exists ? batch.data() : null);
+      result.result = redact(outcome.exists ? outcome.data() : null);
+      result.review = redact(review.exists ? review.data() : null);
+      result.capacityEntries = capacity.docs.map((doc) => redact(doc.data()));
+      result.walletEntries = wallet.docs.map((doc) => redact(doc.data()));
+      result.notificationEvents = notifications.docs.map((doc) => redact(doc.data()));
+    }
+    if (jobId !== undefined) {
+      const [job, attempts] = await Promise.all([
+        this.firestore.doc(`inferenceJobs/${jobId}`).get(),
+        this.firestore.collection(`inferenceJobs/${jobId}/attempts`).limit(limit).get(),
+      ]);
+      result.job = redact(job.exists ? job.data() : null);
+      result.attempts = attempts.docs.map((doc) => redact(doc.data()));
+    }
+    if (sessionId !== undefined) {
+      result.session = redact((await this.firestore.doc(`depositSessions/${sessionId}`).get()).data() ?? null);
     }
     if (input.residentId !== undefined) {
       const [profile, vouchers] = await Promise.all([
         this.firestore.doc(`residents/${input.residentId}`).get(),
         this.firestore.collection("vouchers").where("residentId", "==", input.residentId).limit(50).get(),
       ]);
-      result.resident = profile.exists ? profile.data() : null;
-      result.vouchers = vouchers.docs.map((document) => document.data());
+      result.resident = redact(profile.exists ? profile.data() : null);
+      result.vouchers = vouchers.docs.map((document) => redact(document.data()));
     }
     return result;
   }
@@ -163,18 +211,50 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
       .where("state", "==", "eligible").where("purgeAfterAt", "<=", now).limit(limit).get();
     let purged = 0;
     for (const document of snapshot.docs) {
-      const data = document.data();
-      const path = String(data.storagePath ?? "");
-      const generation = String(data.generation ?? "");
-      if (!/^inspection-evidence\/[^/]+\/[^/]+\/[^/]+\/.+$/.test(path) || !/^\d+$/.test(generation)) continue;
+      const eligibility = await this.claimDiagnosticForPurge(document.id, now);
+      if (eligibility === null) continue;
+      const { path, generation } = eligibility;
       const deleted = await this.deleteGeneration(path, generation);
+      const current = await document.ref.get();
+      if (!current.exists || current.data()?.state !== "purging") continue;
       await document.ref.set({
         state: deleted ? "purged" : "purge_pending",
         ...(deleted ? { purgedAt: now } : { lastPurgeError: "storage_delete_failed" }),
       }, { merge: true });
+      if (deleted) {
+        await this.firestore.collection("diagnosticPurgeEvents").doc(document.id).set({
+          artifactId: document.id, storagePath: path, generation,
+          purgedAt: now, source: "scheduled-maintenance",
+        }, { merge: true });
+      }
       if (deleted) purged += 1;
     }
     return purged;
+  }
+
+  private async claimDiagnosticForPurge(
+    artifactId: string,
+    now: Instant,
+  ): Promise<{ readonly path: string; readonly generation: string } | null> {
+    const ref = this.firestore.doc(`diagnosticArtifacts/${artifactId}`);
+    return this.firestore.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      const data = snapshot.data() ?? {};
+      const path = String(data.storagePath ?? "");
+      const generation = String(data.generation ?? "");
+      const resolvedAt = Date.parse(String(data.resolvedAt ?? ""));
+      const purgeAfterAt = Date.parse(String(data.purgeAfterAt ?? ""));
+      const validPath = /^inspection-evidence\/[^/]+\/[^/]+\/[^/]+\/.+$/.test(path);
+      const validGeneration = /^\d+$/.test(generation);
+      const eligible = snapshot.exists && data.state === "eligible" &&
+        data.sharedSource !== true && data.sourceShared !== true &&
+        Number.isFinite(resolvedAt) && Number.isFinite(purgeAfterAt) &&
+        purgeAfterAt === resolvedAt + 30 * 24 * 60 * 60 * 1000 &&
+        purgeAfterAt <= Date.parse(now) && validPath && validGeneration;
+      if (!eligible) return null;
+      transaction.update(ref, { state: "purging", purgeClaimedAt: now });
+      return { path, generation };
+    });
   }
 
   private async deleteGeneration(path: string, generation: string): Promise<boolean> {
@@ -260,57 +340,32 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
     });
   }
 
-  private async reconcileJob(jobId: string, job: DocumentData, now: Instant): Promise<"none" | "retry_wait" | "review"> {
+  private async reconcileJob(jobId: string, job: DocumentData, now: Instant, settlements?: SettlementStore): Promise<"none" | "retry_wait" | "review"> {
     const deadlinePassed = Date.parse(String(job.deadlineAt)) <= Date.parse(now);
     const leaseExpired = typeof job.activeLeaseExpiresAt !== "string" ||
       Date.parse(job.activeLeaseExpiresAt) <= Date.parse(now);
     if (!deadlinePassed && !leaseExpired && job.state === "running") return "none";
     const terminal = deadlinePassed || Number(job.attemptCount ?? 0) >= MAX_ATTEMPTS;
+    if (terminal && settlements !== undefined) {
+      await settlements.finalizeExpiredJob({
+        jobId,
+        now,
+        reason: deadlinePassed ? "processing_deadline_elapsed" : "attempt_budget_exhausted",
+      });
+      return "review";
+    }
+    if (terminal) throw new DomainError("processing_unavailable", "Settlement service is required for terminal recovery");
     const jobRef = this.firestore.doc(`inferenceJobs/${jobId}`);
     return this.firestore.runTransaction(async (transaction) => {
       const currentSnapshot = await transaction.get(jobRef);
       const current = currentSnapshot.data() ?? {};
       if (current.state !== job.state || current.activeAttemptId !== job.activeAttemptId) return "none";
-      if (!terminal) {
-        transaction.update(jobRef, {
-          state: "retry_wait", activeAttemptId: null, activeLeaseExpiresAt: null,
-          recoveryReason: "stale_attempt_lease", updatedAt: now,
-        });
-        return "retry_wait";
-      }
-      const batchId = String(current.batchId ?? "");
-      const resultRef = this.firestore.doc(`depositResults/result-${hash(batchId)}`);
-      const batchRef = this.firestore.doc(`deposits/${batchId}`);
-      const resultSnapshot = await transaction.get(resultRef);
-      if (resultSnapshot.exists && resultSnapshot.data()?.outcome !== "processing") {
-        transaction.update(jobRef, { state: "completed", activeAttemptId: null, activeLeaseExpiresAt: null, updatedAt: now });
-        return "none";
-      }
-      const decisionVersion = Number(resultSnapshot.data()?.decisionVersion ?? 0) + 1;
       transaction.update(jobRef, {
-        state: "failed", activeAttemptId: null, activeLeaseExpiresAt: null,
-        failureReason: deadlinePassed ? "processing_deadline_elapsed" : "attempt_budget_exhausted",
+        state: "retry_wait", activeAttemptId: null, activeLeaseExpiresAt: null,
+        recoveryReason: "stale_attempt_lease",
         updatedAt: now,
       });
-      transaction.update(batchRef, {
-        status: "review", pointsAwarded: null, decisionVersion, updatedAt: now,
-      });
-      transaction.set(resultRef, {
-        id: resultRef.id, ownerId: String(current.ownerId), batchId, outcome: "review",
-        pointsAwarded: null, decisionVersion, reasonCodes: [
-          deadlinePassed ? "processing_deadline_elapsed" : "attempt_budget_exhausted",
-        ], updatedAt: now,
-      }, { merge: true });
-      transaction.set(this.firestore.doc(`reviewTickets/${batchId}`), {
-        id: batchId, batchId, ownerId: String(current.ownerId), decisionVersion,
-        state: "open", reasonCodes: [deadlinePassed ? "processing_deadline_elapsed" : "attempt_budget_exhausted"],
-        createdAt: now,
-      }, { merge: true });
-      transaction.set(this.firestore.doc(`notificationEvents/${batchId}-${decisionVersion}`), {
-        id: `${batchId}-${decisionVersion}`, recipientUid: String(current.ownerId), batchId,
-        outcome: "review", pointsAwarded: null, decisionVersion, state: "pending", createdAt: now,
-      }, { merge: true });
-      return "review";
+      return "retry_wait";
     });
   }
 
@@ -346,6 +401,15 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
 function isWithinReminderWindow(expiresAt: string, now: string): boolean {
   const remaining = Date.parse(expiresAt) - Date.parse(now);
   return remaining >= 2 * 24 * 60 * 60 * 1000 && remaining <= 4 * 24 * 60 * 60 * 1000;
+}
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact);
+  if (value === null || typeof value !== "object") return value;
+  const sensitive = new Set(["token", "voucherCode", "providerMessageId", "providerPayload", "rawProviderResponse"]);
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+    key, sensitive.has(key) ? "[REDACTED]" : redact(entry),
+  ]));
 }
 
 function validateLimit(limit: number, label: string): void {

@@ -28,6 +28,11 @@ export interface SettlementResult {
 
 export interface SettlementStore {
   finalizeInspection(input: FinalizeInspectionInput): Promise<SettlementResult>;
+  finalizeExpiredJob(input: {
+    readonly jobId: string;
+    readonly now: Instant;
+    readonly reason: "processing_deadline_elapsed" | "attempt_budget_exhausted";
+  }): Promise<SettlementResult | null>;
   resolveReview(input: {
     readonly batchId: string;
     readonly decisionVersion: number;
@@ -71,6 +76,7 @@ export class FirestoreSettlementStore implements SettlementStore {
       if (resultSnapshot.exists && resultSnapshot.data()?.outcome !== "processing") {
         return resultResult(resultSnapshot.data(), input.jobId, batchId, true);
       }
+
       verifyWorker(input, job, attemptSnapshot.data(), batchSnapshot.data(), input.findings);
       if (Number(batchSnapshot.data()?.decisionVersion ?? 0) !== input.expectedDecisionVersion) {
         throw new DomainError("invalid_transition", "The inspection decision has changed", { retryability: "after_refresh" });
@@ -188,6 +194,45 @@ export class FirestoreSettlementStore implements SettlementStore {
         transaction.create(this.firestore.doc(`walletEntries/${input.batchId}-review`), { residentId: batch.ownerId, type: "deposit_credit", pointsDelta: plan.pointsAwarded, sourceType: "deposit_review", sourceId: input.batchId, balanceAfter: Number(wallet.balance ?? 0) + plan.pointsAwarded, walletVersion: nextWalletVersion, createdAt: input.now });
       }
       return { jobId: String(result.jobId ?? ""), batchId: input.batchId, resultId: resultRef.id, outcome: plan.status, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc, decisionVersion: nextVersion, replayed: false };
+    });
+  }
+
+  finalizeExpiredJob(input: {
+    readonly jobId: string;
+    readonly now: Instant;
+    readonly reason: "processing_deadline_elapsed" | "attempt_budget_exhausted";
+  }): Promise<SettlementResult | null> {
+    return this.firestore.runTransaction(async (transaction) => {
+      const jobRef = this.firestore.doc(`inferenceJobs/${input.jobId}`);
+      const job = requireData((await transaction.get(jobRef)).data(), "The inference job does not exist");
+      const batchId = String(job.batchId);
+      const batchRef = this.firestore.doc(`deposits/${batchId}`);
+      const resultRef = this.firestore.doc(`depositResults/result-${hash(batchId)}`);
+      const batch = requireData((await transaction.get(batchRef)).data(), "The deposit batch does not exist");
+      const resultSnapshot = await transaction.get(resultRef);
+      const existingResult = resultSnapshot.data();
+      if (existingResult !== undefined && existingResult.outcome !== "processing") {
+        return resultResult(existingResult, input.jobId, batchId, true);
+      }
+      const decisionVersion = Number(batch.decisionVersion ?? 0) + 1;
+      transaction.update(jobRef, { state: "failed", activeAttemptId: null, activeLeaseExpiresAt: null, failureReason: input.reason, updatedAt: input.now });
+      transaction.update(batchRef, { status: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion, updatedAt: input.now });
+      transaction.set(resultRef, {
+        id: resultRef.id, ownerId: String(job.ownerId), sessionId: String(job.sessionId), batchId,
+        outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion,
+        explanation: input.reason, reasonCodes: [input.reason], traceId: String(job.traceId),
+        createdAt: input.now, updatedAt: input.now,
+      });
+      transaction.set(this.firestore.doc(`reviewTickets/${batchId}`), {
+        id: batchId, batchId, sessionId: String(job.sessionId), ownerId: String(job.ownerId),
+        reasonCodes: [input.reason], provisionalSpaceSpc: 0, heldPoints: null,
+        decisionVersion, state: "open", createdAt: input.now,
+      }, { merge: true });
+      transaction.set(this.firestore.doc(`notificationEvents/${batchId}-${decisionVersion}`), {
+        id: `${batchId}-${decisionVersion}`, recipientUid: String(job.ownerId), batchId,
+        outcome: "review", pointsAwarded: null, state: "pending", createdAt: input.now,
+      }, { merge: true });
+      return { jobId: input.jobId, batchId, resultId: resultRef.id, outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion, replayed: false };
     });
   }
 }

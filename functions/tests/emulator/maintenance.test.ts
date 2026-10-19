@@ -51,6 +51,7 @@ describe("daily maintenance", () => {
     await firestore.doc("diagnosticArtifacts/eligible").set({
       state: "eligible", purgeAfterAt: "2026-10-18T03:00:00.000Z",
       storagePath: "inspection-evidence/batch/run/crops/a.json", generation: "1",
+      resolvedAt: "2026-09-18T03:00:00.000Z",
     });
     const result = await maintenance.runDaily(now);
     expect(result.artifactsPurged).toBe(0);

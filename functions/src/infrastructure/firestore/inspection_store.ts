@@ -108,8 +108,12 @@ export class FirestoreInspectionStore implements InspectionStore {
           session.draftAssetId !== assetId || session.draftAssetVersion !== assetVersion) {
         throw new DomainError("asset_version_changed", "The selected image is not the current draft", { retryability: "after_refresh" });
       }
-      if (processingSnapshot.exists && processingSnapshot.data()?.enabled === false) {
-        throw new DomainError("processing_unavailable", "Image processing is temporarily unavailable", { retryability: "after_backoff" });
+      const processing = processingSnapshot.data() ?? {};
+      if (processingSnapshot.exists &&
+          (processing.enabled === false || processing.status === "paused" || processing.status === "disabled")) {
+        throw new DomainError("processing_unavailable",
+          String(processing.reason ?? "Image processing is temporarily unavailable"),
+          { retryability: "after_backoff" });
       }
       if (!pointerSnapshot.exists || typeof policyId !== "string" || !policySnapshot.exists) {
         throw new DomainError("processing_unavailable", "No active recycling policy is available", { retryability: "after_backoff" });
@@ -148,7 +152,10 @@ export class FirestoreInspectionStore implements InspectionStore {
         },
         policyVersion: policy.id ?? policy.version, cycleId: bin.cycleId, state: "queued",
         submittedAt: now, deadlineAt, dispatchState: "pending", traceId,
-        configurationVersion: process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "inspection-v1",
+        configurationVersion: String(processing.providerMode === "gemini_only"
+          ? "inspection-gemini-only"
+          : process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "inspection-v1"),
+        providerMode: processing.providerMode === "gemini_only" ? "gemini_only" : "standard",
         attemptCount: 0, workerSubject: configuredWorkerSubject(), workerIssuer: configuredWorkerIssuer(),
         createdAt: now,
       });

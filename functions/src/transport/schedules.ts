@@ -11,7 +11,7 @@ export const reconcileBackendState = onSchedule({
 }, async () => {
   const composition = getComposition();
   const dispatcher = new CloudTasksDispatcher(composition.firestore, createDispatchConfig());
-  await reconcileMaintenance(composition.maintenance, dispatcher, new Date().toISOString());
+  await reconcileMaintenance(composition.maintenance, dispatcher, composition.settlements, new Date().toISOString());
 });
 
 export const runDailyMaintenance = onSchedule({
