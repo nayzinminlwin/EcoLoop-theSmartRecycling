@@ -88,7 +88,7 @@ class MockActivityRepository implements ActivityRepository {
             sum +
             MaterialWeightConstants.getWeightKg(
               item.materialType,
-              item.itemCount,
+              item.acceptedItemCount,
             ),
       ),
     );

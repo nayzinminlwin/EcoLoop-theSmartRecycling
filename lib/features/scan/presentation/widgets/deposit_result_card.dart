@@ -3,6 +3,7 @@ import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../domain/models/deposit_result.dart';
 import '../../domain/models/scan_instructions.dart';
@@ -43,10 +44,26 @@ class DepositResultCard extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       _countMaterialRow(context),
+      if (result.lines.length > 1) ...[
+        const SizedBox(height: 10),
+        _lineList(context),
+      ],
       if (result.outcome == DepositOutcome.verified &&
           (result.pointsAwarded ?? 0) > 0) ...[
         const SizedBox(height: 8),
         _creditStrip(context),
+      ],
+      if (kDebugMode &&
+          result.outcome == DepositOutcome.verified &&
+          result.traceId != null) ...[
+        const SizedBox(height: 8),
+        SelectableText(
+          'Reference: ${result.traceId}',
+          textAlign: TextAlign.center,
+          style: AppTypography.activityMetadata.copyWith(
+            color: AppColors.muted,
+          ),
+        ),
       ],
     ],
   );
@@ -71,13 +88,7 @@ class DepositResultCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: _cell(
-              context,
-              label: 'Items',
-              value: result.outcome == DepositOutcome.empty
-                  ? '0 pcs'
-                  : '${result.itemCount} pcs',
-            ),
+            child: _cell(context, label: 'Items', value: _countLabel),
           ),
           Container(width: 1, color: AppColors.border),
           Expanded(
@@ -90,6 +101,39 @@ class DepositResultCard extends StatelessWidget {
         ],
       ),
     ),
+  );
+
+  String get _countLabel {
+    final total = result.totalDetectedObjectCount;
+    if (result.outcome == DepositOutcome.empty) return '0 pcs';
+    if (total == null) return 'Count pending review';
+    return '$total pcs';
+  }
+
+  Widget _lineList(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text('Detected materials', style: AppTypography.activityTitle),
+      const SizedBox(height: 6),
+      for (final line in result.lines)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  line.label + (line.eligible ? '' : ' · excluded'),
+                  style: AppTypography.activityMetadata,
+                ),
+              ),
+              Text(
+                line.count == null ? 'Count pending' : '${line.count} pcs',
+                style: AppTypography.activityMetadata,
+              ),
+            ],
+          ),
+        ),
+    ],
   );
 
   Widget _creditStrip(BuildContext context) => Container(

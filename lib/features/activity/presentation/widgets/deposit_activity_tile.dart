@@ -60,10 +60,20 @@ class DepositActivityTile extends StatelessWidget {
     final displayOccurred = clock!.toDisplay(deposit.occurredAt);
     var stamp = AppFormatters.activityStamp(displayOccurred, displayNow);
     if (showWeight) {
-      final weightKg = MaterialWeightConstants.getWeightKg(
-        deposit.materialType,
-        deposit.itemCount,
-      );
+      final weightKg = deposit.lines.isEmpty
+          ? MaterialWeightConstants.getWeightKg(
+              deposit.materialType,
+              deposit.acceptedItemCount,
+            )
+          : deposit.lines.fold<double>(
+              0,
+              (sum, line) =>
+                  sum +
+                  MaterialWeightConstants.getWeightKg(
+                    line.materialType,
+                    line.acceptedCount,
+                  ),
+            );
       stamp = '$stamp · ${AppFormatters.weight(weightKg)}';
     }
     lines.add(stamp);
@@ -87,7 +97,7 @@ class DepositActivityTile extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Text(
-        deposit.materialLabel,
+        _materialTitle,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: AppTypography.activityTitle.copyWith(color: AppColors.text),
@@ -104,6 +114,10 @@ class DepositActivityTile extends StatelessWidget {
         ),
     ],
   );
+
+  String get _materialTitle => deposit.lines.isEmpty
+      ? deposit.materialLabel
+      : deposit.lines.map((line) => line.label).toSet().join(' · ');
 
   Widget _amountBlock(
     BuildContext context,
