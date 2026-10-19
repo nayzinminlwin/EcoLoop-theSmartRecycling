@@ -11,7 +11,8 @@ import '../../domain/models/scan_instructions.dart';
 /// copy, a structured count/material row, and the earned-points strip.
 ///
 /// Only verified, credited results show the mint earned-points strip; review
-/// and rejected outcomes keep their own title/tone and never imply credit.
+///, empty, processing, and rejected outcomes keep their own copy and never
+/// imply credit.
 class DepositResultCard extends StatelessWidget {
   const DepositResultCard({
     required this.result,
@@ -51,10 +52,12 @@ class DepositResultCard extends StatelessWidget {
   );
 
   String get _title => switch (result.outcome) {
+    DepositOutcome.processing => 'Processing deposit',
     DepositOutcome.verified => instructions.verifiedTitle,
     DepositOutcome.review => instructions.reviewTitle,
+    DepositOutcome.empty => 'No recyclable items detected',
     DepositOutcome.rejected => instructions.rejectedTitle,
-    DepositOutcome.unknown => 'Deposit outcome unknown',
+    DepositOutcome.unknown => 'Deposit outcome unavailable',
   };
 
   Widget _countMaterialRow(BuildContext context) => Container(
@@ -71,7 +74,9 @@ class DepositResultCard extends StatelessWidget {
             child: _cell(
               context,
               label: 'Items',
-              value: '${result.itemCount} pcs',
+              value: result.outcome == DepositOutcome.empty
+                  ? '0 pcs'
+                  : '${result.itemCount} pcs',
             ),
           ),
           Container(width: 1, color: AppColors.border),

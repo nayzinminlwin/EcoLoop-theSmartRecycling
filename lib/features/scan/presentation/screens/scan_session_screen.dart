@@ -269,9 +269,12 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
     final (label, tone) = switch (session.stage) {
       ScanStage.processing => (AppCopy.processingBadge, AppBadgeTone.amber),
       ScanStage.completed => switch (result?.outcome) {
+        DepositOutcome.processing => ('Processing', AppBadgeTone.amber),
         DepositOutcome.review => ('Review', AppBadgeTone.amber),
+        DepositOutcome.empty => ('Empty', AppBadgeTone.gray),
         DepositOutcome.rejected => ('Rejected', AppBadgeTone.red),
-        _ => ('Verified', AppBadgeTone.green),
+        DepositOutcome.verified => ('Verified', AppBadgeTone.green),
+        DepositOutcome.unknown || null => ('Unavailable', AppBadgeTone.gray),
       },
       _ => (session.binId, AppBadgeTone.gray),
     };
@@ -350,13 +353,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
   ) {
     if (session.stage == ScanStage.completed && result != null) {
       return switch (result.outcome) {
+        DepositOutcome.processing => 'Processing deposit',
         DepositOutcome.verified =>
           instructions?.verifiedTitle ?? 'Deposit verified',
         DepositOutcome.review =>
           instructions?.reviewTitle ?? 'Deposit sent for review',
+        DepositOutcome.empty => 'No recyclable items detected',
         DepositOutcome.rejected =>
           instructions?.rejectedTitle ?? 'Deposit not eligible',
-        DepositOutcome.unknown => 'Deposit complete',
+        DepositOutcome.unknown => 'Deposit outcome unavailable',
       };
     }
     return switch (session.stage) {
@@ -397,8 +402,10 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
 
   ScanStageOutcomeTone _outcomeTone(DepositResult? result) =>
       switch (result?.outcome) {
+        DepositOutcome.processing => ScanStageOutcomeTone.amber,
         DepositOutcome.verified => ScanStageOutcomeTone.green,
         DepositOutcome.review => ScanStageOutcomeTone.amber,
+        DepositOutcome.empty => ScanStageOutcomeTone.neutral,
         DepositOutcome.rejected => ScanStageOutcomeTone.red,
         _ => ScanStageOutcomeTone.neutral,
       };

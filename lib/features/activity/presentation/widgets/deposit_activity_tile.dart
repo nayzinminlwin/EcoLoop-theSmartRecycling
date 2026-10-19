@@ -27,14 +27,16 @@ class DepositActivityTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, tone, points) = switch (deposit.status) {
+      DepositStatus.processing => ('Processing', AppBadgeTone.amber, 'Pending'),
       DepositStatus.verified => (
         'Verified',
         AppBadgeTone.green,
         '+${AppFormatters.points(deposit.pointsAwarded ?? 0)}',
       ),
       DepositStatus.review => ('Review', AppBadgeTone.amber, 'Pending'),
+      DepositStatus.empty => ('Empty', AppBadgeTone.gray, '0'),
       DepositStatus.rejected => ('Rejected', AppBadgeTone.red, '0'),
-      DepositStatus.unknown => ('Unknown', AppBadgeTone.gray, '0'),
+      DepositStatus.unknown => ('Unavailable', AppBadgeTone.gray, '0'),
     };
     final metadata = _metadata(context);
 

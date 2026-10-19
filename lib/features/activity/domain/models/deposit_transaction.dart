@@ -2,8 +2,10 @@ import 'package:eco_loop/core/data/json_readers.dart';
 import 'package:eco_loop/core/domain/material_type.dart';
 
 enum DepositStatus {
+  processing('processing'),
   verified('verified'),
   review('review'),
+  empty('empty'),
   rejected('rejected'),
   unknown('unknown');
 
