@@ -11,6 +11,7 @@ import {
 } from "../application/sessions.js";
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { getComposition } from "../composition.js";
+import { recoverSubmittedInspection } from "./resident_inspections.js";
 
 export const scanBinQr = onCall((request) => callSession(request, "scanBinQr", (identity, data, now) =>
   scanBinQrApplication(getComposition().sessions, identity, stringField(data, "qrPayload"), now)));
@@ -37,10 +38,28 @@ export const recoverOperation = onCall(async (request) => {
   const identity = requireIdentity(request);
   const data = payload(request.data);
   const requestId = stringField(data, "requestId");
-  const operationRequestId = stringField(data, "operationRequestId");
-  const result = await recoverOperationApplication(getComposition().sessions, { uid: identity.uid, requestId }, operationRequestId);
-  if (result === null) throw new HttpsError("not-found", "Operation was not found for this resident");
-  return envelope("recoverOperation", requestId, result);
+  const operationRequestId = stringField(data, "operationId");
+  const sessionResult = await recoverOperationApplication(getComposition().sessions, { uid: identity.uid, requestId }, operationRequestId);
+  if (sessionResult !== null) return envelope("recoverOperation", requestId, sessionResult);
+  const inspectionResult = await recoverSubmittedInspection(identity.uid, operationRequestId);
+  if (inspectionResult === null) throw new HttpsError("not-found", "Operation was not found for this resident");
+  return {
+    schemaVersion: "backend.v1",
+    operation: "recoverOperation",
+    requestId,
+    traceId: inspectionResult.traceId,
+    status: "committed",
+    data: {
+      residentId: inspectionResult.ownerId,
+      recordIds: [`deposits/${inspectionResult.batchId}`, `inferenceJobs/${inspectionResult.jobId}`, `depositResults/${inspectionResult.resultId}`],
+      version: 1,
+      operationState: "replayed",
+      stage: "processing",
+      batchId: inspectionResult.batchId,
+      jobId: inspectionResult.jobId,
+      resultId: inspectionResult.resultId,
+    },
+  };
 });
 
 async function callSession(

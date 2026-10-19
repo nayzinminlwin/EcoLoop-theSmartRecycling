@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { FirestoreAccountsStore } from "./infrastructure/firestore/accounts_store.js";
 import { FirestoreSessionsStore } from "./infrastructure/firestore/sessions_store.js";
 import { StructuredLogger } from "./infrastructure/logger.js";
+import { FirestoreInspectionStore } from "./infrastructure/firestore/inspection_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -18,6 +19,7 @@ export function createComposition() {
     auth,
     accounts: new FirestoreAccountsStore(firestore, auth),
     sessions: new FirestoreSessionsStore(firestore, logger),
+    inspections: new FirestoreInspectionStore(firestore),
   };
 }
 

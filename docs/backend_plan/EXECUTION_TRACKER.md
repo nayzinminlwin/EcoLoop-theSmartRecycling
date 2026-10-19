@@ -3,7 +3,7 @@
 - **Plan:** [ECOLOOP-IMPL-001](../ECOLOOP_BACKEND_IMPLEMENTATION_PLAN.md)
 - **Specification:** [ECOLOOP-SPEC-001 v1.1](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Initial state:** Plan authored; implementation execution has started.
-- **Current/next unit:** `BK-P04-B` (BK-P04-A verified in the emulator; submission is the next unblocked unit).
+- **Current/next unit:** `BK-P04-C` (BK-P04-B verified in the emulator; worker fencing is the next unblocked unit).
 - **Current role:** Integration executor; read the execution protocol and actual applicable role instructions before work.
 - **Open implementation evidence:** [BK-P00-A readiness](../backend_evidence/READINESS.md) and [environment inventory](../backend_evidence/ENVIRONMENT.md). Public model documentation reviewed during planning is not runtime or acceptance proof.
 
@@ -24,15 +24,15 @@ Last updated: 2026-10-18
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P04-A VERIFIED; BK-P04-B is next
+Active unit and status: BK-P04-B VERIFIED; BK-P04-C is next
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
 Current changed files and user-owned changes to preserve: Explicit mock/emulator/Firebase bootstrap selection, App Check debug gating, advancing system clock, focused C2 tests, and C2 evidence; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `Set-Location functions; npm run build` passed; `Set-Location functions; npm run test:sessions` passed (5 emulator tests); `Set-Location functions; npm run test:unit` passed (10 tests). See [BK-P04-A dev log](../dev_logs/2026-10-19_Backend_BK-P04-A_Sessions.md).
+Actual commands/results/evidence: `Set-Location functions; npm run build` passed; `Set-Location functions; npm run test:submission` passed (4 emulator tests); `Set-Location functions; npm run test:sessions` passed (5 emulator tests); `Set-Location functions; npm run test:unit` passed (10 tests). See [BK-P04-B dev log](../dev_logs/2026-10-19_Backend_BK-P04-B_Submission.md).
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
 Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
-Commit SHA or explicit uncommitted state: BK-P02-A through BK-P02-F remain committed as listed; BK-P04-A changes are uncommitted and unrelated untracked `Demo_Screenshots/` and `assets/trash_images/` remain preserved
-Next single task and exact read set: Execute BK-P04-B; read this tracker checkpoint, BK-P04-A dev log, `PHASES_03_04_RECYCLING.md` BK-P04-B, architecture A5.2, and the submission/response contracts
+Commit SHA or explicit uncommitted state: BK-P04-A is committed as `56b2f65`; BK-P04-B changes are uncommitted and unrelated untracked `Demo_Screenshots/` and `assets/trash_images/` remain preserved
+Next single task and exact read set: Execute BK-P04-C; read this tracker checkpoint, BK-P04-B dev log, `PHASES_03_04_RECYCLING.md` BK-P04-C, architecture A5.3 worker boundary, and the job/attempt contracts
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -66,7 +66,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P03-C | Specialist and both Gemini fallback paths | IMPLEMENTED | Bounded crops, strict fallback validation, crop-result application, full-image finding materialization, explicit provider/invalid/review outcomes, tests, and live crop/full-image review cases |
 | BK-P03-D | Composed inspection/replay/overlays | IMPLEMENTED | Composed operator path, stage diagnostics, bounded timeout/retry controls, replay fingerprint/manifests/overlays, live provider matrix, and local operator HTTP smoke; excluded-case and final acceptance evidence remain pending |
 | BK-P04-A | Session/reservation transitions | VERIFIED | [BK-P04-A dev log](../dev_logs/2026-10-19_Backend_BK-P04-A_Sessions.md); build, 5 emulator tests, and 10 unit tests passed |
-| BK-P04-B | Immutable submission/durable job | NOT_STARTED | - |
+| BK-P04-B | Immutable submission/durable job | VERIFIED | [BK-P04-B dev log](../dev_logs/2026-10-19_Backend_BK-P04-B_Submission.md); build, 4 submission emulator tests, 5 session regressions, and 10 unit tests passed |
 | BK-P04-C | Worker gateway/fenced attempts | NOT_STARTED | - |
 | BK-P04-D | Authenticated Tasks/outbox repair | NOT_STARTED | - |
 | BK-P04-E | Atomic settlement/review/capacity contract | NOT_STARTED | - |

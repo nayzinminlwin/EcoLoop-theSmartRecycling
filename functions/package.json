@@ -19,6 +19,8 @@
     "test:accounts:runner": "vitest run --config vitest.accounts.config.ts",
     "test:sessions": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:sessions:runner\"",
     "test:sessions:runner": "vitest run --config vitest.sessions.config.ts",
+    "test:submission": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:submission:runner\"",
+    "test:submission:runner": "vitest run --config vitest.submission.config.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },

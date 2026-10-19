@@ -13,3 +13,4 @@ export {
   cancelSession,
   recoverOperation,
 } from "./transport/resident_sessions.js";
+export { submitInspection } from "./transport/resident_inspections.js";
