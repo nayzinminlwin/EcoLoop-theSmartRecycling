@@ -1,0 +1,448 @@
+/* =============================================================================
+   shell.css — Responsive Layout, Navigation Rail, Header and Login Styling
+   Phase 6 — Standalone Admin Shell and Entry Routing
+   ============================================================================= */
+
+/* ---------------------------------------------------------------------------
+   1. Admin Shell Container & Sticky Sidebar
+   --------------------------------------------------------------------------- */
+.admin-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  background: var(--bg);
+}
+
+.admin-shell > aside {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  padding: 24px 16px;
+  background: var(--sidebar);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.side-top .brand {
+  color: white;
+}
+
+.side-top .brand b {
+  color: var(--sidebar-accent);
+}
+
+.side-top .brand-mark {
+  background: var(--sidebar-brand);
+}
+
+.mobile-close {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   2. Sidebar Navigation Links
+   --------------------------------------------------------------------------- */
+.admin-shell aside nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 32px;
+}
+
+.admin-shell aside nav a {
+  height: 44px;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--sidebar-text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-shell aside nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.admin-shell aside nav a.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-weight: 700;
+}
+
+.admin-shell aside nav a i {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--red);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   3. Sidebar User Section
+   --------------------------------------------------------------------------- */
+.admin-user {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-user .avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sidebar-brand);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-user-info strong {
+  font-size: 13px;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-user-info small {
+  font-size: 11px;
+  color: var(--sidebar-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--sidebar-text);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Admin Main Area & Sticky Header
+   --------------------------------------------------------------------------- */
+.admin-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-main > header {
+  height: var(--header-height);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.mobile-menu {
+  display: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--text);
+  padding: 4px;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.crumb-root {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.crumb-sep {
+  color: var(--line);
+}
+
+.crumb-current {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.admin-main > header .search {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 0 12px;
+  color: var(--muted);
+  flex: 1;
+  max-width: 420px;
+  margin-left: 20px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-main > header .search:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(23, 107, 69, 0.12);
+  background: var(--surface);
+}
+
+.admin-main > header .search input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.admin-main > header .notification {
+  margin-left: auto;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.admin-main > header .notification:hover {
+  border-color: var(--green);
+}
+
+.admin-main > header .notification i {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+.admin-page {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--content-max);
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+   5. LoginPage Layout
+   --------------------------------------------------------------------------- */
+.login-page-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.login-demo-notice {
+  background: var(--mint);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--green-dark);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   6. Responsive Layout Breakpoints
+   --------------------------------------------------------------------------- */
+@media (min-width: 700px) and (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+  }
+
+  .side-top .brand > span:last-child {
+    display: none;
+  }
+
+  .admin-shell aside nav a {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .admin-shell aside nav a span {
+    display: none;
+  }
+
+  .admin-shell aside nav a i {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+
+  .admin-user-info,
+  .logout-btn {
+    display: none;
+  }
+
+  .admin-user {
+    justify-content: center;
+    padding: 16px 0 0;
+  }
+}
+
+@media (max-width: 699px) {
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-shell > aside {
+    display: flex;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 270px;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .admin-shell.menu-open > aside {
+    transform: translateX(0);
+  }
+
+  .mobile-close {
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    padding: 6px;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    background: rgba(11, 29, 20, 0.48);
+    z-index: 19;
+    cursor: pointer;
+  }
+
+  .admin-main > header {
+    padding: 0 16px;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .admin-main > header .search {
+    margin-left: 0;
+    max-width: 200px;
+  }
+
+  .admin-page {
+    padding: 20px 16px;
+  }
+}
