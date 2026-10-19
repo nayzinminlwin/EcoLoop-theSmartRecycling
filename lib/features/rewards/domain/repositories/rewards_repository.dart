@@ -9,9 +9,20 @@ abstract interface class RewardsRepository {
   Future<Reward> getReward(String rewardId);
   Future<RewardRedemptionReceipt> redeemReward(
     String rewardId,
+    String idempotencyKey, {
+    String? offerVersion,
+    int? displayedCost,
+  });
+  Future<ResidentVoucher> useDemoVoucher(
+    String voucherId,
     String idempotencyKey,
   );
   Future<List<ResidentVoucher>> getVouchers(VoucherStatus? status);
+  Future<VoucherPage> getVouchersPage(
+    VoucherStatus? status, {
+    VoucherCursor? cursor,
+    int limit = 25,
+  });
   Future<ResidentVoucher> getVoucher(String voucherId);
   Stream<List<RewardCategory>> watchCategories();
   Stream<List<Reward>> watchRewards({String? categoryId});

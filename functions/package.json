@@ -1,0 +1,62 @@
+{
+  "name": "@ecoloop/functions",
+  "private": true,
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.tools.json && node tools/copy-contracts.mjs",
+    "seed:dry-run": "tsx tools/seed.ts --mode=dry-run",
+    "seed:preview:live": "tsx tools/seed.ts --mode=preview-live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
+    "seed:live": "tsx tools/seed.ts --mode=live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
+    "seed:verify:live": "tsx tools/seed.ts --mode=verify-live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
+    "seed:emulator": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run seed:emulator:runner\"",
+    "seed:emulator:runner": "tsx tools/seed.ts --mode=emulator",
+    "inspect": "tsx tools/inspect.ts",
+    "test:seed": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run test:seed:runner\"",
+    "test:seed:runner": "vitest run --config vitest.seed.config.ts",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run test:rules:runner\"",
+    "test:rules:runner": "vitest run --config vitest.rules.config.ts",
+    "test:accounts": "firebase emulators:exec --only auth,firestore --project demo-ecoloop \"npm run test:accounts:runner\"",
+    "test:accounts:runner": "vitest run --config vitest.accounts.config.ts",
+    "test:sessions": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:sessions:runner\"",
+    "test:sessions:runner": "vitest run --config vitest.sessions.config.ts",
+    "test:submission": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:submission:runner\"",
+    "test:submission:runner": "vitest run --config vitest.submission.config.ts",
+    "test:jobs": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:jobs:runner\"",
+    "test:jobs:runner": "vitest run --config vitest.jobs.config.ts",
+    "test:dispatch": "vitest run --config vitest.dispatch.config.ts",
+    "test:outbox": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:outbox:runner\"",
+    "test:outbox:runner": "vitest run --config vitest.outbox.config.ts",
+    "test:maintenance": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:maintenance:runner\"",
+    "test:maintenance:runner": "vitest run --config vitest.maintenance.config.ts",
+    "test:settlement": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:settlement:runner\"",
+    "test:settlement:runner": "vitest run --config vitest.settlement.config.ts",
+    "test:rewards": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:rewards:runner\"",
+    "test:rewards:runner": "vitest run --config vitest.rewards.config.ts",
+    "test:unit": "vitest run",
+    "test": "npm run build && npm run test:unit"
+  },
+  "dependencies": {
+    "@google-cloud/tasks": "5.5.0",
+    "ajv-formats": "3.0.1",
+    "firebase-admin": "13.5.0",
+    "firebase-functions": "6.6.0",
+    "image-size": "2.0.2",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
+    "@types/node": "22.15.21",
+    "@types/qrcode": "^1.5.5",
+    "ajv": "8.17.1",
+    "firebase": "10.14.1",
+    "firebase-functions-test": "3.4.1",
+    "tsx": "4.19.2",
+    "typescript": "5.8.3",
+    "vitest": "3.1.3"
+  }
+}

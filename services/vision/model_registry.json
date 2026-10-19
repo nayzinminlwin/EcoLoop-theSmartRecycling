@@ -1,0 +1,46 @@
+{
+  "registryVersion": "0.1.0",
+  "executionMode": "hosted-api",
+  "models": {
+    "A": {
+      "provider": "roboflow",
+      "modelId": "waste-detection-0momv/6",
+      "kind": "object-detector",
+      "transport": "inference-sdk",
+      "apiUrl": "https://serverless.roboflow.com",
+      "responseContract": "predictions with pixel x/y/width/height, class and confidence",
+      "weightsInContainer": false
+    },
+    "B": {
+      "provider": "roboflow",
+      "modelId": "yolo-waste-detection/1",
+      "kind": "object-detector",
+      "transport": "inference-sdk",
+      "apiUrl": "https://serverless.roboflow.com",
+      "responseContract": "predictions with pixel x/y/width/height, class and confidence",
+      "weightsInContainer": false
+    },
+    "D": {
+      "provider": "roboflow",
+      "modelId": "waste-classification-rjo28/2",
+      "kind": "multi-label-classifier",
+      "transport": "inference-sdk",
+      "apiUrl": "https://serverless.roboflow.com",
+      "responseContract": "class-to-score map and predicted_classes",
+      "weightsInContainer": false
+    },
+    "Gemini": {
+      "provider": "google-ai-studio",
+      "modelId": "gemini-3.8-flash",
+      "kind": "structured-visual-fallback",
+      "transport": "google-genai",
+      "responseContract": "bounded JSON object inventory",
+      "weightsInContainer": false
+    }
+  },
+  "smokeInput": {
+    "sha256": "d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6",
+    "dimensions": "574x348",
+    "source": "assets/trash_images/trash8.jpg"
+  }
+}

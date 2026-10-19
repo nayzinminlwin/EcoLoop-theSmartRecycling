@@ -3,11 +3,15 @@ class AppFailure implements Exception {
     required this.code,
     required this.messageKey,
     required this.retryable,
+    this.requestId,
+    this.traceId,
   });
 
   final String code;
   final String messageKey;
   final bool retryable;
+  final String? requestId;
+  final String? traceId;
 
   @override
   String toString() => 'AppFailure($code)';
@@ -25,4 +29,6 @@ abstract final class AppFailureCodes {
   static const invalidTransition = 'invalidTransition';
   static const unauthenticated = 'unauthenticated';
   static const permissionDenied = 'permissionDenied';
+  static const offerChanged = 'offer_changed';
+  static const redemptionLimitReached = 'redemption_limit_reached';
 }

@@ -1,5 +1,6 @@
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/features/account/presentation/controllers/account_providers.dart';
 import 'package:eco_loop/features/account/domain/models/resident_profile.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
@@ -35,9 +36,7 @@ class HomeViewData {
 final homeControllerProvider =
     AsyncNotifierProvider<HomeController, HomeViewData>(HomeController.new);
 
-final homeProfileStreamProvider = StreamProvider<ResidentProfile?>(
-  (ref) => ref.read(accountRepositoryProvider).watchProfile(),
-);
+final homeProfileStreamProvider = accountProfileProvider;
 
 final homeWalletStreamProvider = StreamProvider<WalletSnapshot?>(
   (ref) => ref.read(walletRepositoryProvider).watchWallet(),

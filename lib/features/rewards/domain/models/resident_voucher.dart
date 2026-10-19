@@ -27,6 +27,8 @@ class ResidentVoucher {
     required this.status,
     required this.remainingUses,
     required this.usedAt,
+    this.demo = false,
+    this.offerVersion,
   });
 
   final String id;
@@ -41,6 +43,8 @@ class ResidentVoucher {
   final VoucherStatus status;
   final int remainingUses;
   final DateTime? usedAt;
+  final bool demo;
+  final String? offerVersion;
 
   VoucherStatus statusAt(DateTime now) {
     if (status == VoucherStatus.available && !expiresAt.isAfter(now)) {
@@ -64,6 +68,8 @@ class ResidentVoucher {
     usedAt: json['usedAt'] == null
         ? null
         : JsonReaders.dateTime(json, 'usedAt'),
+    demo: json['demo'] as bool? ?? false,
+    offerVersion: JsonReaders.nullableString(json, 'offerVersion'),
   );
 
   JsonMap toMap() => {
@@ -79,9 +85,23 @@ class ResidentVoucher {
     'status': status.wireValue,
     'remainingUses': remainingUses,
     'usedAt': usedAt?.toIso8601String(),
+    'demo': demo,
+    'offerVersion': offerVersion,
   };
 
   JsonMap toJson() => toMap();
   factory ResidentVoucher.fromJson(JsonMap json) =>
       ResidentVoucher.fromMap(json);
+}
+
+class VoucherCursor {
+  const VoucherCursor({required this.issuedAt, required this.id});
+  final DateTime issuedAt;
+  final String id;
+}
+
+class VoucherPage {
+  const VoucherPage({required this.items, required this.nextCursor});
+  final List<ResidentVoucher> items;
+  final VoucherCursor? nextCursor;
 }

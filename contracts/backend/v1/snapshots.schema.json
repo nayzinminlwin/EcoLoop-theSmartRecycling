@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecoloop.example/contracts/backend/v1/snapshots.schema.json",
+  "title": "EcoLoop backend snapshots, batches, lines and receipts",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/session" },
+    { "$ref": "#/$defs/asset" },
+    { "$ref": "#/$defs/bin" },
+    { "$ref": "#/$defs/batch" },
+    { "$ref": "#/$defs/receipt" }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "instant": { "type": "string", "format": "date-time" },
+    "session": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "sessionId", "ownerId", "binId", "stage", "version", "createdAt", "updatedAt"],
+      "properties": {
+        "kind": { "const": "session" }, "schemaVersion": { "const": "backend.v1" },
+        "sessionId": { "$ref": "#/$defs/id" }, "ownerId": { "$ref": "#/$defs/id" }, "binId": { "$ref": "#/$defs/id" },
+        "stage": { "type": "string", "enum": ["binFound", "ready", "itemDetected", "processing", "completed", "cancelled", "expired"] },
+        "version": { "type": "integer", "minimum": 0 }, "createdAt": { "$ref": "#/$defs/instant" }, "updatedAt": { "$ref": "#/$defs/instant" },
+        "draftAssetId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "draftAssetVersion": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 64 }, { "type": "null" }] },
+        "batchId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    },
+    "asset": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "assetId", "version", "contentSha256", "mimeType", "width", "height", "enabled"],
+      "properties": {
+        "kind": { "const": "asset" }, "schemaVersion": { "const": "backend.v1" }, "assetId": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 }, "contentSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "mimeType": { "type": "string", "enum": ["image/jpeg", "image/png", "image/webp"] },
+        "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 }, "enabled": { "type": "boolean" }
+      }
+    },
+    "bin": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "binId", "capacitySpc", "occupiedSpc", "capacityPercent", "isOnline", "enabled", "cycleId"],
+      "properties": {
+        "kind": { "const": "bin" }, "schemaVersion": { "const": "backend.v1" }, "binId": { "$ref": "#/$defs/id" },
+        "capacitySpc": { "type": "integer", "minimum": 1 }, "occupiedSpc": { "type": "integer", "minimum": 0 },
+        "capacityPercent": { "type": "integer", "minimum": 0, "maximum": 100 }, "isOnline": { "type": "boolean" }, "enabled": { "type": "boolean" },
+        "cycleId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "line": {
+      "type": "object", "additionalProperties": false,
+      "required": ["lineId", "class", "eligible", "count", "pointsPerItem", "spacePerItem", "points", "spaceSpc"],
+      "properties": {
+        "lineId": { "$ref": "#/$defs/id" },
+        "class": { "type": "string", "enum": ["plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag", "cardboard_item", "other", "unknown"] },
+        "eligible": { "type": "boolean" }, "count": { "type": "integer", "minimum": 1 },
+        "pointsPerItem": { "type": "integer", "minimum": 0 }, "spacePerItem": { "type": "integer", "minimum": 0 },
+        "points": { "type": "integer", "minimum": 0 }, "spaceSpc": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "batch": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "batchId", "ownerId", "sessionId", "assetId", "policyVersion", "status", "totalDetectedObjectCount", "pointsAwarded", "spaceContributionSpc", "decisionVersion"],
+      "properties": {
+        "kind": { "const": "batch" }, "schemaVersion": { "const": "backend.v1" }, "batchId": { "$ref": "#/$defs/id" },
+        "ownerId": { "$ref": "#/$defs/id" }, "sessionId": { "$ref": "#/$defs/id" }, "assetId": { "$ref": "#/$defs/id" },
+        "policyVersion": { "$ref": "#/$defs/id" }, "status": { "type": "string", "enum": ["processing", "review", "verified", "excluded", "empty", "failed"] },
+        "totalDetectedObjectCount": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "pointsAwarded": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "spaceContributionSpc": { "type": "integer", "minimum": 0 }, "decisionVersion": { "type": "integer", "minimum": 0 },
+        "lines": { "type": "array", "items": { "$ref": "#/$defs/line" }, "maxItems": 32 },
+        "reasonCodes": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 64 }, "maxItems": 16 }
+      }
+    },
+    "receipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "schemaVersion", "receiptId", "batchId", "outcome", "pointsAwarded", "spaceContributionSpc", "decisionVersion"],
+      "properties": {
+        "kind": { "const": "receipt" }, "schemaVersion": { "const": "backend.v1" }, "receiptId": { "$ref": "#/$defs/id" },
+        "batchId": { "$ref": "#/$defs/id" }, "outcome": { "type": "string", "enum": ["processing", "review", "verified", "excluded", "empty"] },
+        "pointsAwarded": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "spaceContributionSpc": { "type": "integer", "minimum": 0 }, "decisionVersion": { "type": "integer", "minimum": 0 },
+        "explanation": { "type": "string", "minLength": 1, "maxLength": 240 }
+      }
+    }
+  }
+}

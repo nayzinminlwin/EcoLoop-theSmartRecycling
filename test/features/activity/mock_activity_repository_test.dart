@@ -28,7 +28,10 @@ void main() {
     final verified = await repository.getDeposits(
       filter: const DepositFilter(status: DepositStatus.verified),
     );
-    expect(verified.fold<int>(0, (sum, item) => sum + item.itemCount), 26);
+    expect(
+      verified.fold<int>(0, (sum, item) => sum + (item.itemCount ?? 0)),
+      26,
+    );
     expect(
       verified.fold<int>(0, (sum, item) => sum + (item.pointsAwarded ?? 0)),
       150,

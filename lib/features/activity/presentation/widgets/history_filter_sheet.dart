@@ -75,8 +75,11 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
               spacing: 8,
               children: [
                 _statusChip(null, 'All'),
+                _statusChip(DepositStatus.processing, 'Processing'),
                 _statusChip(DepositStatus.verified, 'Verified'),
                 _statusChip(DepositStatus.review, 'Review'),
+                _statusChip(DepositStatus.excluded, 'Excluded'),
+                _statusChip(DepositStatus.empty, 'Empty'),
                 _statusChip(DepositStatus.rejected, 'Rejected'),
               ],
             ),

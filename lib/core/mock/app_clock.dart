@@ -1,6 +1,11 @@
 class AppClock {
   AppClock({DateTime? now, this.locale = 'en_MY', this.utcOffsetMinutes = 480})
-    : _now = now ?? DateTime.parse('2024-05-20T11:00:00+08:00');
+    : _nowProvider = _fixedNow(now);
+
+  AppClock.system({
+    this.locale = 'en_MY',
+    this.utcOffsetMinutes = 480,
+  }) : _nowProvider = DateTime.now;
 
   factory AppClock.fromMetadata(
     Map<String, Object?> metadata, {
@@ -18,11 +23,16 @@ class AppClock {
     );
   }
 
-  final DateTime _now;
+  static DateTime Function() _fixedNow(DateTime? now) {
+    final fixed = now ?? DateTime.parse('2024-05-20T11:00:00+08:00');
+    return () => fixed;
+  }
+
+  final DateTime Function() _nowProvider;
   final String locale;
   final int utcOffsetMinutes;
 
-  DateTime get now => _now;
+  DateTime get now => _nowProvider();
 
   DateTime toDisplay(DateTime instant) =>
       instant.toUtc().add(Duration(minutes: utcOffsetMinutes));

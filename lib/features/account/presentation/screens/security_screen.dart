@@ -93,61 +93,70 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Password updated ${_age(security.passwordUpdatedAt)} days ago.',
+                    security.passwordUpdatedAt == null
+                        ? 'Sign-in security is managed by ${security.provider}.'
+                        : 'Password updated ${_age(security.passwordUpdatedAt!)} days ago.',
                   ),
                   const SizedBox(height: 24),
-                  AppTextField(
-                    controller: _current,
-                    label: 'Current password',
-                    obscureText: _obscureCurrent,
-                    suffixIcon: IconButton(
-                      onPressed: () =>
-                          setState(() => _obscureCurrent = !_obscureCurrent),
-                      icon: Icon(
-                        _obscureCurrent
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                  if (security.passwordUpdatedAt != null)
+                    AppTextField(
+                      controller: _current,
+                      label: 'Current password',
+                      obscureText: _obscureCurrent,
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscureCurrent = !_obscureCurrent),
+                        icon: Icon(
+                          _obscureCurrent
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                      ),
+                      errorText: _error,
+                    ),
+                  if (security.passwordUpdatedAt != null)
+                    const SizedBox(height: 12),
+                  if (security.passwordUpdatedAt != null)
+                    AppTextField(
+                      controller: _newPassword,
+                      label: 'New password',
+                      helperText:
+                          'At least 8 characters with a letter and number.',
+                      obscureText: _obscureNew,
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscureNew = !_obscureNew),
+                        icon: Icon(
+                          _obscureNew ? Icons.visibility : Icons.visibility_off,
+                        ),
                       ),
                     ),
-                    errorText: _error,
-                  ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _newPassword,
-                    label: 'New password',
-                    helperText:
-                        'At least 8 characters with a letter and number.',
-                    obscureText: _obscureNew,
-                    suffixIcon: IconButton(
-                      onPressed: () =>
-                          setState(() => _obscureNew = !_obscureNew),
-                      icon: Icon(
-                        _obscureNew ? Icons.visibility : Icons.visibility_off,
+                  if (security.passwordUpdatedAt != null)
+                    const SizedBox(height: 12),
+                  if (security.passwordUpdatedAt != null)
+                    AppTextField(
+                      controller: _confirm,
+                      label: 'Confirm new password',
+                      obscureText: _obscureConfirm,
+                      suffixIcon: IconButton(
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _confirm,
-                    label: 'Confirm new password',
-                    obscureText: _obscureConfirm,
-                    suffixIcon: IconButton(
-                      onPressed: () =>
-                          setState(() => _obscureConfirm = !_obscureConfirm),
-                      icon: Icon(
-                        _obscureConfirm
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
+                  if (security.passwordUpdatedAt != null)
+                    const SizedBox(height: 20),
+                  if (security.passwordUpdatedAt != null)
+                    AppButton(
+                      label: 'Save password',
+                      onPressed: () => _save(),
+                      isLoading: state.isLoading,
+                      expand: true,
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  AppButton(
-                    label: 'Save password',
-                    onPressed: () => _save(),
-                    isLoading: state.isLoading,
-                    expand: true,
-                  ),
                 ],
               ),
       ),

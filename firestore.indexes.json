@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "batches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "receipts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "occurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notificationEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "recipientUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviewTickets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vouchers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "diagnosticArtifacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "purgeAfterAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

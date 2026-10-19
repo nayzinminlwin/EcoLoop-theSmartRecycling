@@ -46,6 +46,7 @@ class MockRewardsRepository implements RewardsRepository {
   final bool _usesSeedFixtures;
   Future<void>? _seedOperation;
   final List<RewardRedemption> _redemptions = [];
+  final Map<String, String> _voucherUseRequests = {};
   final _categoryChanges = StreamController<void>.broadcast();
   final _rewardChanges = StreamController<void>.broadcast();
   final _voucherChanges = StreamController<void>.broadcast();
@@ -127,8 +128,10 @@ class MockRewardsRepository implements RewardsRepository {
   @override
   Future<RewardRedemptionReceipt> redeemReward(
     String rewardId,
-    String idempotencyKey,
-  ) {
+    String idempotencyKey, {
+    String? offerVersion,
+    int? displayedCost,
+  }) {
     final operation = _mutationTail.then(
       (_) => _api.write(
         'rewards.redeemReward',
@@ -160,6 +163,7 @@ class MockRewardsRepository implements RewardsRepository {
         retryable: false,
       );
     }
+
     if (reward.residentRedemptionCount >= reward.maxRedemptionsPerResident) {
       throw const AppFailure(
         code: AppFailureCodes.conflict,
@@ -204,6 +208,7 @@ class MockRewardsRepository implements RewardsRepository {
       status: VoucherStatus.available,
       remainingUses: 1,
       usedAt: null,
+      demo: true,
     );
     if (_store != null) {
       await _store.transactionRewards<void>((walletMap, vouchers, redemptions) {
@@ -231,6 +236,64 @@ class MockRewardsRepository implements RewardsRepository {
       voucher: voucher,
       wallet: await _wallet(),
     );
+  }
+
+  @override
+  Future<ResidentVoucher> useDemoVoucher(
+    String voucherId,
+    String idempotencyKey,
+  ) {
+    final operation = _mutationTail.then(
+      (_) => _api.write('rewards.useDemoVoucher', () async {
+        await _ensureSeeded();
+        final voucher = await getVoucher(voucherId);
+        final previousVoucherId = _voucherUseRequests[idempotencyKey];
+        if (previousVoucherId == voucherId) {
+          return voucher;
+        }
+        final status = voucher.statusAt(_now);
+        if (status == VoucherStatus.used || voucher.remainingUses <= 0) {
+          throw const AppFailure(
+            code: AppFailureCodes.conflict,
+            messageKey: 'rewards.voucherUsed',
+            retryable: false,
+          );
+        }
+        if (status == VoucherStatus.expired) {
+          throw const AppFailure(
+            code: AppFailureCodes.validation,
+            messageKey: 'rewards.voucherExpired',
+            retryable: false,
+          );
+        }
+        final used = ResidentVoucher(
+          id: voucher.id,
+          residentId: voucher.residentId,
+          rewardId: voucher.rewardId,
+          title: voucher.title,
+          merchantName: voucher.merchantName,
+          code: voucher.code,
+          terms: voucher.terms,
+          issuedAt: voucher.issuedAt,
+          expiresAt: voucher.expiresAt,
+          status: VoucherStatus.used,
+          remainingUses: voucher.remainingUses - 1,
+          usedAt: _now,
+          demo: voucher.demo,
+          offerVersion: voucher.offerVersion,
+        );
+        final index = _vouchers.indexWhere((item) => item.id == voucher.id);
+        if (index >= 0) _vouchers[index] = used;
+        _voucherUseRequests[idempotencyKey] = voucherId;
+        _voucherChanges.add(null);
+        return used;
+      }),
+    );
+    _mutationTail = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    return operation;
   }
 
   Future<WalletSnapshot> _wallet() async {
@@ -269,6 +332,25 @@ class MockRewardsRepository implements RewardsRepository {
         orElse: () => throw MockDataStore.notFound('voucher'),
       );
 
+  @override
+  Future<VoucherPage> getVouchersPage(
+    VoucherStatus? status, {
+    VoucherCursor? cursor,
+    int limit = 25,
+  }) async {
+    final items = await getVouchers(status);
+    final start = cursor == null
+        ? 0
+        : items.indexWhere((item) => item.id == cursor.id) + 1;
+    final page = items.skip(start).take(limit).toList(growable: false);
+    return VoucherPage(
+      items: page,
+      nextCursor: page.length == limit
+          ? VoucherCursor(issuedAt: page.last.issuedAt, id: page.last.id)
+          : null,
+    );
+  }
+
   List<Reward> _projectRewards(String? categoryId) =>
       _documents
           .where(
@@ -296,6 +378,7 @@ class MockRewardsRepository implements RewardsRepository {
                   .length,
               artKey: document.artKey,
               sortOrder: document.sortOrder,
+              offerVersion: document.offerVersion,
             ),
           )
           .toList()
@@ -323,7 +406,9 @@ class MockRewardsRepository implements RewardsRepository {
                       usedAt: voucher.usedAt,
                     ),
             )
-            .where((voucher) => status == null || voucher.status == status)
+            .where(
+              (voucher) => status == null || voucher.statusAt(_now) == status,
+            )
             .toList()
           ..sort((a, b) => b.issuedAt.compareTo(a.issuedAt));
     return projected;

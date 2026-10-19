@@ -244,10 +244,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   String _statusLabel(HistoryFilterState filter) {
     return switch (filter.status) {
       null => 'All statuses',
+      DepositStatus.processing => 'Processing',
       DepositStatus.verified => 'Verified',
       DepositStatus.review => 'Review',
+      DepositStatus.excluded => 'Excluded',
+      DepositStatus.empty => 'Empty',
       DepositStatus.rejected => 'Rejected',
-      DepositStatus.unknown => 'All statuses',
+      DepositStatus.unknown => 'Unavailable',
     };
   }
 
