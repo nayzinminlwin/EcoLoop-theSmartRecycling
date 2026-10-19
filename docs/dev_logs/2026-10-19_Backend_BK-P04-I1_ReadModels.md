@@ -1,7 +1,7 @@
 # BK-P04-I1 — Session, bin, and asset read models
 
-Date: 2026-10-19  
-Status: VERIFIED  
+Date: 2026-10-19
+Status: VERIFIED
 Scope: Flutter resident read models for the v1 recycling session, bin, and simulation-asset snapshots.
 
 ## Implemented
