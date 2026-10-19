@@ -3,7 +3,7 @@
 - **Plan:** [ECOLOOP-IMPL-001](../ECOLOOP_BACKEND_IMPLEMENTATION_PLAN.md)
 - **Specification:** [ECOLOOP-SPEC-001 v1.1](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Initial state:** Plan authored; implementation execution has started.
-- **Current/next unit:** `BK-P06-E` implemented; Malaysia-time daily reminder/expiry/retention maintenance, bounded readonly inspection, and scheduled cost controls pass backend checks.
+- **Current/next unit:** `BK-P07-A` verified; emulator-backed accounting concurrency, worker authorization/fencing, deadline recovery, stale reservation release, and reconciliation orchestration pass focused backend checks.
 - **Current role:** Integration executor; read the execution protocol and actual applicable role instructions before work.
 - **Open implementation evidence:** [BK-P00-A readiness](../backend_evidence/READINESS.md) and [environment inventory](../backend_evidence/ENVIRONMENT.md). Public model documentation reviewed during planning is not runtime or acceptance proof.
 
@@ -24,15 +24,15 @@ Last updated: 2026-10-19
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P06-E IMPLEMENTED; 03:00 Asia/Kuala_Lumpur maintenance, voucher reminder/expiry, generation-scoped diagnostic cleanup, and readonly inspection are wired and build checks pass
+Active unit and status: BK-P07-A VERIFIED; six new emulator tests plus settlement, rewards, rules, unit, and build regressions pass
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
 Current changed files and user-owned changes to preserve: `web/firebase-messaging-sw.js`, `firebase.json`, permitted `AndroidManifest.xml` permissions, web VAPID build helper, and notification adapter validation; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `npm run build` passed in `functions`; unit, jobs, outbox, and settlement emulator tests passed; `npm run inspect -- --resident-id=...` is readonly and emulator-default. Daily deployment is configured for 03:00 `Asia/Kuala_Lumpur`; live push, storage cleanup, and deployed scheduler evidence remain acceptance evidence. See [BK-P06-E dev log](../dev_logs/2026-10-19_Backend_BK-P06-E_Maintenance.md).
+Actual commands/results/evidence: `npm run build`; `npm run test:unit -- tests/unit/reconciliation.test.ts`; `firebase emulators:exec --project demo-ecoloop --only firestore "npx vitest run --config vitest.p07a.config.ts"` (6/6); `npm run test:settlement` (3/3); `npm run test:rewards` (3/3); and `npm run test:rules` (5/5) passed. Evidence: [BK-P07-A QA log](../test_logs/2026-10-19_BK-P07-A_QA.md). Live provider/FCM/Cloud Tasks checks remain separate acceptance evidence.
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
 Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
 Commit SHA or explicit uncommitted state: BK-P04-A is committed as `56b2f65`; BK-P04-B is committed as `90c1915`; BK-P04-C is committed as `4f3dcd2`; BK-P04-D is committed with live deployment evidence pending; BK-P04-E is committed as `b56a527`/`33baf65`; BK-P04-F is committed as `ce8f639`; BK-P04-G is committed as `5fc2d77`; BK-P04-H is committed as `9d905be`; BK-P04-I1 is committed as `0c180a1`; BK-P04-I2 is committed as `e02a63f`; BK-P04-J is committed as `8ee4cbb`; BK-P04-K is committed as `eee2534`; BK-P04-L is committed as `b88f5fa`; unrelated untracked `Demo_Screenshots` and `assets/trash_images` remain preserved
-Next single task and exact read set: Continue with post-P06 validation/deployment evidence; preserve BK-P06-D recovery fencing and BK-P06-E readonly inspection boundary
+Next single task and exact read set: Continue with BK-P07-B; read this protocol, the tracker, [PHASES_07_08_VERIFICATION.md](PHASES_07_08_VERIFICATION.md), CV evaluation targets, and the existing vision evaluation tooling
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -89,7 +89,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P06-C | Web worker/Hosting/native permissions | IMPLEMENTED | [BK-P06-C dev log](../dev_logs/2026-10-19_Backend_BK-P06-C_WebHosting.md); pinned Firebase Messaging worker, public Firebase config, explicit public VAPID build input, worker MIME/no-cache headers, resident SPA fallback, permitted camera/Internet/notification permissions, clean analysis, web build, worker syntax, and protected-file checks pass; real browser permission, authorized domains, and deployed push evidence remain |
 | BK-P06-D | Reconciler/deadlines/operator contract | IMPLEMENTED | [BK-P06-D dev log](../dev_logs/2026-10-19_Backend_BK-P06-D_Recovery.md); pending dispatch reuse, stale lease recovery, deadline/attempt review finalization, guarded reservation expiry, expected-cycle collection event, emulator-default operator harness, build and focused emulator checks pass |
 | BK-P06-E | Daily reminders/expiry/retention/cost controls | IMPLEMENTED | [BK-P06-E dev log](../dev_logs/2026-10-19_Backend_BK-P06-E_Maintenance.md); 03:00 Malaysia-time schedule, one logical available-voucher reminder, no-refund voucher expiry, resolved diagnostic generation cleanup, readonly D7 inspection, bounded runtime settings, and build/unit/emulator checks pass; deployed push/storage evidence remains |
-| BK-P07-A | Transaction/authorization/recovery regression | NOT_STARTED | - |
+| BK-P07-A | Transaction/authorization/recovery regression | VERIFIED | [BK-P07-A QA log](../test_logs/2026-10-19_BK-P07-A_QA.md); build, reconciliation unit, six focused emulator tests, settlement/rewards regressions, and five rules tests passed; live provider/FCM/Cloud Tasks evidence remains outside this unit |
 | BK-P07-B | Frozen real CV evaluation | NOT_STARTED | - |
 | BK-P07-C | Actual Android/web/permission/offline acceptance | NOT_STARTED | - |
 | BK-P07-D | Performance/cost/accounting/trace audit | NOT_STARTED | - |
