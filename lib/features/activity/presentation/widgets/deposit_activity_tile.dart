@@ -6,7 +6,6 @@ import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
 import 'package:eco_loop/shared/widgets/app_badge.dart';
-import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 
 /// Content-sized activity/history row: icon tile, flexible material/location/
@@ -76,7 +75,11 @@ class DepositActivityTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadii.icon),
     ),
     child: Center(
-      child: AppIcon('recycle', size: 20, color: AppColors.primary),
+      child: Image.asset(
+        'assets/icons/recycle-symbol.png',
+        width: 20,
+        height: 20,
+      ),
     ),
   );
 
