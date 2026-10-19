@@ -13,6 +13,7 @@ import 'package:eco_loop/features/scan/domain/models/scan_instructions.dart';
 import 'package:eco_loop/features/scan/domain/models/smart_bin.dart';
 import 'package:eco_loop/features/scan/domain/models/simulation_asset.dart';
 import 'package:eco_loop/features/scan/data/mock_scan_repository.dart';
+import 'package:eco_loop/features/account/domain/models/auth_state.dart';
 import 'package:eco_loop/shared/widgets/app_badge.dart';
 import 'package:eco_loop/shared/widgets/app_button.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
@@ -48,22 +49,98 @@ class ScanSessionScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanSessionScreen> createState() => _ScanSessionScreenState();
 }
 
-class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
+class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
+    with WidgetsBindingObserver {
+  static const _renewalInterval = Duration(seconds: 30);
+
   VoidCallback? _leaveGuardDisposer;
+  StreamSubscription<AuthState>? _authSubscription;
+  Timer? _renewalTimer;
+  DepositSession? _latestSession;
   bool _busy = false;
   String? _actionError;
   String? _selectedAssetId;
+  bool _isForeground = true;
+  bool _isOwnedBySignedInResident = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _leaveGuardDisposer = ref.read(leaveDecisionProvider).register(_leaveGuard);
+    _authSubscription = ref
+        .read(accountRepositoryProvider)
+        .watchAuthState()
+        .listen(_onAuthState, onError: (_) => _stopRenewal());
+    _renewalTimer = Timer.periodic(_renewalInterval, (_) {
+      unawaited(_renewIfEligible());
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _renewalTimer?.cancel();
+    _authSubscription?.cancel();
     _leaveGuardDisposer?.call();
     super.dispose();
+  }
+
+  void _onAuthState(AuthState authState) {
+    final signedIn = authState.isSignedIn == true;
+    final residentId = authState.uid;
+    final session = _latestSession;
+    _isOwnedBySignedInResident =
+        signedIn &&
+        (session == null ||
+            residentId == null ||
+            residentId == session.residentId);
+    if (!_isOwnedBySignedInResident) _stopRenewal();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isForeground = state == AppLifecycleState.resumed;
+    if (_isForeground) {
+      unawaited(_renewIfEligible());
+    } else {
+      _stopRenewal();
+    }
+  }
+
+  void _stopRenewal() {
+    _renewalTimer?.cancel();
+    _renewalTimer = null;
+  }
+
+  void _ensureRenewalTimer() {
+    if (_renewalTimer != null || !mounted) return;
+    _renewalTimer = Timer.periodic(_renewalInterval, (_) {
+      unawaited(_renewIfEligible());
+    });
+  }
+
+  Future<void> _renewIfEligible() async {
+    final session = _latestSession;
+    if (!_isForeground ||
+        !_isOwnedBySignedInResident ||
+        session == null ||
+        !_isPreProcessing(session.stage) ||
+        !_isVisible(session)) {
+      _stopRenewal();
+      return;
+    }
+    _ensureRenewalTimer();
+    try {
+      final renewed = await ref
+          .read(scanRepositoryProvider)
+          .renewSession(session.id, session.sessionVersion);
+      if (mounted) _latestSession = renewed;
+    } on Object catch (error) {
+      if (mounted && _isVisible(session)) {
+        setState(() => _actionError = scanFailureCopy(error));
+      }
+    }
   }
 
   bool _isPreProcessing(ScanStage? stage) =>
@@ -141,6 +218,14 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
   );
 
   Widget _sessionPage(BuildContext context, DepositSession session) {
+    _latestSession = session;
+    if (_isForeground &&
+        _isOwnedBySignedInResident &&
+        _isPreProcessing(session.stage)) {
+      _ensureRenewalTimer();
+    } else {
+      _stopRenewal();
+    }
     _sync(session);
     final instructionsAsync = ref.watch(scanInstructionsProvider);
     final binAsync = ref.watch(scanBinWatchProvider(session.binId));
@@ -451,7 +536,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen> {
       final visible = _isVisible(session);
       if (session.stage == ScanStage.cancelled ||
           (session.stage == ScanStage.completed && visible)) {
-        tracker.clear();
+        tracker.clearIf(session.id);
+        _stopRenewal();
       } else {
         tracker.track(session);
       }
