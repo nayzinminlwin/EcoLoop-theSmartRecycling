@@ -10,6 +10,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.tools.json && node tools/copy-contracts.mjs",
     "seed:dry-run": "tsx tools/seed.ts --mode=dry-run",
+    "seed:preview:live": "tsx tools/seed.ts --mode=preview-live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
+    "seed:live": "tsx tools/seed.ts --mode=live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
+    "seed:verify:live": "tsx tools/seed.ts --mode=verify-live --project=ecoloop-thesmartrecycling --database=ecoloop-db --bucket=ecoloop-thesmartrecycling.firebasestorage.app",
     "seed:emulator": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run seed:emulator:runner\"",
     "seed:emulator:runner": "tsx tools/seed.ts --mode=emulator",
     "inspect": "tsx tools/inspect.ts",
