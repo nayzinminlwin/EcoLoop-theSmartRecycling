@@ -88,6 +88,7 @@ export interface DepositSession {
   readonly draftAssetId: Identifier | null;
   readonly draftAssetVersion: string | null;
   readonly batchId: Identifier | null;
+  readonly reservationExpiresAt?: Instant;
 }
 
 export interface ReceiptLine {
