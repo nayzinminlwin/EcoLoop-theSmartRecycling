@@ -8,6 +8,9 @@ import { FirestoreInspectionStore } from "./infrastructure/firestore/inspection_
 import { FirestoreJobsStore } from "./infrastructure/firestore/jobs_store.js";
 import { FirestoreSettlementStore } from "./infrastructure/firestore/settlement_store.js";
 import { FirestoreRewardsStore } from "./infrastructure/firestore/rewards_store.js";
+import { FirestoreNotificationsStore } from "./infrastructure/firestore/notifications_store.js";
+import { FirebaseMessagingProvider } from "./infrastructure/messaging.js";
+import { DurableNotificationDispatcher } from "./application/notifications.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -26,6 +29,11 @@ export function createComposition() {
     jobs: new FirestoreJobsStore(firestore),
     settlements: new FirestoreSettlementStore(firestore),
     rewards: new FirestoreRewardsStore(firestore),
+    notifications: new FirestoreNotificationsStore(firestore),
+    notificationDispatcher: new DurableNotificationDispatcher(
+      new FirestoreNotificationsStore(firestore),
+      new FirebaseMessagingProvider(),
+    ),
   };
 }
 

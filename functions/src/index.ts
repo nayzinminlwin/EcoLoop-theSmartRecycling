@@ -21,3 +21,4 @@ export {
   useResidentDemoVoucher,
 } from "./transport/resident_rewards.js";
 export { dispatchPendingJobs } from "./transport/dispatch.js";
+export { dispatchPendingNotifications } from "./transport/notification_dispatch.js";
