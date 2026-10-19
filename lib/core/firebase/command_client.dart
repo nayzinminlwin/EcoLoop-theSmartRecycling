@@ -38,6 +38,7 @@ class CommandClient {
     'cancelSession',
     'redeemReward',
     'simulateVoucherUse',
+    'useResidentDemoVoucher',
   };
 
   Future<BackendEnvelope> execute(
@@ -185,6 +186,10 @@ class CommandClient {
         return AppFailureCodes.permissionDenied;
       case 'insufficient_points':
         return AppFailureCodes.insufficientPoints;
+      case 'offer_changed':
+        return AppFailureCodes.offerChanged;
+      case 'redemption_limit_reached':
+        return AppFailureCodes.redemptionLimitReached;
       case 'invalid_qr':
         return AppFailureCodes.invalidQr;
       case 'bin_unavailable':

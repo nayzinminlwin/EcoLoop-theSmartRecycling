@@ -247,6 +247,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       DepositStatus.processing => 'Processing',
       DepositStatus.verified => 'Verified',
       DepositStatus.review => 'Review',
+      DepositStatus.excluded => 'Excluded',
       DepositStatus.empty => 'Empty',
       DepositStatus.rejected => 'Rejected',
       DepositStatus.unknown => 'Unavailable',

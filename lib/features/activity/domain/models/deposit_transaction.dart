@@ -6,6 +6,7 @@ enum DepositStatus {
   processing('processing'),
   verified('verified'),
   review('review'),
+  excluded('excluded'),
   empty('empty'),
   rejected('rejected'),
   unknown('unknown');
@@ -36,6 +37,7 @@ class DepositTransaction {
     this.lines = const [],
     this.totalDetectedObjectCount,
     this.traceId,
+    this.decisionVersion = 0,
   });
 
   final String id;
@@ -49,6 +51,7 @@ class DepositTransaction {
   final List<DepositLineItem> lines;
   final int? totalDetectedObjectCount;
   final String? traceId;
+  final int decisionVersion;
   final int? pointsAwarded;
   final DepositStatus status;
   final DateTime occurredAt;
@@ -103,6 +106,7 @@ class DepositTransaction {
         'totalDetectedObjectCount',
       ),
       traceId: JsonReaders.string(json, 'traceId'),
+      decisionVersion: _nullableInteger(json, 'decisionVersion') ?? 0,
     );
   }
 
@@ -122,6 +126,7 @@ class DepositTransaction {
     'lines': lines.map((line) => line.toJson()).toList(growable: false),
     'totalDetectedObjectCount': totalDetectedObjectCount,
     'traceId': traceId,
+    'decisionVersion': decisionVersion,
   };
 
   int get acceptedItemCount => lines.isEmpty

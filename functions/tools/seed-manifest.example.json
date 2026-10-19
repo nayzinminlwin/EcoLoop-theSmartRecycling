@@ -100,7 +100,7 @@
       "description": "A controlled demo reward.",
       "merchant": "EcoLoop Cafe",
       "categoryId": "plastic",
-      "pointsCost": 100,
+      "pointsCost": 10,
       "maxRedemptionsPerResident": 1,
       "isActive": true,
       "demoOnly": true,

@@ -34,6 +34,7 @@ class DepositActivityTile extends StatelessWidget {
         '+${AppFormatters.points(deposit.pointsAwarded ?? 0)}',
       ),
       DepositStatus.review => ('Review', AppBadgeTone.amber, 'Pending'),
+      DepositStatus.excluded => ('Excluded', AppBadgeTone.gray, '0'),
       DepositStatus.empty => ('Empty', AppBadgeTone.gray, '0'),
       DepositStatus.rejected => ('Rejected', AppBadgeTone.red, '0'),
       DepositStatus.unknown => ('Unavailable', AppBadgeTone.gray, '0'),

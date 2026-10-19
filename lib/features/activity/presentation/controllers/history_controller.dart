@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
+import 'package:eco_loop/features/activity/domain/repositories/activity_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum HistoryDatePreset { all, today, lastSevenDays, thisMonth, custom }
@@ -49,10 +50,17 @@ class HistoryFilterState {
 }
 
 class HistoryViewData {
-  const HistoryViewData({required this.items, this.refreshFailed = false});
+  const HistoryViewData({
+    required this.items,
+    this.nextCursor,
+    this.refreshFailed = false,
+  });
 
   final List<DepositTransaction> items;
+  final ActivityCursor? nextCursor;
   final bool refreshFailed;
+
+  bool get hasMore => nextCursor != null;
 }
 
 final historyControllerProvider =
@@ -80,7 +88,7 @@ class HistoryFilterNotifier extends Notifier<HistoryFilterState> {
 /// Stream failures after the first projection keep the last visible content
 /// and surface an inline refresh failure instead of an error screen.
 class HistoryController extends AsyncNotifier<HistoryViewData> {
-  StreamSubscription<List<DepositTransaction>>? _subscription;
+  StreamSubscription<ActivityPage>? _subscription;
   int _generation = 0;
 
   @override
@@ -98,11 +106,14 @@ class HistoryController extends AsyncNotifier<HistoryViewData> {
 
     final firstValue = Completer<HistoryViewData>();
     _subscription = repository
-        .watchDeposits(filter: filter)
+        .watchDepositsPage(filter: filter)
         .listen(
-          (items) {
+          (page) {
             if (generation != _generation) return;
-            final data = HistoryViewData(items: List.unmodifiable(items));
+            final data = HistoryViewData(
+              items: List.unmodifiable(page.items),
+              nextCursor: page.nextCursor,
+            );
             if (!firstValue.isCompleted) {
               firstValue.complete(data);
             } else {

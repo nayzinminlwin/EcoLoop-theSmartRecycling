@@ -29,6 +29,8 @@
     "test:outbox:runner": "vitest run --config vitest.outbox.config.ts",
     "test:settlement": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:settlement:runner\"",
     "test:settlement:runner": "vitest run --config vitest.settlement.config.ts",
+    "test:rewards": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:rewards:runner\"",
+    "test:rewards:runner": "vitest run --config vitest.rewards.config.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },

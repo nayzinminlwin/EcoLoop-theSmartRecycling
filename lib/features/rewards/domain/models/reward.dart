@@ -15,6 +15,7 @@ class RewardDocument {
     required this.maxRedemptionsPerResident,
     required this.artKey,
     required this.sortOrder,
+    this.offerVersion = 'legacy',
   });
 
   final String id;
@@ -30,6 +31,7 @@ class RewardDocument {
   final int maxRedemptionsPerResident;
   final String artKey;
   final int sortOrder;
+  final String offerVersion;
 
   factory RewardDocument.fromMap(JsonMap json) => RewardDocument(
     id: JsonReaders.string(json, 'id'),
@@ -48,6 +50,7 @@ class RewardDocument {
     ),
     artKey: JsonReaders.string(json, 'artKey'),
     sortOrder: JsonReaders.integer(json, 'sortOrder'),
+    offerVersion: JsonReaders.nullableString(json, 'offerVersion') ?? 'legacy',
   );
 
   JsonMap toMap() => {
@@ -64,6 +67,7 @@ class RewardDocument {
     'maxRedemptionsPerResident': maxRedemptionsPerResident,
     'artKey': artKey,
     'sortOrder': sortOrder,
+    'offerVersion': offerVersion,
   };
 
   factory RewardDocument.fromJson(JsonMap json) => RewardDocument.fromMap(json);
@@ -87,6 +91,7 @@ class Reward {
     required this.residentRedemptionCount,
     required this.artKey,
     required this.sortOrder,
+    this.offerVersion = 'legacy',
   });
 
   final String id;
@@ -103,6 +108,7 @@ class Reward {
   final int residentRedemptionCount;
   final String artKey;
   final int sortOrder;
+  final String offerVersion;
 
   bool isExpiredAt(DateTime now) => !expiresAt.isAfter(now);
 
@@ -127,6 +133,7 @@ class Reward {
     ),
     artKey: JsonReaders.string(json, 'artKey'),
     sortOrder: JsonReaders.integer(json, 'sortOrder'),
+    offerVersion: JsonReaders.nullableString(json, 'offerVersion') ?? 'legacy',
   );
 
   JsonMap toJson() => {
@@ -144,6 +151,7 @@ class Reward {
       maxRedemptionsPerResident: maxRedemptionsPerResident,
       artKey: artKey,
       sortOrder: sortOrder,
+      offerVersion: offerVersion,
     ).toMap(),
     'residentRedemptionCount': residentRedemptionCount,
   };

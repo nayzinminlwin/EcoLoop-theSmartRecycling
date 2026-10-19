@@ -29,4 +29,6 @@ abstract final class AppFailureCodes {
   static const invalidTransition = 'invalidTransition';
   static const unauthenticated = 'unauthenticated';
   static const permissionDenied = 'permissionDenied';
+  static const offerChanged = 'offer_changed';
+  static const redemptionLimitReached = 'redemption_limit_reached';
 }

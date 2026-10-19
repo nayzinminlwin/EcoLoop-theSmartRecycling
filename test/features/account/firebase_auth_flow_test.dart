@@ -45,6 +45,10 @@ void main() {
       expect(result.uid, 'uid-1');
       expect(result.role, AppRole.user);
       expect(calls, ['bootstrapResident']);
+      final security = await repository.getSecurityInfo();
+      expect(security.provider, 'Google');
+      expect(security.passwordUpdatedAt, isNull);
+      expect(security.isProtected, isTrue);
       await Future<void>.delayed(Duration.zero);
       expect(states.single.isSignedIn, isTrue);
       await subscription.cancel();
@@ -168,6 +172,7 @@ class FakeAuthGateway implements FirebaseAuthGateway {
       email: 'resident@example.com',
       displayName: 'Resident One',
       photoUrl: null,
+      providerIds: ['google.com'],
     );
   }
 

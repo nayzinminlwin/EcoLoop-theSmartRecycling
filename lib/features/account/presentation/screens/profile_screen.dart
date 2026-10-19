@@ -104,7 +104,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           AppTextField(
             controller: _email,
             label: 'Email',
-            keyboardType: TextInputType.emailAddress,
+            enabled: false,
+            helperText: 'Email is managed by your sign-in provider.',
             onChanged: (_) => setState(() {}),
           ),
           if (_error != null) ...[

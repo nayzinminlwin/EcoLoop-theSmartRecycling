@@ -42,7 +42,11 @@ export const recoverOperation = onCall(async (request) => {
   const sessionResult = await recoverOperationApplication(getComposition().sessions, { uid: identity.uid, requestId }, operationRequestId);
   if (sessionResult !== null) return envelope("recoverOperation", requestId, sessionResult);
   const inspectionResult = await recoverSubmittedInspection(identity.uid, operationRequestId);
-  if (inspectionResult === null) throw new HttpsError("not-found", "Operation was not found for this resident");
+  if (inspectionResult === null) {
+    const rewardResult = await getComposition().rewards.recover(identity.uid, operationRequestId);
+    if (rewardResult === null) throw new HttpsError("not-found", "Operation was not found for this resident");
+    return rewardEnvelope(requestId, rewardResult);
+  }
   return {
     schemaVersion: "backend.v1",
     operation: "recoverOperation",
@@ -119,6 +123,17 @@ function envelope(operation: string, requestId: string, result: Awaited<ReturnTy
       session: result.session,
       ...(result.bin === null ? {} : { bin: result.bin }),
     },
+  };
+}
+
+function rewardEnvelope(requestId: string, result: unknown) {
+  return {
+    schemaVersion: "backend.v1",
+    operation: "recoverOperation",
+    requestId,
+    traceId: randomBytes(16).toString("hex"),
+    status: "committed",
+    data: result,
   };
 }
 

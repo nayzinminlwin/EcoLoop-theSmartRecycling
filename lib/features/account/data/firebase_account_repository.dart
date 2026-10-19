@@ -49,12 +49,17 @@ class AuthUser {
     required this.email,
     required this.displayName,
     required this.photoUrl,
+    this.providerIds = const [],
   });
 
   final String uid;
   final String? email;
   final String? displayName;
   final String? photoUrl;
+  final List<String> providerIds;
+
+  bool get hasGoogleProvider => providerIds.contains('google.com');
+  bool get hasPasswordProvider => providerIds.contains('password');
 }
 
 class FirebaseGoogleAuthGateway implements GoogleAuthGateway {
@@ -159,6 +164,9 @@ class FirebaseUserAuthGateway implements FirebaseAuthGateway {
           email: user.email,
           displayName: user.displayName,
           photoUrl: user.photoURL,
+          providerIds: user.providerData
+              .map((item) => item.providerId)
+              .toList(),
         );
 }
 
@@ -299,16 +307,45 @@ class FirebaseAccountRepository implements AccountRepository {
 
   @override
   Future<ResidentProfile> updateProfile(ProfileUpdateRequest request) {
-    return _unsupported('account.profileUpdateUnavailable');
+    return _client()
+        .execute('updateResidentProfile', {
+          'fullName': request.fullName,
+          'avatarUrl': request.avatarUrl,
+        })
+        .then((envelope) {
+          final profile = envelope.data?['profile'];
+          if (profile is! Map) throw _invalidResponse();
+          final result = ResidentProfile.fromJson(
+            Map<String, Object?>.from(profile),
+          );
+          if (result.id != _lastState?.uid ||
+              result.email != _auth.currentUser?.email) {
+            throw _invalidResponse();
+          }
+          _profileChanges.add(result);
+          return result;
+        });
   }
 
   @override
-  Future<AccountSecurityInfo> getSecurityInfo() =>
-      _unsupported('account.securityUnavailable');
+  Future<AccountSecurityInfo> getSecurityInfo() async {
+    final user = _auth.currentUser;
+    if (user == null) throw _signedOut();
+    return AccountSecurityInfo(
+      residentId: user.uid,
+      passwordUpdatedAt: null,
+      isProtected: user.hasGoogleProvider || user.hasPasswordProvider,
+      provider: user.hasGoogleProvider ? 'Google' : 'Firebase Auth',
+    );
+  }
 
   @override
   Future<AccountSecurityInfo> changePassword(PasswordChangeRequest request) =>
-      _unsupported('account.passwordUnavailable');
+      _unsupported(
+        _auth.currentUser?.hasPasswordProvider == true
+            ? 'account.passwordChangeUnavailable'
+            : 'account.googleManagedPassword',
+      );
 
   @override
   Future<NotificationPreferences> getNotificationPreferences() async {
@@ -329,13 +366,20 @@ class FirebaseAccountRepository implements AccountRepository {
   ) async {
     final envelope = await _client().execute(
       'saveResidentPreferences',
-      <String, Object?>{'preferences': preferences.toJson()},
+      <String, Object?>{
+        'preferences': {
+          'recyclingUpdates': preferences.recyclingUpdates,
+          'pointsCredits': preferences.pointsCredits,
+          'rewardReminders': preferences.rewardReminders,
+        },
+      },
     );
     final saved = envelope.data?['preferences'];
     if (saved is! Map) throw _invalidResponse();
     final result = NotificationPreferences.fromJson(
       Map<String, Object?>.from(saved),
     );
+    if (result.residentId != _lastState?.uid) throw _invalidResponse();
     _preferenceChanges.add(result);
     return result;
   }
@@ -355,14 +399,9 @@ class FirebaseAccountRepository implements AccountRepository {
       _unsupported('account.demoSessionUnavailable');
 
   @override
-  Stream<AccountSecurityInfo?> watchSecurityInfo() =>
-      Stream<AccountSecurityInfo?>.error(
-        const AppFailure(
-          code: AppFailureCodes.unavailable,
-          messageKey: 'account.securityUnavailable',
-          retryable: false,
-        ),
-      );
+  Stream<AccountSecurityInfo?> watchSecurityInfo() async* {
+    yield await getSecurityInfo();
+  }
 
   @override
   Stream<NotificationPreferences?> watchNotificationPreferences() async* {

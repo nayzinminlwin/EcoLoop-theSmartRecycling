@@ -78,6 +78,7 @@ class _HistoryFilterSheetState extends State<HistoryFilterSheet> {
                 _statusChip(DepositStatus.processing, 'Processing'),
                 _statusChip(DepositStatus.verified, 'Verified'),
                 _statusChip(DepositStatus.review, 'Review'),
+                _statusChip(DepositStatus.excluded, 'Excluded'),
                 _statusChip(DepositStatus.empty, 'Empty'),
                 _statusChip(DepositStatus.rejected, 'Rejected'),
               ],

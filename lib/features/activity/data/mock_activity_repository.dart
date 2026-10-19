@@ -6,6 +6,7 @@ import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
 import 'package:eco_loop/core/domain/material_weight_constants.dart';
+import 'package:eco_loop/core/domain/material_type.dart';
 
 import '../domain/models/deposit_filter.dart';
 import '../domain/models/deposit_transaction.dart';
@@ -91,6 +92,20 @@ class MockActivityRepository implements ActivityRepository {
               item.acceptedItemCount,
             ),
       ),
+      acceptedItemCounts: {
+        for (final type in MaterialType.values)
+          type: verified.fold<int>(
+            0,
+            (sum, item) =>
+                sum +
+                item.lines
+                    .where((line) => line.materialType == type && line.eligible)
+                    .fold<int>(
+                      0,
+                      (lineSum, line) => lineSum + line.acceptedCount,
+                    ),
+          ),
+      },
     );
   }
 
@@ -130,5 +145,42 @@ class MockActivityRepository implements ActivityRepository {
         yield await getSummary();
       }
     }
+  }
+
+  @override
+  Future<ActivityPage> getDepositsPage({
+    required DepositFilter filter,
+    int? limit,
+    ActivityCursor? after,
+  }) async {
+    final items = _filtered(filter, null)
+        .where((item) => after == null || _isAfter(item, after))
+        .toList(growable: false);
+    final page = limit == null ? items : items.take(limit).toList();
+    return ActivityPage(
+      items: page,
+      nextCursor: limit != null && page.length == limit && page.isNotEmpty
+          ? ActivityCursor(occurredAt: page.last.occurredAt, id: page.last.id)
+          : null,
+    );
+  }
+
+  @override
+  Stream<ActivityPage> watchDepositsPage({
+    required DepositFilter filter,
+    int? limit,
+    ActivityCursor? after,
+  }) async* {
+    yield await getDepositsPage(filter: filter, limit: limit, after: after);
+    if (_store != null) {
+      await for (final _ in _store.watchDeposits()) {
+        yield await getDepositsPage(filter: filter, limit: limit, after: after);
+      }
+    }
+  }
+
+  static bool _isAfter(DepositTransaction item, ActivityCursor cursor) {
+    final date = item.occurredAt.compareTo(cursor.occurredAt);
+    return date < 0 || (date == 0 && item.id.compareTo(cursor.id) < 0);
   }
 }

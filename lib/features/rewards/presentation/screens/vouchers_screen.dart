@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'dart:async';
+
 import '../../domain/models/resident_voucher.dart';
 import '../controllers/vouchers_controller.dart';
 import '../widgets/voucher_tile.dart';
@@ -20,6 +22,21 @@ class VouchersScreen extends ConsumerStatefulWidget {
 
 class _VouchersScreenState extends ConsumerState<VouchersScreen> {
   late VoucherStatus? _status = widget.status;
+  Timer? _expiryTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _expiryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) ref.invalidate(vouchersProvider(_status));
+    });
+  }
+
+  @override
+  void dispose() {
+    _expiryTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

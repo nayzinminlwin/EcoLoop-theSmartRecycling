@@ -15,4 +15,9 @@ export {
 } from "./transport/resident_sessions.js";
 export { submitInspection } from "./transport/resident_inspections.js";
 export { workerGateway } from "./transport/internal_jobs.js";
+export {
+  redeemResidentReward,
+  redeemReward,
+  useResidentDemoVoucher,
+} from "./transport/resident_rewards.js";
 export { dispatchPendingJobs } from "./transport/dispatch.js";
