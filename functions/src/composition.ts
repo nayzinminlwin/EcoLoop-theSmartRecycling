@@ -11,7 +11,7 @@ let composition: ReturnType<typeof createComposition> | undefined;
 
 export function createComposition() {
   const app = getApps()[0] ?? initializeApp();
-  const firestore = getFirestore(app);
+  const firestore = getFirestore(app, process.env.ECOLOOP_FIRESTORE_DATABASE ?? "ecoloop-db");
   const auth = getAuth(app);
   const logger = new StructuredLogger(process.env.NODE_ENV ?? "production");
   return {

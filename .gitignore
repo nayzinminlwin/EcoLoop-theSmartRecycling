@@ -38,6 +38,7 @@ functions/.seed-output/
 functions/lib-tools/
 functions/lib/
 functions/node_modules/
+functions/.env*
 
 # Symbolication related
 app.*.symbols
