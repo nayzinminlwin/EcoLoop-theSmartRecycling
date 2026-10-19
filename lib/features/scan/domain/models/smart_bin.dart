@@ -45,9 +45,12 @@ class SmartBin {
         JsonReaders.string(json, 'schemaVersion') != 'backend.v1') {
       throw JsonReaders.invalid('snapshot');
     }
-    final materials = JsonReaders.strings(json, 'acceptedMaterials')
-        .map(MaterialType.fromWire)
-        .toList(growable: false);
+    final materials = json['acceptedMaterials'] == null
+        ? const <MaterialType>[]
+        : JsonReaders.strings(
+            json,
+            'acceptedMaterials',
+          ).map(MaterialType.fromWire).toList(growable: false);
     if (materials.contains(MaterialType.unknown)) {
       throw JsonReaders.invalid('acceptedMaterials');
     }
