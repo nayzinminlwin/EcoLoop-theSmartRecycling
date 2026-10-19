@@ -56,3 +56,46 @@ Required follow-up before claiming M0 affordability:
 ## Memory and provider boundary
 
 No provider GPU/RAM claim is made. Roboflow and Gemini execute remotely. Cloud Run is configured at the initial benchmark of 2 vCPU, 4 GiB, one request per instance, maximum one instance. A process-level memory profile was not captured in this deployment and remains a follow-up measurement.
+
+## BK-P07-D bounded audit (2026-10-19)
+
+`BK-P07-D_BENCHMARK.json` records four authenticated calls to the private
+`/operator/probe` endpoint using one existing fixture image. Two sequential
+calls and a two-request concurrent burst all returned HTTP 200:
+
+| Sample | Result |
+| --- | ---: |
+| Minimum end-to-end | 16,813 ms |
+| Median end-to-end | 22,613 ms |
+| Maximum end-to-end | 52,626 ms |
+| Concurrent burst | 2 requests, 2 successes |
+
+Trace IDs are recorded in the JSON artifact for log correlation. These are
+client-observed end-to-end values, not queue-wait or provider-stage timings.
+The benchmark does not measure provider memory or GPU; those resources remain
+outside the Cloud Run process. No accuracy claim is made from this one image.
+
+## Monthly planning model (not a billing quote)
+
+The required 1,500-batch scenario is a dated planning model, not a verified
+affordability result. Pricing inputs must be refreshed against the active
+Roboflow plan, Gemini model price sheet, and Google Cloud billing account
+before release. The model is:
+
+```text
+monthly = 1,500 * (A calls * A rate + B calls * B rate + D calls * D rate
+                   + Gemini calls * token price * observed tokens
+                   + retry calls * retry rate)
+         + Cloud Run vCPU/GiB seconds
+         + Artifact Registry + Cloud Build + Secret Manager
+         + Firebase Hosting + Firestore + Storage + egress
+         + one-time evaluation/build traffic
+```
+
+For this audit, measured request shape is one A/B/D/Gemini orchestration
+request per batch, with no measured retry sample and no isolated billing
+export. Roboflow per-call pricing, Gemini price, and shared Firebase/Cloud
+resource allocation are therefore `UNVERIFIED`; the RM50 target remains
+`BLOCKED`, not passed or estimated as zero. The existing warm sample reported
+2,103 total Gemini tokens, but that is one request and must not be multiplied
+as a guaranteed usage rate.
