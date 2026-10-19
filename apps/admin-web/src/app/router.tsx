@@ -17,6 +17,8 @@ import { AdminShell } from "./AdminShell.tsx";
 import { LoginPage } from "./LoginPage.tsx";
 import { OverviewPage } from "../features/fleet/OverviewPage.tsx";
 import { SmartBinsPage } from "../features/fleet/SmartBinsPage.tsx";
+import { CapacityAlertsPage } from "../features/operations/CapacityAlertsPage.tsx";
+import { DepositVerificationPage } from "../features/operations/DepositVerificationPage.tsx";
 import { AdminPageHeader, Button, AsyncState } from "../ui/primitives.tsx";
 
 // ---------------------------------------------------------------------------
@@ -204,11 +206,11 @@ export function createAdminRouter(): ReturnType<typeof createBrowserRouter> {
         },
         {
           path: ADMIN_PATHS.alerts,
-          element: <PendingFeaturePage title="Capacity Alerts" />
+          element: <CapacityAlertsPage />
         },
         {
           path: ADMIN_PATHS.verification,
-          element: <PendingFeaturePage title="Deposit Verification" />
+          element: <DepositVerificationPage />
         },
         {
           path: ADMIN_PATHS.vouchers,
