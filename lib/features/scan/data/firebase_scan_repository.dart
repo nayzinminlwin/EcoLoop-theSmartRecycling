@@ -7,13 +7,16 @@ import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_result.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
 import 'package:eco_loop/features/scan/domain/models/simulation_asset.dart';
+import 'package:eco_loop/features/scan/domain/models/scan_instructions.dart';
 import 'package:eco_loop/features/scan/domain/models/smart_bin.dart';
+import 'package:eco_loop/features/scan/domain/repositories/scan_repository.dart';
 
 import 'backend_scan_mapper.dart';
 
 abstract interface class ScanReadTransport {
   Future<Map<String, Object?>?> read(String collection, String id);
   Stream<Map<String, Object?>> watch(String collection, String id);
+  Stream<List<Map<String, Object?>>> watchCollection(String collection);
   Stream<Map<String, Object?>> watchOwner(String collection, String ownerId);
 }
 
@@ -51,9 +54,17 @@ class FirestoreScanReadTransport implements ScanReadTransport {
               (document) => Map<String, Object?>.from(document.data()),
             ),
           );
+
+  @override
+  Stream<List<Map<String, Object?>>> watchCollection(String collection) =>
+      _firestore.collection(collection).snapshots().map(
+        (snapshot) => snapshot.docs
+            .map((document) => Map<String, Object?>.from(document.data()))
+            .toList(growable: false),
+      );
 }
 
-class FirebaseScanRepository {
+class FirebaseScanRepository implements ScanRepository {
   FirebaseScanRepository({
     required this.uid,
     required this.commandClient,
@@ -69,17 +80,49 @@ class FirebaseScanRepository {
   final Map<String, DepositSession> _observedSessions = {};
   bool _disposed = false;
 
-  Future<ScanCommandResult> scanBinQr(String qrPayload) async {
+  @override
+  Future<ScanInstructions> getInstructions() =>
+      throw StateError('Scan instructions are not wired for Firebase yet');
+
+  @override
+  Future<String> getDemoQrPayload() =>
+      throw StateError('Demo QR payload is mock-only');
+
+  @override
+  Future<SmartBin> lookupBin(String qrPayload) =>
+      throw StateError('Use scanBinQr for Firebase scans');
+
+  @override
+  Future<DepositSession> createSession(String binId, String requestId) =>
+      throw StateError('Use scanBinQr for Firebase scans');
+
+  @override
+  Future<DepositSession> scanBinQr(String qrPayload, String requestId) async {
+    final result = await _scanBinQr(qrPayload, requestId);
+    return result.session;
+  }
+
+  Future<ScanCommandResult> _scanBinQr(
+    String qrPayload,
+    String requestId,
+  ) async {
     _ensureActive();
-    final envelope = await commandClient.execute('scanBinQr', {
-      'qrPayload': qrPayload,
-    });
+    final envelope = await commandClient.execute(
+      'scanBinQr',
+      {'qrPayload': qrPayload},
+      requestId: requestId,
+    );
     final session = BackendScanMapper.sessionFromEnvelope(envelope);
     final bin = BackendScanMapper.binFromEnvelope(envelope);
     _observe(session);
-    return ScanCommandResult(session: session, bin: bin, traceId: envelope.traceId);
+    return ScanCommandResult(
+      session: session,
+      bin: bin,
+      traceId: envelope.traceId,
+    );
   }
 
+  @override
   Future<SmartBin> getBin(String binId) async {
     _ensureActive();
     final json = await _requiredRead('bins', binId);
@@ -92,6 +135,17 @@ class FirebaseScanRepository {
     return BackendScanMapper.assetFromJson(json);
   }
 
+  @override
+  Stream<List<SimulationAsset>> watchAssets() => _reads
+      .watchCollection('simulationAssets')
+      .map(
+        (rows) => rows
+            .map(BackendScanMapper.assetFromJson)
+            .where((asset) => asset.enabled)
+            .toList(growable: false),
+      );
+
+  @override
   Future<DepositSession> getSession(String sessionId) async {
     _ensureActive();
     final session = BackendScanMapper.sessionFromJson(
@@ -101,6 +155,7 @@ class FirebaseScanRepository {
     return session;
   }
 
+  @override
   Future<DepositResult> getResult(String resultId) async {
     _ensureActive();
     final result = BackendScanMapper.resultFromJson(
@@ -109,27 +164,44 @@ class FirebaseScanRepository {
     return result;
   }
 
+  @override
   Future<DepositSession> confirmSession(
-    String sessionId,
-    int expectedVersion,
-  ) => _sessionCommand('confirmSession', sessionId, expectedVersion);
+    String sessionId, [
+    int? expectedVersion,
+  ]) => _sessionCommand('confirmSession', sessionId, expectedVersion ?? 0);
 
+  @override
   Future<DepositSession> reportFinishPressed(
-    String sessionId,
-    int expectedVersion,
-  ) => _sessionCommand('reportFinishPressed', sessionId, expectedVersion);
+    String sessionId, [
+    int? expectedVersion,
+  ]) => _sessionCommand('reportFinishPressed', sessionId, expectedVersion ?? 0);
 
+  @override
   Future<DepositSession> renewSession(
-    String sessionId,
-    int expectedVersion,
-  ) => _sessionCommand('renewSession', sessionId, expectedVersion);
+    String sessionId, [
+    int? expectedVersion,
+  ]) => _sessionCommand('renewSession', sessionId, expectedVersion ?? 0);
 
+  @override
   Future<DepositSession> cancelSession(
-    String sessionId,
-    int expectedVersion,
-  ) => _sessionCommand('cancelSession', sessionId, expectedVersion);
+    String sessionId, [
+    int? expectedVersion,
+  ]) => _sessionCommand('cancelSession', sessionId, expectedVersion ?? 0);
 
+  @override
   Future<DepositSession> saveImageSelection({
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  }) async => _saveImageSelection(
+    sessionId: sessionId,
+    assetId: assetId,
+    assetVersion: assetVersion,
+    expectedVersion: expectedVersion,
+  );
+
+  Future<DepositSession> _saveImageSelection({
     required String sessionId,
     required String assetId,
     required String assetVersion,
@@ -145,19 +217,20 @@ class FirebaseScanRepository {
     return _mapSessionCommand(envelope);
   }
 
+  @override
   Future<InspectionSubmission> submitInspection({
-    required String sessionId,
-    required String assetId,
-    required String assetVersion,
-    required int expectedVersion,
-  }) async {
-    _ensureActive();
-    final envelope = await commandClient.execute('submitInspection', {
-      'sessionId': sessionId,
-      'assetId': assetId,
-      'assetVersion': assetVersion,
-      'expectedVersion': expectedVersion,
-    });
+      required String sessionId,
+      required String assetId,
+      required String assetVersion,
+      required int expectedVersion,
+    }) async {
+      _ensureActive();
+      final envelope = await commandClient.execute('submitInspection', {
+        'sessionId': sessionId,
+        'assetId': assetId,
+        'assetVersion': assetVersion,
+        'expectedVersion': expectedVersion,
+      });
     final data = envelope.data;
     if (data == null ||
         data['batchId'] is! String ||
@@ -182,6 +255,7 @@ class FirebaseScanRepository {
     );
   }
 
+  @override
   Stream<DepositSession?> watchSession(String sessionId) async* {
     _ensureActive();
     final initial = await _readOptional('depositSessions', sessionId);
@@ -193,6 +267,7 @@ class FirebaseScanRepository {
     }).where((session) => session != null);
   }
 
+  @override
   Stream<DepositResult?> watchResult(String resultId) async* {
     _ensureActive();
     final initial = await _readOptional('depositResults', resultId);
@@ -207,9 +282,22 @@ class FirebaseScanRepository {
     });
   }
 
-  Stream<SmartBin> watchBin(String binId) => _reads
+  @override
+  Stream<SmartBin?> watchBin(String binId) => _reads
       .watch('bins', binId)
       .map(BackendScanMapper.binFromJson);
+
+  @override
+  Future<DepositSession> startVerification(String sessionId) =>
+      throw StateError('Client completion is not available in Firebase mode');
+
+  @override
+  Future<DepositSession> completeVerification(String sessionId) =>
+      throw StateError('Client completion is not available in Firebase mode');
+
+  @override
+  ScanStage? peekSessionStage(String sessionId) =>
+      _observedSessions[sessionId]?.stage;
 
   void dispose() {
     _disposed = true;
@@ -281,22 +369,6 @@ class ScanCommandResult {
 
   final DepositSession session;
   final SmartBin? bin;
-  final String traceId;
-}
-
-class InspectionSubmission {
-  const InspectionSubmission({
-    required this.batchId,
-    required this.jobId,
-    required this.resultId,
-    required this.deadlineAt,
-    required this.traceId,
-  });
-
-  final String batchId;
-  final String jobId;
-  final String resultId;
-  final DateTime? deadlineAt;
   final String traceId;
 }
 

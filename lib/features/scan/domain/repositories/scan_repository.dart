@@ -1,21 +1,46 @@
 import '../models/deposit_result.dart';
 import '../models/deposit_session.dart';
+import '../models/simulation_asset.dart';
 import '../models/scan_instructions.dart';
 import '../models/smart_bin.dart';
 
 abstract interface class ScanRepository {
   Future<ScanInstructions> getInstructions();
   Future<String> getDemoQrPayload();
+  Future<DepositSession> scanBinQr(String qrPayload, String requestId);
   Future<SmartBin> lookupBin(String qrPayload);
   Future<SmartBin> getBin(String binId);
   Future<DepositSession> createSession(String binId, String requestId);
   Future<DepositSession> getSession(String sessionId);
   Future<DepositResult> getResult(String resultId);
-  Future<DepositSession> confirmSession(String sessionId);
-  Future<DepositSession> reportFinishPressed(String sessionId);
+  Future<DepositSession> confirmSession(
+    String sessionId, [
+    int? expectedVersion,
+  ]);
+  Future<DepositSession> reportFinishPressed(
+    String sessionId, [
+    int? expectedVersion,
+  ]);
   Future<DepositSession> startVerification(String sessionId);
   Future<DepositSession> completeVerification(String sessionId);
-  Future<DepositSession> cancelSession(String sessionId);
+  Future<DepositSession> cancelSession(
+    String sessionId, [
+    int? expectedVersion,
+  ]);
+  Future<DepositSession> renewSession(String sessionId, [int? expectedVersion]);
+  Stream<List<SimulationAsset>> watchAssets();
+  Future<DepositSession> saveImageSelection({
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  });
+  Future<InspectionSubmission> submitInspection({
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  });
   Stream<SmartBin?> watchBin(String binId);
   Stream<DepositSession?> watchSession(String sessionId);
   Stream<DepositResult?> watchResult(String resultId);
@@ -23,4 +48,20 @@ abstract interface class ScanRepository {
   /// Synchronous store-backed peek used by route redirects to canonicalize
   /// stale/future-stage URLs to the committed stage state.
   ScanStage? peekSessionStage(String sessionId);
+}
+
+class InspectionSubmission {
+  const InspectionSubmission({
+    required this.batchId,
+    required this.jobId,
+    required this.resultId,
+    required this.deadlineAt,
+    required this.traceId,
+  });
+
+  final String batchId;
+  final String jobId;
+  final String resultId;
+  final DateTime? deadlineAt;
+  final String traceId;
 }

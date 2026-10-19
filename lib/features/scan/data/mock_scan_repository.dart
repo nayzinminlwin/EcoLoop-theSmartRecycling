@@ -12,6 +12,7 @@ import 'package:eco_loop/features/recycling_guide/domain/models/material_rate.da
 
 import '../domain/models/deposit_result.dart';
 import '../domain/models/deposit_session.dart';
+import '../domain/models/simulation_asset.dart';
 import '../domain/models/scan_instructions.dart';
 import '../domain/models/smart_bin.dart';
 import '../domain/repositories/scan_repository.dart';
@@ -108,6 +109,12 @@ class MockScanRepository implements ScanRepository {
       _api.read('scan.getBin', () => _ensureAvailable(_requireBin(binId)));
 
   @override
+  Future<DepositSession> scanBinQr(String qrPayload, String requestId) async {
+    final bin = await lookupBin(qrPayload);
+    return createSession(bin.id, requestId);
+  }
+
+  @override
   Future<DepositSession> createSession(String binId, String requestId) =>
       _api.write('scan.createSession', () {
         for (final row in _store.sessions) {
@@ -145,11 +152,17 @@ class MockScanRepository implements ScanRepository {
       });
 
   @override
-  Future<DepositSession> confirmSession(String sessionId) =>
+  Future<DepositSession> confirmSession(
+    String sessionId, [
+    int? expectedVersion,
+  ]) =>
       _transition(sessionId, ScanStage.binFound, ScanStage.ready);
 
   @override
-  Future<DepositSession> reportFinishPressed(String sessionId) =>
+  Future<DepositSession> reportFinishPressed(
+    String sessionId, [
+    int? expectedVersion,
+  ]) =>
       _transition(sessionId, ScanStage.ready, ScanStage.itemDetected);
 
   @override
@@ -171,6 +184,79 @@ class MockScanRepository implements ScanRepository {
       ),
     );
     return operation;
+  }
+
+  @override
+  Stream<List<SimulationAsset>> watchAssets() async* {
+    final assets = _store.classifications.asMap().entries.map((entry) {
+      final id = entry.value['id']?.toString() ?? 'asset-${entry.key + 1}';
+      return SimulationAsset(
+        id: id,
+        enabled: true,
+        version: 'v1',
+        displayName: entry.value['materialLabel']?.toString() ?? id,
+        sortOrder: entry.key,
+        storageReference: null,
+        mimeType: 'image/png',
+        width: 1,
+        height: 1,
+        contentSha256: null,
+      );
+    }).toList(growable: false);
+    yield assets;
+  }
+
+  @override
+  Future<DepositSession> saveImageSelection({
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  }) => _api.write('scan.saveImageSelection', () {
+    final current = _requireSession(sessionId);
+    if (current.sessionVersion != expectedVersion ||
+        current.stage != ScanStage.itemDetected) {
+      throw const AppFailure(
+        code: AppFailureCodes.invalidTransition,
+        messageKey: 'scan.invalidTransition',
+        retryable: false,
+      );
+    }
+    final updated = current.copyWith(
+      updatedAt: _clock.now,
+      sessionVersion: current.sessionVersion + 1,
+      draftAssetId: assetId,
+      draftAssetVersion: assetVersion,
+    );
+    _store.transactionScan<void>((_, _, _, sessions, _) {
+      final index = sessions.indexWhere((row) => row['id'] == sessionId);
+      sessions[index] = updated.toJson();
+    });
+    _emit(sessionId, updated);
+    return updated;
+  });
+
+  @override
+  Future<InspectionSubmission> submitInspection({
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  }) async {
+    final selected = await saveImageSelection(
+      sessionId: sessionId,
+      assetId: assetId,
+      assetVersion: assetVersion,
+      expectedVersion: expectedVersion,
+    );
+    await startVerification(selected.id);
+    return InspectionSubmission(
+      batchId: 'mock-${selected.id}',
+      jobId: 'mock-job-${selected.id}',
+      resultId: selected.resultId ?? 'mock-result-${selected.id}',
+      deadlineAt: null,
+      traceId: 'mock-trace-${selected.id}',
+    );
   }
 
   Future<DepositSession> _completeVerification(
@@ -322,7 +408,10 @@ class MockScanRepository implements ScanRepository {
   }
 
   @override
-  Future<DepositSession> cancelSession(String sessionId) =>
+  Future<DepositSession> cancelSession(
+    String sessionId, [
+    int? expectedVersion,
+  ]) =>
       _api.write('scan.cancelSession', () {
         final current = _requireSession(sessionId);
         if (current.stage == ScanStage.processing ||
@@ -349,6 +438,21 @@ class MockScanRepository implements ScanRepository {
         _emit(current.id, cancelled);
         return cancelled;
       });
+
+  @override
+  Future<DepositSession> renewSession(
+    String sessionId, [
+    int? expectedVersion,
+  ]) => _api.write('scan.renewSession', () {
+    final current = _requireSession(sessionId);
+    final updated = current.copyWith(updatedAt: _clock.now);
+    _store.transactionScan<void>((_, _, _, sessions, _) {
+      final index = sessions.indexWhere((row) => row['id'] == sessionId);
+      sessions[index] = updated.toJson();
+    });
+    _emit(sessionId, updated);
+    return updated;
+  });
 
   @override
   Stream<SmartBin?> watchBin(String binId) async* {

@@ -10,7 +10,9 @@ import 'package:eco_loop/features/wallet/domain/repositories/wallet_repository.d
 import 'package:eco_loop/features/recycling_guide/data/mock_recycling_guide_repository.dart';
 import 'package:eco_loop/features/recycling_guide/domain/repositories/recycling_guide_repository.dart';
 import 'package:eco_loop/features/scan/data/mock_scan_repository.dart';
+import 'package:eco_loop/features/scan/data/firebase_scan_repository.dart';
 import 'package:eco_loop/features/scan/domain/repositories/scan_repository.dart';
+import 'package:eco_loop/features/scan/domain/models/simulation_asset.dart';
 import 'package:eco_loop/features/rewards/data/mock_rewards_repository.dart';
 import 'package:eco_loop/features/rewards/domain/repositories/rewards_repository.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
@@ -30,6 +32,7 @@ import 'package:eco_loop/features/account/presentation/screens/sign_in_screen.da
 final runtimeConfigProvider = Provider<RuntimeConfig>(
   (ref) => RuntimeConfig.fromEnvironment(),
 );
+final firebaseClientsProvider = Provider<FirebaseClients?>((ref) => null);
 final appRouterProvider = Provider((ref) {
   final config = ref.watch(runtimeConfigProvider);
   return createAppRouter(
@@ -149,14 +152,36 @@ final walletSnapshotProvider = FutureProvider(
 );
 
 final scanRepositoryProvider = Provider<ScanRepository>(
-  (ref) => _mockOnly(
-    ref,
-    MockScanRepository(
+  (ref) {
+    final config = ref.watch(runtimeConfigProvider);
+    if (config.mode != FirebaseMode.mock) {
+      final clients = ref.watch(firebaseClientsProvider);
+      final uid = clients?.auth.currentUser?.uid;
+      if (clients == null || uid == null) {
+        throw StateError('A signed-in Firebase resident is required');
+      }
+      final repository = FirebaseScanRepository(
+        uid: uid,
+        commandClient: CommandClient(
+          uid: uid,
+          store: PendingOperationStore(),
+          functions: clients.functions,
+        ),
+        firestore: clients.firestore,
+      );
+      ref.onDispose(repository.dispose);
+      return repository;
+    }
+    return MockScanRepository(
       clock: ref.watch(appClockProvider),
       store: ref.watch(mockDataStoreProvider),
       api: ref.watch(mockApiProvider),
-    ),
-  ),
+    );
+  },
+);
+
+final scanAssetsProvider = StreamProvider<List<SimulationAsset>>(
+  (ref) => ref.watch(scanRepositoryProvider).watchAssets(),
 );
 
 final rewardsRepositoryProvider = Provider<RewardsRepository>(

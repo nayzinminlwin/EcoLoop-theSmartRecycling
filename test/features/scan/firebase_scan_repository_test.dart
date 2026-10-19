@@ -35,10 +35,12 @@ void main() {
       reads: _FakeReads(),
     );
 
-    final result = await repository.scanBinQr('ecoloop://bin/BIN-004');
+    final result = await repository.scanBinQr(
+      'ecoloop://bin/BIN-004',
+      'request-1',
+    );
 
-    expect(result.session.id, 'session-1');
-    expect(result.bin?.occupiedSpc, 20);
+    expect(result.id, 'session-1');
     expect(requests.single['operation'], 'scanBinQr');
     final payload = requests.single['payload']! as Map<String, Object?>;
     expect(payload['requestId'], 'request-1');
@@ -137,6 +139,10 @@ class _FakeReads implements ScanReadTransport {
   @override
   Stream<Map<String, Object?>> watch(String collection, String id) =>
       watches['$collection/$id'] ?? const Stream.empty();
+
+  @override
+  Stream<List<Map<String, Object?>>> watchCollection(String collection) =>
+      const Stream.empty();
 
   @override
   Stream<Map<String, Object?>> watchOwner(String collection, String ownerId) =>

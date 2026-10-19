@@ -29,6 +29,7 @@ Future<void> bootstrap() async {
       ProviderScope(
         overrides: [
           runtimeConfigProvider.overrideWithValue(config),
+          firebaseClientsProvider.overrideWithValue(clients),
           accountRepositoryProvider.overrideWithValue(accountRepository),
         ],
         child: const EcoLoopApp(),

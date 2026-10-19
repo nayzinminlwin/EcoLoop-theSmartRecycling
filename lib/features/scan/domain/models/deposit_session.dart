@@ -78,7 +78,9 @@ class DepositSession {
       throw JsonReaders.invalid('snapshot');
     }
     final stageValue = JsonReaders.string(json, 'stage');
-    final stage = ScanStage.values.where((item) => item.wireValue == stageValue);
+    final stage = ScanStage.values.where(
+      (item) => item.wireValue == stageValue,
+    );
     if (stage.isEmpty) throw JsonReaders.invalid('stage');
     return DepositSession(
       id: JsonReaders.string(json, 'sessionId'),
@@ -96,7 +98,10 @@ class DepositSession {
       draftAssetVersion: JsonReaders.nullableString(json, 'draftAssetVersion'),
       committedAssetId: JsonReaders.nullableString(json, 'assetId'),
       committedAssetVersion: JsonReaders.nullableString(json, 'assetVersion'),
-      committedAssetSha256: JsonReaders.nullableString(json, 'assetContentSha256'),
+      committedAssetSha256: JsonReaders.nullableString(
+        json,
+        'assetContentSha256',
+      ),
       batchId: JsonReaders.nullableString(json, 'batchId'),
       jobId: JsonReaders.nullableString(json, 'jobId'),
       jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
@@ -115,12 +120,36 @@ class DepositSession {
     'updatedAt': updatedAt.toIso8601String(),
     'creationRequestId': creationRequestId,
     'resultId': resultId,
+    'version': sessionVersion,
+    'draftAssetId': draftAssetId,
+    'draftAssetVersion': draftAssetVersion,
+    'assetId': committedAssetId,
+    'assetVersion': committedAssetVersion,
+    'assetContentSha256': committedAssetSha256,
+    'batchId': batchId,
+    'jobId': jobId,
+    'jobSubstage': jobSubstage,
+    'deadlineAt': deadlineAt?.toIso8601String(),
+    'reservationExpiresAt': reservationExpiresAt?.toIso8601String(),
+    'terminationReason': terminationReason,
   };
 
   DepositSession copyWith({
     ScanStage? stage,
     DateTime? updatedAt,
     String? resultId,
+    int? sessionVersion,
+    String? draftAssetId,
+    String? draftAssetVersion,
+    String? committedAssetId,
+    String? committedAssetVersion,
+    String? committedAssetSha256,
+    String? batchId,
+    String? jobId,
+    String? jobSubstage,
+    DateTime? deadlineAt,
+    DateTime? reservationExpiresAt,
+    String? terminationReason,
   }) => DepositSession(
     id: id,
     residentId: residentId,
@@ -130,18 +159,18 @@ class DepositSession {
     updatedAt: updatedAt ?? this.updatedAt,
     creationRequestId: creationRequestId,
     resultId: resultId ?? this.resultId,
-    sessionVersion: sessionVersion,
-    draftAssetId: draftAssetId,
-    draftAssetVersion: draftAssetVersion,
-    committedAssetId: committedAssetId,
-    committedAssetVersion: committedAssetVersion,
-    committedAssetSha256: committedAssetSha256,
-    batchId: batchId,
-    jobId: jobId,
-    jobSubstage: jobSubstage,
-    deadlineAt: deadlineAt,
-    reservationExpiresAt: reservationExpiresAt,
-    terminationReason: terminationReason,
+    sessionVersion: sessionVersion ?? this.sessionVersion,
+    draftAssetId: draftAssetId ?? this.draftAssetId,
+    draftAssetVersion: draftAssetVersion ?? this.draftAssetVersion,
+    committedAssetId: committedAssetId ?? this.committedAssetId,
+    committedAssetVersion: committedAssetVersion ?? this.committedAssetVersion,
+    committedAssetSha256: committedAssetSha256 ?? this.committedAssetSha256,
+    batchId: batchId ?? this.batchId,
+    jobId: jobId ?? this.jobId,
+    jobSubstage: jobSubstage ?? this.jobSubstage,
+    deadlineAt: deadlineAt ?? this.deadlineAt,
+    reservationExpiresAt: reservationExpiresAt ?? this.reservationExpiresAt,
+    terminationReason: terminationReason ?? this.terminationReason,
   );
 
   static DateTime? _dateOrNull(JsonMap json, String field) {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
+import 'package:eco_loop/core/config/runtime_config.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
@@ -16,6 +17,7 @@ import 'package:go_router/go_router.dart';
 
 import '../controllers/scan_controller.dart';
 import '../widgets/scanner_frame.dart';
+import '../widgets/qr_capture_view.dart';
 
 /// Scanner entry stage. Resumes an unfinished session from controller state
 /// instead of checking the current route string.
@@ -64,10 +66,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const ScannerStage(
-            caption: AppCopy.scanCameraCaption,
-            child: ScannerFrameContent(),
-          ),
+          _camera(),
           const SizedBox(height: 18),
           const Align(
             child: AppBadge(
@@ -103,12 +102,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             ),
           ],
           const SizedBox(height: 18),
-          AppButton(
-            label: 'Simulate QR scan',
-            onPressed: _busy ? null : () => unawaited(_scan()),
-            isLoading: _busy,
-            expand: true,
-          ),
+          if (ref.watch(runtimeConfigProvider).mode == FirebaseMode.mock)
+            AppButton(
+              label: 'Simulate QR scan',
+              onPressed: _busy ? null : () => unawaited(_simulateScan()),
+              isLoading: _busy,
+              expand: true,
+            ),
           const SizedBox(height: 8),
           AppButton(
             label: AppCopy.cancel,
@@ -121,26 +121,37 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     );
   }
 
-  Future<void> _scan() async {
+  Widget _camera() {
+    final mock = ref.watch(runtimeConfigProvider).mode == FirebaseMode.mock;
+    if (mock) {
+      return const ScannerStage(
+        caption: AppCopy.scanCameraCaption,
+        child: ScannerFrameContent(),
+      );
+    }
+    return QrCaptureView(commandActive: _busy, onCodeCaptured: _scan);
+  }
+
+  Future<void> _scan(String payload) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       final repository = ref.read(scanRepositoryProvider);
-      final payload = await repository.getDemoQrPayload();
-      final bin = await repository.lookupBin(payload);
-      // One stable request ID per attempt so a retry cannot create a second
-      // session for the same scan.
       _requestId ??= 'scan-${DateTime.now().microsecondsSinceEpoch}';
-      final session = await repository.createSession(bin.id, _requestId!);
+      final session = await repository.scanBinQr(payload, _requestId!);
       _requestId = null;
       if (mounted) context.go(AppRoutes.scanBinPath(session.id));
     } on Object catch (error) {
-      _requestId = null;
       if (mounted) setState(() => _error = scanFailureCopy(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _simulateScan() async {
+    final payload = await ref.read(scanRepositoryProvider).getDemoQrPayload();
+    await _scan(payload);
   }
 }
