@@ -3,7 +3,7 @@
 - **Plan:** [ECOLOOP-IMPL-001](../ECOLOOP_BACKEND_IMPLEMENTATION_PLAN.md)
 - **Specification:** [ECOLOOP-SPEC-001 v1.1](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Initial state:** Plan authored; implementation execution has started.
-- **Current/next unit:** `BK-P04-D` (implementation gates pass; live private Cloud Run/Tasks evidence remains blocked on deployment inputs).
+- **Current/next unit:** `BK-P04-E` (implementation and emulator gates pass; production task-delivery evidence remains a BK-P04-D deployment gap).
 - **Current role:** Integration executor; read the execution protocol and actual applicable role instructions before work.
 - **Open implementation evidence:** [BK-P00-A readiness](../backend_evidence/READINESS.md) and [environment inventory](../backend_evidence/ENVIRONMENT.md). Public model documentation reviewed during planning is not runtime or acceptance proof.
 
@@ -20,19 +20,19 @@ The completed P00-A inventory and its factual observations are preserved. The ch
 Update this section at every real handoff:
 
 ```text
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 Executing model / harness: Copilot SDK in VS Code
 Role: Integration executor
 Base revision / dirty or source-bundle identity: `7f207f6`; only pre-existing untracked `Demo_Screenshots/` and `assets/trash_images/` remain outside the commits
-Active unit and status: BK-P04-D IMPLEMENTED; live deployment gate is pending
+Active unit and status: BK-P04-E IMPLEMENTED; settlement emulator gate passes
 Completed prerequisite gates: BK-P00-A through BK-P00-D; BK-P01-A through BK-P01-E2
 Current changed files and user-owned changes to preserve: Explicit mock/emulator/Firebase bootstrap selection, App Check debug gating, advancing system clock, focused C2 tests, and C2 evidence; preserve untracked `Demo_Screenshots/` and `assets/trash_images/`
-Actual commands/results/evidence: `Set-Location functions; npm run build` passed; `npm run test:dispatch` passed (1 unit test); `npm run test:outbox` passed (3 emulator tests); BK-P04-C regressions remain green with `npm run test:jobs` (4 tests), `npm run test:submission` (4 tests), `npm run test:sessions` (5 tests), and `npm run test:unit` (11 tests). Live delivery was not claimed: deployment requires configured Cloud Run URL/audience, task-invoker service account, queue, secrets and authenticated project access. See [BK-P04-D dev log](../dev_logs/2026-10-19_Backend_BK-P04-D_Dispatch.md).
+Actual commands/results/evidence: `Set-Location functions; npm run build` passed; `npm run test:settlement` passed (3 emulator tests); `npm run test:unit` passed (11 tests); prior BK-P04-A through D focused gates remain green. Settlement production delivery was not claimed; see [BK-P04-E dev log](../dev_logs/2026-10-19_Backend_BK-P04-E_Settlement.md) and [BK-P04-D deployment gap](../backend_evidence/PHASE_4_GAP_BK-P04-D_DEPLOYMENT.md).
 Relevant trace/request/session/deposit/job IDs: Cloud Run traces `46f078958206d5dc9685f5a6298c8d62` and `0de6e639a7d84d9ab1d55d168764c916`; Cloud Build IDs are recorded in `DEPLOYMENT.md`
 Current contract/policy/pipeline/model versions: ECOLOOP-SPEC-001 v1.1; verified Firebase project `ecoloop-thesmartrecycling`, Firestore `ecoloop-db`, Storage bucket `ecoloop-thesmartrecycling.firebasestorage.app`
 Unresolved defects / access blockers: OAuth authorized domains remain unverified; real feature adapters, live callable deployment and Flutter Auth integration remain later units
-Commit SHA or explicit uncommitted state: BK-P04-A is committed as `56b2f65`; BK-P04-B is committed as `90c1915`; BK-P04-C is committed as `4f3dcd2`; BK-P04-D implementation is being committed with live deployment evidence pending; unrelated untracked `Demo_Screenshots/` and `assets/trash_images/` remain preserved
-Next single task and exact read set: Complete BK-P04-D deployment evidence with the configured private Cloud Run URL/audience and task-invoker identity before starting BK-P04-E
+Commit SHA or explicit uncommitted state: BK-P04-A is committed as `56b2f65`; BK-P04-B is committed as `90c1915`; BK-P04-C is committed as `4f3dcd2`; BK-P04-D is committed with live deployment evidence pending; BK-P04-E is implemented and pending commit; unrelated untracked `Demo_Screenshots/` and `assets/trash_images/` remain preserved
+Next single task and exact read set: Commit BK-P04-E after the full focused regression gate, then continue with collection/review harness coverage
 ```
 
 The first execution reads BK-P00-A, the protocol, specification §§1-3/7/20 and the actual environment. Do not mark any implementation unit complete merely because its plan text exists.
@@ -69,7 +69,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P04-B | Immutable submission/durable job | VERIFIED | [BK-P04-B dev log](../dev_logs/2026-10-19_Backend_BK-P04-B_Submission.md); build, 4 submission emulator tests, 5 session regressions, and 10 unit tests passed |
 | BK-P04-C | Worker gateway/fenced attempts | VERIFIED | [BK-P04-C dev log](../dev_logs/2026-10-19_Backend_BK-P04-C_WorkerGateway.md); build, 4 worker emulator tests, 4 submission tests, 5 session tests, and 10 unit tests passed |
 | BK-P04-D | Authenticated Tasks/outbox repair | IMPLEMENTED | [BK-P04-D dev log](../dev_logs/2026-10-19_Backend_BK-P04-D_Dispatch.md); build, dispatch unit, and 3 outbox emulator tests passed; live Cloud Tasks/Cloud Run delivery is pending configured deployment inputs |
-| BK-P04-E | Atomic settlement/review/capacity contract | NOT_STARTED | - |
+| BK-P04-E | Atomic settlement/review/capacity contract | IMPLEMENTED | [BK-P04-E dev log](../dev_logs/2026-10-19_Backend_BK-P04-E_Settlement.md); build, 3 settlement emulator tests, and 11 unit tests passed |
 | BK-P04-F | Python worker/gateway/artifact integration | NOT_STARTED | - |
 | BK-P04-G | Explicit enum compatibility migration | NOT_STARTED | - |
 | BK-P04-H | Mixed lines/nullable quantities/impact UI | NOT_STARTED | - |

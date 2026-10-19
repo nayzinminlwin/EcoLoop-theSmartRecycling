@@ -4,6 +4,8 @@ import { getAuth } from "firebase-admin/auth";
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { getComposition } from "../composition.js";
 import type { WorkerIdentity } from "../infrastructure/firestore/jobs_store.js";
+import type { WorkerFindings } from "../domain/types.js";
+import { finalizeInspection } from "../application/finalize_inspection.js";
 
 export const workerGateway = onRequest(async (request, response) => {
   try {
@@ -39,6 +41,29 @@ async function routeOperation(operation: string, data: Record<string, unknown>, 
       return jobs.fail(requiredString(data, "jobId"), requiredString(data, "attemptId"), identity, requiredString(data, "reason"), now);
     case "readCurrentResult":
       return jobs.readCurrentResult(requiredString(data, "jobId"), identity);
+    case "complete": {
+      const findings = data.findings;
+      if (findings === null || typeof findings !== "object" || Array.isArray(findings)) {
+        throw new HttpsError("invalid-argument", "findings is required");
+      }
+      const references = data.artifactReferences;
+      if (!Array.isArray(references) || references.some((reference) => typeof reference !== "string")) {
+        throw new HttpsError("invalid-argument", "artifactReferences is required");
+      }
+      const expectedDecisionVersion = data.expectedDecisionVersion;
+      if (typeof expectedDecisionVersion !== "number" || !Number.isInteger(expectedDecisionVersion) || expectedDecisionVersion < 0) {
+        throw new HttpsError("invalid-argument", "expectedDecisionVersion is required");
+      }
+      return finalizeInspection(getComposition().settlements, {
+        jobId: requiredString(data, "jobId"),
+        attemptId: requiredString(data, "attemptId"),
+        identity,
+        findings: findings as WorkerFindings,
+        artifactReferences: references,
+        expectedDecisionVersion,
+        now,
+      });
+    }
     default:
       throw new HttpsError("invalid-argument", "Unsupported worker operation");
   }

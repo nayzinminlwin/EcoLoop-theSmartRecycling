@@ -6,6 +6,7 @@ import { FirestoreSessionsStore } from "./infrastructure/firestore/sessions_stor
 import { StructuredLogger } from "./infrastructure/logger.js";
 import { FirestoreInspectionStore } from "./infrastructure/firestore/inspection_store.js";
 import { FirestoreJobsStore } from "./infrastructure/firestore/jobs_store.js";
+import { FirestoreSettlementStore } from "./infrastructure/firestore/settlement_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -22,6 +23,7 @@ export function createComposition() {
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     jobs: new FirestoreJobsStore(firestore),
+    settlements: new FirestoreSettlementStore(firestore),
   };
 }
 
