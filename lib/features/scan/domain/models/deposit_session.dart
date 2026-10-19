@@ -26,6 +26,18 @@ class DepositSession {
     required this.updatedAt,
     required this.creationRequestId,
     this.resultId,
+    this.sessionVersion = 0,
+    this.draftAssetId,
+    this.draftAssetVersion,
+    this.committedAssetId,
+    this.committedAssetVersion,
+    this.committedAssetSha256,
+    this.batchId,
+    this.jobId,
+    this.jobSubstage,
+    this.deadlineAt,
+    this.reservationExpiresAt,
+    this.terminationReason,
   });
 
   final String id;
@@ -36,6 +48,18 @@ class DepositSession {
   final DateTime updatedAt;
   final String creationRequestId;
   final String? resultId;
+  final int sessionVersion;
+  final String? draftAssetId;
+  final String? draftAssetVersion;
+  final String? committedAssetId;
+  final String? committedAssetVersion;
+  final String? committedAssetSha256;
+  final String? batchId;
+  final String? jobId;
+  final String? jobSubstage;
+  final DateTime? deadlineAt;
+  final DateTime? reservationExpiresAt;
+  final String? terminationReason;
 
   factory DepositSession.fromJson(JsonMap json) => DepositSession(
     id: JsonReaders.string(json, 'id'),
@@ -47,6 +71,40 @@ class DepositSession {
     creationRequestId: JsonReaders.string(json, 'creationRequestId'),
     resultId: JsonReaders.nullableString(json, 'resultId'),
   );
+
+  factory DepositSession.fromBackendJson(JsonMap json) {
+    if (JsonReaders.string(json, 'kind') != 'session' ||
+        JsonReaders.string(json, 'schemaVersion') != 'backend.v1') {
+      throw JsonReaders.invalid('snapshot');
+    }
+    final stageValue = JsonReaders.string(json, 'stage');
+    final stage = ScanStage.values.where((item) => item.wireValue == stageValue);
+    if (stage.isEmpty) throw JsonReaders.invalid('stage');
+    return DepositSession(
+      id: JsonReaders.string(json, 'sessionId'),
+      residentId: JsonReaders.string(json, 'ownerId'),
+      binId: JsonReaders.string(json, 'binId'),
+      stage: stage.first,
+      createdAt: JsonReaders.dateTime(json, 'createdAt'),
+      updatedAt: JsonReaders.dateTime(json, 'updatedAt'),
+      creationRequestId:
+          JsonReaders.nullableString(json, 'creationRequestId') ??
+          JsonReaders.string(json, 'sessionId'),
+      resultId: JsonReaders.nullableString(json, 'resultId'),
+      sessionVersion: JsonReaders.integer(json, 'version'),
+      draftAssetId: JsonReaders.nullableString(json, 'draftAssetId'),
+      draftAssetVersion: JsonReaders.nullableString(json, 'draftAssetVersion'),
+      committedAssetId: JsonReaders.nullableString(json, 'assetId'),
+      committedAssetVersion: JsonReaders.nullableString(json, 'assetVersion'),
+      committedAssetSha256: JsonReaders.nullableString(json, 'assetContentSha256'),
+      batchId: JsonReaders.nullableString(json, 'batchId'),
+      jobId: JsonReaders.nullableString(json, 'jobId'),
+      jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
+      deadlineAt: _dateOrNull(json, 'deadlineAt'),
+      reservationExpiresAt: _dateOrNull(json, 'reservationExpiresAt'),
+      terminationReason: JsonReaders.nullableString(json, 'terminationReason'),
+    );
+  }
 
   JsonMap toJson() => {
     'id': id,
@@ -72,5 +130,21 @@ class DepositSession {
     updatedAt: updatedAt ?? this.updatedAt,
     creationRequestId: creationRequestId,
     resultId: resultId ?? this.resultId,
+    sessionVersion: sessionVersion,
+    draftAssetId: draftAssetId,
+    draftAssetVersion: draftAssetVersion,
+    committedAssetId: committedAssetId,
+    committedAssetVersion: committedAssetVersion,
+    committedAssetSha256: committedAssetSha256,
+    batchId: batchId,
+    jobId: jobId,
+    jobSubstage: jobSubstage,
+    deadlineAt: deadlineAt,
+    reservationExpiresAt: reservationExpiresAt,
+    terminationReason: terminationReason,
   );
+
+  static DateTime? _dateOrNull(JsonMap json, String field) {
+    return json[field] == null ? null : JsonReaders.dateTime(json, field);
+  }
 }
