@@ -95,7 +95,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P07-D | Performance/cost/accounting/trace audit | BLOCKED | [BK-P07-D QA log](../test_logs/2026-10-19_BK-P07-D_QA.md), [COST_AND_LATENCY.md](../backend_evidence/COST_AND_LATENCY.md), and [BK-P07-D_BENCHMARK.json](../backend_evidence/BK-P07-D_BENCHMARK.json); 4/4 private probes and synthetic inconsistency detection passed, but billing, queue/memory and end-to-end trace evidence are unavailable |
 | BK-P08-A | Reproducible CI/deployment/runtime controls | IMPLEMENTED | [BK-P08-A evidence](../backend_evidence/BK-P08-A_CI_DEPLOYMENT.md); PowerShell parse, Functions build/20 unit tests, vision locked tests (35) and Flutter analyze pass; full Flutter test hit local Dart VM OOM; live deployment/App Check/provider evidence remains operator-gated | |
 | BK-P08-B | Fresh-user full-scope rehearsal/release manifest | BLOCKED | [ACCEPTANCE.md](../backend_evidence/ACCEPTANCE.md), [ADMIN_HANDOFF.md](../backend_evidence/ADMIN_HANDOFF.md); manifest and operator runbook recorded, Firebase-mode web build passed, Android release build blocked by local paging-file exhaustion, and fresh live resident rehearsal/provider/push evidence is unavailable |
-| BK-P08-C | Final conformance and admin handoff | NOT_STARTED | - |
+| BK-P08-C | Final conformance and admin handoff | BLOCKED | [ACCEPTANCE.md](../backend_evidence/ACCEPTANCE.md), [ADMIN_HANDOFF.md](../backend_evidence/ADMIN_HANDOFF.md); AC-01..24 and cross-cutting CV/cost/M8 gates mapped honestly, friend-facing v1 contracts/access/reason codes/version semantics documented; full conformance remains blocked by BK-P07-B/C/D and BK-P08-B |
 
 ## 3. Milestone ledger
 
@@ -109,7 +109,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | M5 Complete resident business features | NOT_STARTED | - |
 | M6 Operable notifications/recovery/maintenance | NOT_STARTED | - |
 | M7 Measured acceptance | NOT_STARTED | - |
-| M8 Rehearsed deployed full-scope delivery | NOT_STARTED | - |
+| M8 Rehearsed deployed full-scope delivery | BLOCKED | BK-P08-B/C evidence: full fresh-user rehearsal, CV, cost, Android/device/push/App Check and live IAM gates are not proven |
 
 ## 4. Dependency and configuration decisions
 

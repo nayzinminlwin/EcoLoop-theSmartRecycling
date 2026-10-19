@@ -1,8 +1,112 @@
 # EcoLoop backend operator handoff
 
 **Release candidate:** `22bf7d5b10c5a1bf4985840638cb153261d22a5c`
-**Unit:** BK-P08-B
-**Status:** Handoff prepared; production rehearsal remains blocked
+**Units:** BK-P08-B / BK-P08-C
+**Status:** Final conformance review recorded; production release remains blocked
+
+## Friend-facing contract summary
+
+All authenticated transport uses JSON Schema Draft 2020-12 and literal
+`schemaVersion: "backend.v1"`. The versioned files are:
+
+- [commands.schema.json](../../contracts/backend/v1/commands.schema.json) for authenticated commands, committed responses and safe errors.
+- [snapshots.schema.json](../../contracts/backend/v1/snapshots.schema.json) for tagged `session`, `asset`, `bin`, `batch` and `receipt` read models.
+- [findings.schema.json](../../contracts/backend/v1/findings.schema.json) for worker output, image digest/size, normalized boxes and diagnostic references.
+- [golden_cases.json](../../contracts/backend/v1/golden_cases.json) and [invalid_cases.json](../../contracts/backend/v1/invalid_cases.json) for deterministic business/validation examples. These are not provider or accuracy evidence.
+
+Example committed response shape:
+
+```json
+{
+  "schemaVersion": "backend.v1",
+  "operation": "submitInspection",
+  "requestId": "req-20261019-0001",
+  "traceId": "0123456789abcdef0123456789abcdef",
+  "status": "committed",
+  "data": {
+    "residentId": "resident-uid",
+    "recordIds": ["deposits/batch-1", "inferenceJobs/job-1", "depositResults/result-1"],
+    "version": 1,
+    "operationState": "applied"
+  }
+}
+```
+
+Example batch/read-model shape:
+
+```json
+{
+  "kind": "batch",
+  "schemaVersion": "backend.v1",
+  "batchId": "batch-1",
+  "ownerId": "resident-uid",
+  "sessionId": "session-1",
+  "assetId": "asset-1",
+  "policyVersion": "policy-v1",
+  "status": "verified",
+  "totalDetectedObjectCount": 7,
+  "pointsAwarded": 37,
+  "spaceContributionSpc": 61,
+  "decisionVersion": 0,
+  "lines": [],
+  "reasonCodes": []
+}
+```
+
+`ownerId`, points, wallet values, counts, capacity and decision outcomes are
+server-owned. A resident command supplies operation/request identity and
+permitted input only; it cannot inject those accounting fields.
+
+## Collection and query access expectations
+
+Residents use callable Functions and owner-scoped read adapters. They do not
+write Firestore wallet, batch, session, receipt, review or configuration
+documents directly.
+
+| Data | Expected access |
+|---|---|
+| `residents/{uid}` and owner projections | Authenticated owner read; trusted Functions write |
+| `sessions/{sessionId}`, `deposits/{batchId}`, `depositResults/{resultId}` | Owner read by stored owner identity; admin operational read; client writes denied |
+| `inferenceJobs/{jobId}`, review/diagnostic records | Admin/operator read and trusted worker/server access; resident receives safe projections |
+| `walletLedger/{entryId}`, resident stats and vouchers | Owner read through adapters; atomic trusted server mutation only |
+| bin/catalog/guide/policy projections | Authenticated read when enabled; configuration mutation is trusted/admin-only |
+| Storage simulation/evidence namespaces | Authenticated scoped read; client upload/write is denied except through the server workflow |
+
+The declared indexes cover owner/time queries for sessions, batches, receipts
+and notification events, plus status/time review ordering. Use the bounded
+`inspect.ts` commands above rather than broad collection scans.
+
+## Batch, line-item and reason-code semantics
+
+Each batch is a versioned aggregate: one `batchId`, owner/session/asset
+references, pinned `policyVersion`, status, nullable count/points while
+processing or review, nonnegative `spaceContributionSpc`, `decisionVersion`,
+line items and reason codes. A line item carries canonical resolution,
+eligibility, count, points/space rates and totals; false detections do not
+become rewarded lines.
+
+Worker finding reason codes are `matched`, `fallback`, `unsupported_label`,
+`ambiguous` and `false_detection`. Domain/transport error codes include
+`invalid_qr`, `bin_full`, `bin_busy`, `processing_unavailable`,
+`session_expired`, `asset_version_changed`, `idempotency_conflict`,
+`insufficient_points`, `voucher_expired`, `voucher_used`,
+`unsupported_version` and `invalid_input`. Policy-level outcomes include
+`unreadable_inventory` and `material_uncertainty`.
+
+`decisionVersion` starts at `0` for the initial decision. A review correction
+must provide the expected current version; a stale version is rejected rather
+than overwriting a newer decision. Notifications carry the target batch and
+decision version so clients ignore stale updates. Corrections create a
+versioned ledger difference, not a rewrite of the historical posting.
+
+## Admin boundary and future work
+
+The tested business-domain contract, trusted worker gateway, rules tests and
+operator inspection harness are available now. Later admin approval and
+collection transport remains explicitly outside this resident release:
+admin UI/transport must call the trusted review domain, preserve decision
+versions and cycle fencing, and cannot mutate wallet/batch/collection state by
+setting a client role field or route flag.
 
 ## Verified resource manifest
 
