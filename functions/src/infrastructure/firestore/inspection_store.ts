@@ -148,6 +148,7 @@ export class FirestoreInspectionStore implements InspectionStore {
         },
         policyVersion: policy.id ?? policy.version, cycleId: bin.cycleId, state: "queued",
         submittedAt: now, deadlineAt, dispatchState: "pending", traceId,
+        configurationVersion: process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "inspection-v1",
         attemptCount: 0, workerSubject: configuredWorkerSubject(), workerIssuer: configuredWorkerIssuer(),
         createdAt: now,
       });
