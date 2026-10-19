@@ -148,7 +148,8 @@ export class FirestoreInspectionStore implements InspectionStore {
         },
         policyVersion: policy.id ?? policy.version, cycleId: bin.cycleId, state: "queued",
         submittedAt: now, deadlineAt, dispatchState: "pending", traceId,
-        attemptCount: 0, createdAt: now,
+        attemptCount: 0, workerSubject: configuredWorkerSubject(), workerIssuer: configuredWorkerIssuer(),
+        createdAt: now,
       });
       transaction.create(resultRef, {
         id: resultId, ownerId: identity.uid, sessionId, batchId, outcome: "processing",
@@ -224,4 +225,12 @@ function isExpired(value: unknown, now: Instant): boolean {
 
 function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+
+function configuredWorkerSubject(): string {
+  return process.env.ECOLOOP_WORKER_SUBJECT ?? "worker-service";
+}
+
+function configuredWorkerIssuer(): string {
+  return process.env.ECOLOOP_WORKER_ISSUER ?? "trusted-issuer";
 }

@@ -14,3 +14,4 @@ export {
   recoverOperation,
 } from "./transport/resident_sessions.js";
 export { submitInspection } from "./transport/resident_inspections.js";
+export { workerGateway } from "./transport/internal_jobs.js";
