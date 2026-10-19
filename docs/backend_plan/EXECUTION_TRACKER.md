@@ -3,7 +3,7 @@
 - **Plan:** [ECOLOOP-IMPL-001](../ECOLOOP_BACKEND_IMPLEMENTATION_PLAN.md)
 - **Specification:** [ECOLOOP-SPEC-001 v1.1](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
 - **Initial state:** Plan authored; implementation execution has started.
-- **Current/next unit:** `BK-P04-L` verified (navigation, foreground lease renewal, and reopen recovery gates pass; production task-delivery evidence remains a BK-P04-D deployment gap).
+- **Current/next unit:** `BK-P05-F` implemented; voucher lifecycle/list gates pass, while emulator/live use and expiry agreement remains.
 - **Current role:** Integration executor; read the execution protocol and actual applicable role instructions before work.
 - **Open implementation evidence:** [BK-P00-A readiness](../backend_evidence/READINESS.md) and [environment inventory](../backend_evidence/ENVIRONMENT.md). Public model documentation reviewed during planning is not runtime or acceptance proof.
 
@@ -78,12 +78,12 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P04-J | Controlled camera and asset picker widgets | VERIFIED | [BK-P04-J dev log](../dev_logs/2026-10-19_Backend_BK-P04-J_CapturePicker.md); widget tests cover selection, duplicate capture, permission denial, and disposal |
 | BK-P04-K | Atomic production scan interface/UI cutover | VERIFIED | [BK-P04-K dev log](../dev_logs/2026-10-19_Backend_BK-P04-K_AtomicScanCutover.md); `flutter analyze` and focused mock/Firebase/model/capture scan tests passed; no active Flutter app was available for hot restart |
 | BK-P04-L | Lease/navigation/reopen recovery | VERIFIED | [BK-P04-L dev log](../dev_logs/2026-10-19_Backend_BK-P04-L_Recovery.md); complete scan suite, recovery/controller tests, router tests, pending-operation tests, and clean `flutter analyze` passed; no active Flutter app was available for hot restart |
-| BK-P05-A | Wallet/history pagination and owner data | NOT_STARTED | - |
-| BK-P05-B | Home accepted-count summaries and guide | NOT_STARTED | - |
-| BK-P05-C | Google-aware profile/security/preferences | NOT_STARTED | - |
-| BK-P05-D | Atomic redemption and demo consumption backend | NOT_STARTED | - |
-| BK-P05-E | Reward confirmation/receipt UI integration | NOT_STARTED | - |
-| BK-P05-F | Voucher use and time-correct status lists | NOT_STARTED | - |
+| BK-P05-A | Wallet/history pagination and owner data | IMPLEMENTED | [BK-P05-A dev log](../dev_logs/2026-10-19_Backend_BK-P05-A_WalletHistory.md); Firebase wallet/activity adapters, canonical updatedAt cursor pagination, excluded status presentation, version-aware activity merging, UID-triggered provider rebinding, and focused tests pass; emulator/index/live evidence and hot-restart remain |
+| BK-P05-B | Home accepted-count summaries and guide | IMPLEMENTED | [BK-P05-B dev log](../dev_logs/2026-10-19_Backend_BK-P05-B_HomeGuide.md); residentStats-derived estimates, current-policy guide composition, cardboard eligibility protection, and focused tests pass; emulator/live policy evidence remains |
+| BK-P05-C | Google-aware profile/security/preferences | IMPLEMENTED | [BK-P05-C dev log](../dev_logs/2026-10-19_Backend_BK-P05-C_AccountSettings.md); provider metadata, Auth-managed identity, owner-safe preference writes, profile invariants, and focused tests pass; live Auth/sign-out lifecycle evidence remains |
+| BK-P05-D | Atomic redemption and demo consumption backend | IMPLEMENTED | [BK-P05-D dev log](../dev_logs/2026-10-19_Backend_BK-P05-D_Rewards.md); callable transaction implementation, idempotency recovery, wallet ledger debit, offer/version checks, demo voucher issue/use, build, and unit tests pass; emulator evidence remains |
+| BK-P05-E | Reward confirmation/receipt UI integration | IMPLEMENTED | [BK-P05-E dev log](../dev_logs/2026-10-19_Backend_BK-P05-E_RewardsFlutter.md); Firebase offer/version/cost wiring, durable command usage, committed voucher display, owner-scoped counts, focused widget/contract tests, and `flutter analyze` pass; live/emulator agreement and hot restart remain |
+| BK-P05-F | Voucher use and time-correct status lists | IMPLEMENTED | [BK-P05-F dev log](../dev_logs/2026-10-19_Backend_BK-P05-F_VoucherLifecycle.md); demo metadata, durable simulated use, committed detail refresh, copy independence, and time-aware status projections pass focused tests and analysis; emulator/live agreement remains |
 | BK-P06-A | Durable notification dispatcher | NOT_STARTED | - |
 | BK-P06-B | Android/Flutter device/message lifecycle | NOT_STARTED | - |
 | BK-P06-C | Web worker/Hosting/native permissions | NOT_STARTED | - |
