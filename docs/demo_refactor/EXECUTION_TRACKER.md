@@ -4,8 +4,8 @@
 - **Audit:** [UA-001–UA-055](../ECOLOOP_ULTIMATE_BACKEND_AUDIT.md)
 - **Created:** 2026-10-20
 - **Base source:** `efa364a`, branch `dev`; this tracker records a new refactor, not completion of the old P00–P08 plan
-- **Current phase:** H1 — NOT_STARTED
-- **Implementation status:** Full H1/A1–A5 refactor not started. A separately requested live reference-data/QR prerequisite was completed on 2026-10-20; see the evidence below.
+- **Current phase:** H1 — COMPLETE; QR/account-switch rehearsal deferred
+- **Implementation status:** H1 environment gate completed on 2026-10-20. The full H1/A1–A5 refactor remains not started, and the developer intentionally deferred the interactive demo-flow rehearsal.
 
 ### Completed pre-phase prerequisite — sample seeding
 
@@ -15,7 +15,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 
 | Phase | Lead | Status | Actual evidence | Commit SHA |
 | --- | --- | --- | --- | --- |
-| H1 existing identity/platform/demo access | Developer | NOT_STARTED | — | — |
+| H1 existing identity/platform/demo access | Developer | COMPLETE | `evidence/H1_ENVIRONMENT.md`; QR/account-switch rehearsal explicitly deferred | `61a80b3fc0832730c28d562c6c1b36ce1a2b0604` |
 | A1 contract/auth/real Home | Agent | NOT_STARTED | — | — |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | NOT_STARTED | — | — |
 | A3 Tasks/service identity/vision/fallback/evidence | Agent | NOT_STARTED | — | — |
@@ -29,23 +29,23 @@ Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCK
 ## 2. Resume checkpoint
 
 ```text
-Updated:
-Executor/model and role:
-Actual presentation date/time/time zone; hours remaining:
-Phase and bounded substep:
-Source SHA and current dirty/user-owned paths:
-Explicit Firebase mode / project / database / regions:
-Android distribution/signing/App Check mode:
-Exact target files inspected/changed:
-Contract/schema/policy/config/model identities:
-Last actually executed command and result:
-Current first failing boundary + reproduction:
-Safe request/trace/session/batch/job/attempt/result IDs:
-Evidence paths:
-Audit findings closed, with independent proof:
-Open blockers, owner, exact next action:
-Commit SHA or explicit uncommitted/blocked state:
-Next exact substep and required read set:
+Updated: 2026-10-20 04:00 MYT
+Executor/model and role: Copilot SDK in VS Code; repository implementation assistant
+Actual presentation date/time/time zone; hours remaining: 2026-10-20 20:00 MYT; approximately 16 hours remaining at update time
+Phase and bounded substep: H1 complete; defer QR and account-switch rehearsal until the developer requests it
+Source SHA and current dirty/user-owned paths: H1 commit `61a80b3`; unrelated pre-existing dirty and untracked paths preserved
+Explicit Firebase mode / project / database / regions: `firebase` / `ecoloop-thesmartrecycling` / `ecoloop-db` / resident Functions `us-central1`
+Android distribution/signing/App Check mode: debug APK; `sd.idk.ecoLoop`; debug SHA-1/SHA-256 recorded; App Check not enforced
+Exact target files inspected/changed: `lib/core/firebase/firebase_clients.dart`, `docs/demo_refactor/evidence/H1_ENVIRONMENT.md`, `docs/ECOLOOP_DEMO_REFACTOR_PLAN.md`
+Contract/schema/policy/config/model identities: Flutter Firestore client explicitly selects `ecoloop-db`; Android 15/API 35 device `qgfy7xz9eaci4tvs`
+Last actually executed command and result: `flutter analyze lib/core/firebase/firebase_clients.dart` passed; full `flutter test` had three unrelated pre-existing failures
+Current first failing boundary + reproduction: unrelated existing tests fail in Firebase repository setup and one stale Home text assertion; no failure from the H1 database-selection change
+Safe request/trace/session/batch/job/attempt/result IDs: none
+Evidence paths: `evidence/H1_ENVIRONMENT.md`; `evidence/SEEDING_AND_QR.md`
+Audit findings closed, with independent proof: H1 environment identity/configuration findings recorded; QR/account-switch flow findings intentionally deferred
+Open blockers, owner, exact next action: Developer owns deferred QR/account-switch rehearsal; request continuation before H3 or final release gate
+Commit SHA or explicit uncommitted/blocked state: `61a80b3fc0832730c28d562c6c1b36ce1a2b0604`; tracker update pending commit
+Next exact substep and required read set: Begin A1 from the plan; read H1 evidence and the A1 contract/home-gate sections
 ```
 
 Preserve initially untracked `.vscode/`, `Demo_Screenshots/`, `android/build/`, `assets/trash_images/` unless their owner explicitly authorizes a scoped change. Never stage these incidentally.
@@ -59,17 +59,17 @@ Fill only verified public identifiers/statuses; no API keys, debug tokens, servi
 | Input | Planned baseline | Actual verified value / evidence |
 | --- | --- | --- |
 | Project | `ecoloop-thesmartrecycling` | Pending H1 |
-| Database | `ecoloop-db` | Live-observed in audit; reverify H1 |
+| Database | `ecoloop-db` | **Verified by gcloud and explicit Flutter `databaseId` selection** |
 | Resident/gateway region | `us-central1` | Live-observed; A1 makes explicit |
 | Vision/Tasks/schedules | `asia-southeast1` | Live-observed; reverify H2 |
-| Android app ID/signing | Actual installed app; historical `sd.idk.ecoLoop` | Pending H1 |
-| Demo Android distribution | Known debug sideload + registered debug App Check, unless release route already verified | Pending H1 |
+| Android app ID/signing | Actual installed app; `sd.idk.ecoLoop`; SHA-1/SHA-256 recorded in H1 evidence | **Verified for debug APK** |
+| Demo Android distribution | Android debug sideload without App Check enforcement | **Verified for H1** |
 | Web App Check public site key/provider | Intended Hosting domain | Pending H1/H2 |
 | Hosting URL/target | Resident existing project target | Pending H1/H2 |
 | VAPID public key status | Explicit build input | Pending H2 |
 | Provider secret resource/version references | Managed server-side only | Pending H2 |
 | Runtime/task/gateway identities/audiences | Exact scoped service contract | Pending A3/H2 |
-| Exact login hotfix/launch defines | Record current actual behavior | Pending H1 |
+| Exact login hotfix/launch defines | Firebase mode `firebase`; Functions region `us-central1` | **Recorded in H1 evidence; login success developer-confirmed** |
 
 ## 4. Finding disposition register
 
