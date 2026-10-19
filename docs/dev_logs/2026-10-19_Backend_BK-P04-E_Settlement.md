@@ -1,7 +1,7 @@
 # Dev Log: Backend - BK-P04-E Atomic Settlement
 
-**Date:** 2026-10-19  
-**Agent:** Copilot SDK in VS Code  
+**Date:** 2026-10-19
+**Agent:** Copilot SDK in VS Code
 **Status:** Implemented; focused emulator gates pass
 
 ## Objective
