@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import tempfile
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
@@ -14,6 +15,9 @@ from ecoloop_vision.adapters.specialist import run_gemini
 from ecoloop_vision.application.inspect_image import inspect_image, result_to_dict
 from ecoloop_vision.config import ProbeConfig
 from ecoloop_vision.infrastructure.images import decode_image
+from ecoloop_vision.application.run_job import run_job
+from ecoloop_vision.infrastructure.artifacts import CloudStorageArtifactWriter, LocalArtifactWriter
+from ecoloop_vision.infrastructure.job_gateway import JobGateway
 from ecoloop_vision.logging import configure_logging
 
 
@@ -31,6 +35,28 @@ def healthz() -> dict[str, str]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return healthz()
+
+
+@app.post("/tasks/vision")
+async def process_task(payload: dict[str, Any]) -> dict[str, Any]:
+    job_id = payload.get("jobId")
+    if not isinstance(job_id, str) or not job_id:
+        raise HTTPException(status_code=400, detail="jobId is required")
+    try:
+        artifact_bucket = os.getenv("ECOLOOP_ARTIFACT_BUCKET")
+        writer = (
+            CloudStorageArtifactWriter(artifact_bucket)
+            if artifact_bucket
+            else LocalArtifactWriter(Path(os.getenv("ECOLOOP_ARTIFACT_ROOT", "/tmp/ecoloop-artifacts")))
+        )
+        result = run_job(
+            job_id,
+            gateway=JobGateway(),
+            artifacts=writer,
+        )
+        return {"schemaVersion": "backend.v1", "status": "committed", "data": result}
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Vision job was not durably accepted") from error
 
 
 @app.post("/operator/probe")
