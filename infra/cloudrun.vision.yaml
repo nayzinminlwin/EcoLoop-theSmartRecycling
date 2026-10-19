@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: ecoloop-vision
   annotations:
-    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
 spec:
   template:
     metadata:
@@ -12,6 +12,7 @@ spec:
         autoscaling.knative.dev/maxScale: "1"
         run.googleapis.com/cpu-throttling: "false"
     spec:
+      serviceAccountName: RUNTIME_SERVICE_ACCOUNT
       containerConcurrency: 1
       timeoutSeconds: 300
       containers:

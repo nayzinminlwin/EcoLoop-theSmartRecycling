@@ -93,7 +93,7 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P07-B | Frozen real CV evaluation | BLOCKED | [CV_EVALUATION.md](../backend_evidence/CV_EVALUATION.md); metric tooling and 35 vision tests pass, but 0 labeled/frozen cases prevent actual provider comparison and target measurement |
 | BK-P07-C | Actual Android/web/permission/offline acceptance | BLOCKED | [BK-P07-C QA log](../test_logs/2026-10-19_BK-P07-C_QA.md); 16 focused Flutter tests, analyze, and Firebase-mode web build pass; live journey blocked before app start |
 | BK-P07-D | Performance/cost/accounting/trace audit | BLOCKED | [BK-P07-D QA log](../test_logs/2026-10-19_BK-P07-D_QA.md), [COST_AND_LATENCY.md](../backend_evidence/COST_AND_LATENCY.md), and [BK-P07-D_BENCHMARK.json](../backend_evidence/BK-P07-D_BENCHMARK.json); 4/4 private probes and synthetic inconsistency detection passed, but billing, queue/memory and end-to-end trace evidence are unavailable |
-| BK-P08-A | Reproducible CI/deployment/runtime controls | NOT_STARTED | - |
+| BK-P08-A | Reproducible CI/deployment/runtime controls | IMPLEMENTED | [BK-P08-A evidence](../backend_evidence/BK-P08-A_CI_DEPLOYMENT.md); PowerShell parse, Functions build/20 unit tests, vision locked tests (35) and Flutter analyze pass; full Flutter test hit local Dart VM OOM; live deployment/App Check/provider evidence remains operator-gated | |
 | BK-P08-B | Fresh-user full-scope rehearsal/release manifest | NOT_STARTED | - |
 | BK-P08-C | Final conformance and admin handoff | NOT_STARTED | - |
 
