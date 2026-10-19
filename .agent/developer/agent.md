@@ -55,7 +55,7 @@ read the relevant Phase section of `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATIO
 - Modify only the explicitly listed existing files.
 - Do not import a future phase's nonexistent screens or repositories.
 - Complete the phase's verification checklist before advancing.
-- Record any intentional visual deviation in `docs/FLUTTER_UI_EXECUTION_LOG.md`.
+- Record any intentional visual deviation in `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`.
 
 When no plan phase matches the given task, follow the moderator's inline instructions directly.
 

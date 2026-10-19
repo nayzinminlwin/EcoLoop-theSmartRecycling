@@ -120,7 +120,7 @@
   recorded under `docs/refactor_visuals/phase2/` and reviewed against
   `Demo_Screenshots/Figma_*`; V01–V03 pass with the mandated semantic
   differences (105 remaining / 70%, 1.04 kg, count-derived row weights).
-- Visual checklist started at `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`.
+- Visual checklist started at `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`.
 - Phase documented in
   `docs/fix_logs/2026-10-17_FIX_FlutterPhase2_ShellHomeHistoryRestoration.md`.
 
@@ -268,7 +268,7 @@
   established proactively and the visual checklist records the structural
   acceptance evidence.
 - Phase checklist updated in
-  `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`.
+  `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`.
 
 ### Remaining Phase 4 notes / deferred
 

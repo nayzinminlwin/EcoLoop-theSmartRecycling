@@ -14,7 +14,7 @@ stateful in-memory Firebase boundary.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` — Phase 7
-- `docs/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–6 decisions
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–6 decisions
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx` — `Rewards` source surface
 - `EcoLoop_AI_Figma_Design_Artifacts/src/index.css` — reward and voucher styling
 - `.agent/templates/dev_log_template.md`

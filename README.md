@@ -33,7 +33,7 @@ flutter test integration_test/resident_journey_test.dart -d <device-id>
 The integration test requires an attached emulator or physical device. If no
 device is available, the unit/widget suite and web build remain the offline
 acceptance checks; record the unavailable device in
-[`docs/FLUTTER_UI_ACCEPTANCE.md`](docs/FLUTTER_UI_ACCEPTANCE.md).
+[`docs/archive/FLUTTER_UI_ACCEPTANCE.md`](docs/archive/FLUTTER_UI_ACCEPTANCE.md).
 
 ## Backend deployment and diagnosis
 

@@ -8,7 +8,7 @@
 
 ## 1. Triggered By
 
-- **QA Report:** Planned refactor phase from `docs/FLUTTER_UI_REFACTOR_PLAN.md`
+- **QA Report:** Planned refactor phase from `docs/archive/FLUTTER_UI_REFACTOR_PLAN.md`
 - **Error Summary:** Rewards rendered as one tall-column catalog and the guide
   lacked the source grouping, compact step rhythm, and count-based examples.
 
@@ -41,8 +41,8 @@ column.
 - `lib/features/recycling_guide/presentation/widgets/{material_guide_card,material_rates_table,recycling_steps_list}.dart`
 - `lib/features/rewards/presentation/screens/rewards_screen.dart`
 - `lib/features/rewards/presentation/widgets/reward_card.dart`
-- `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`
-- `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`
+- `docs/archive/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`
 
 ## 4. Verification Notes
 
