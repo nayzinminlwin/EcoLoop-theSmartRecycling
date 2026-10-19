@@ -76,8 +76,6 @@ Use `NOT_STARTED`, `IN_PROGRESS`, `IMPLEMENTED`, `VERIFIED`, `COMPLETE`, `BLOCKE
 | BK-P04-I1 | Session/bin/asset read models | VERIFIED | [BK-P04-I1 dev log](../dev_logs/2026-10-19_Backend_BK-P04-I1_ReadModels.md); focused model and scan regression tests plus clean `flutter analyze` |
 | BK-P04-I2 | Real scan gateway/mapper implementation | VERIFIED | [BK-P04-I2 dev log](../dev_logs/2026-10-19_Backend_BK-P04-I2_ScanGateway.md); callable/read/watch adapter tests and scan regressions pass |
 | BK-P04-J | Controlled camera and asset picker widgets | VERIFIED | [BK-P04-J dev log](../dev_logs/2026-10-19_Backend_BK-P04-J_CapturePicker.md); widget tests cover selection, duplicate capture, permission denial, and disposal |
-| BK-P04-I2 | Firebase scan gateway/mapper | NOT_STARTED | - |
-| BK-P04-J | Camera and controlled picker widgets | NOT_STARTED | - |
 | BK-P04-K | Atomic production scan interface/UI cutover | VERIFIED | [BK-P04-K dev log](../dev_logs/2026-10-19_Backend_BK-P04-K_AtomicScanCutover.md); `flutter analyze` and focused mock/Firebase/model/capture scan tests passed; no active Flutter app was available for hot restart |
 | BK-P04-L | Lease/navigation/reopen recovery | VERIFIED | [BK-P04-L dev log](../dev_logs/2026-10-19_Backend_BK-P04-L_Recovery.md); complete scan suite, recovery/controller tests, router tests, pending-operation tests, and clean `flutter analyze` passed; no active Flutter app was available for hot restart |
 | BK-P05-A | Wallet/history pagination and owner data | NOT_STARTED | - |

@@ -1,143 +1,138 @@
-# Phase 4 Gap — BK-P04-D Cloud Tasks Production Delivery
+# Phase 4 Audit — Durable State, Accounting, and Recycling Vertical Slice
 
-**Captured:** 2026-10-19 12:30 +08:00  
-**Unit:** BK-P04-D — Cloud Tasks dispatcher and outbox repair  
-**Project:** `ecoloop-thesmartrecycling` (`353725053297`)  
-**Region:** `asia-southeast1`  
-**Dispatcher:** `dispatchPendingJobs`  
-**Cloud Run service:** `ecoloop-vision`  
-**Cloud Run URL:** `https://ecoloop-vision-tl2e2dp5xq-as.a.run.app`
+**Captured:** 2026-10-19 14:00 +08:00
+**Source of truth:** `docs/backend_plan/PHASES_03_04_RECYCLING.md`
+**Protocol:** `docs/backend_plan/EXECUTION_PROTOCOL.md`
+**Phase:** P04 — Durable state, accounting, and full existing Flutter flow
+**Milestone:** M4
+**Repository revision:** `9f93a01`
+**Firebase project:** `ecoloop-thesmartrecycling` (`353725053297`)
+**Firestore database:** `ecoloop-db`
+**Region:** `asia-southeast1`
 
-## Executive summary
+## Executive conclusion
 
-The deployment and configuration portion of BK-P04-D is complete. The local
-build, unit/emulator tests, Firebase Functions deployment, Cloud Scheduler
-deployment, Cloud Tasks queue, service-account permissions, private Cloud Run
-IAM policy, and dispatcher runtime configuration are present and verified.
+Phase 4 is implemented across BK-P04-A through BK-P04-L, with focused
+automated evidence recorded for every unit. The local backend, emulator,
+Python, Flutter, adapter, navigation, and recovery gates pass according to the
+unit logs and tracker.
 
-The production delivery gate is not fully complete because no real pending
-inspection job was available during this verification. Therefore, no
-production Cloud Tasks delivery, OIDC worker request, worker claim, or shared
-job/trace log can be claimed yet.
+Phase 4 is **not fully accepted as a production milestone yet**. The remaining
+gap is end-to-end production delivery evidence: a genuine resident submission
+must travel through Firebase Functions, Cloud Tasks, private Cloud Run, the
+authenticated worker gateway, and durable settlement, with correlated job and
+trace logs. That evidence was deliberately not fabricated.
 
-**Checklist result:**
+### Phase status
 
-- **11 of 16 items fully verified**
-- **1 item verified in emulator only**
-- **4 items pending real production delivery evidence**
+| Area | Status | Assessment |
+|---|---|---|
+| BK-P04-A through BK-P04-C backend state and worker contracts | ✅ Implemented and locally verified | Emulator and unit evidence exists for session, submission, fencing, and recovery behavior. |
+| BK-P04-D deployment configuration and outbox repair | ⚠️ Implemented; production delivery gate open | Cloud resources/configuration are present; no genuine pending production job was available for delivery verification. |
+| BK-P04-E through BK-P04-F settlement and Python worker integration | ⚠️ Implemented; live boundary evidence open | Local/emulator/Python evidence exists; private Tasks → Cloud Run → gateway → settlement has not been observed end to end. |
+| BK-P04-G through BK-P04-I2 compatibility, read models, and gateway | ✅ Verified locally | Flutter analysis, adapter tests, model tests, and affected regressions pass. |
+| BK-P04-J through BK-P04-L camera, atomic UI, lifecycle, and recovery | ✅ Verified locally | Widget, full scan-flow, routing, recovery, and pending-operation tests pass; real platform/runtime evidence remains unavailable. |
+| M4 production acceptance | ⛔ Pending | Requires the real delivery and durable-processing trace bundle described below. |
 
-## Checklist
+## Unit audit
 
-| # | Requirement | Status | Evidence |
-|---:|---|:---:|---|
-| 1 | Cloud Run service is deployed in `asia-southeast1` | ✅ Verified | `ecoloop-vision` is deployed in `asia-southeast1`; URL is recorded above. |
-| 2 | Cloud Run has no public `allUsers` invoker | ✅ Verified | IAM contains the operator user and task service account only; no `allUsers` binding. |
-| 3 | `ecoloop-tasks@...` has `roles/run.invoker` | ✅ Verified | `ecoloop-tasks@ecoloop-thesmartrecycling.iam.gserviceaccount.com` is bound on `ecoloop-vision`. |
-| 4 | Cloud Tasks API is enabled | ✅ Verified | `cloudtasks.googleapis.com` is enabled in the project. |
-| 5 | Queue `vision-processing` exists in the same region | ✅ Verified | Queue exists at `asia-southeast1/vision-processing`. |
-| 6 | Queue concurrency is `1` | ✅ Verified | `maxConcurrentDispatches: 1`. |
+| Unit | Requirement area | Status | Evidence and remaining concern |
+|---|---|---|---|
+| BK-P04-A | Session/reservation transitions | ✅ VERIFIED | [A dev log](../dev_logs/2026-10-19_Backend_BK-P04-A_Sessions.md); session emulator and unit gates passed. Covers atomic QR reservation, exclusivity, version/owner fencing, renewal, cancellation, and operation recovery. |
+| BK-P04-B | Immutable submission and durable dispatch intent | ✅ VERIFIED | [B dev log](../dev_logs/2026-10-19_Backend_BK-P04-B_Submission.md); submission emulator and unit gates passed. Covers immutable asset/policy/cycle pinning, deadline, trace, deterministic identity, and actor-scoped recovery. |
+| BK-P04-C | Fenced worker gateway | ✅ VERIFIED | [C dev log](../dev_logs/2026-10-19_Backend_BK-P04-C_WorkerGateway.md); worker emulator and unit gates passed. Covers identity, attempt limits, leases, checkpoints, stale/expired attempts, and finalized-result reuse. |
+| BK-P04-D | Cloud Tasks dispatcher/outbox repair | ⚠️ IMPLEMENTED | [D dev log](../dev_logs/2026-10-19_Backend_BK-P04-D_Dispatch.md); deployment resources and outbox tests pass. Live task delivery remains open. |
+| BK-P04-E | Atomic settlement/review/capacity | ⚠️ IMPLEMENTED | [E dev log](../dev_logs/2026-10-19_Backend_BK-P04-E_Settlement.md); settlement emulator and unit gates pass. Production settlement through the real worker path remains open. |
+| BK-P04-F | Python job runner and narrow integration | ⚠️ IMPLEMENTED | [F dev log](../dev_logs/2026-10-19_Backend_BK-P04-F_JobRunner.md); 32 vision tests pass, including gateway, artifacts, deadlines, and ambiguous completion. Live private task delivery remains open. |
+| BK-P04-G | Enum compatibility | ✅ VERIFIED | [G dev log](../dev_logs/2026-10-19_Backend_BK-P04-G_EnumCompatibility.md); analysis and affected activity/scan tests pass. |
+| BK-P04-H | Batch lines, nullable quantities, accepted-only impact | ✅ VERIFIED | [H dev log](../dev_logs/2026-10-19_Backend_BK-P04-H_BatchLines.md); model/activity/scan tests and analysis pass. |
+| BK-P04-I1 | Session/bin/asset read models | ✅ VERIFIED | [I1 dev log](../dev_logs/2026-10-19_Backend_BK-P04-I1_ReadModels.md); model and scan regressions pass. |
+| BK-P04-I2 | Firebase scan gateway/mapper | ✅ VERIFIED | [I2 dev log](../dev_logs/2026-10-19_Backend_BK-P04-I2_ScanGateway.md); callable/read/watch adapter tests and regressions pass. |
+| BK-P04-J | Controlled camera and asset picker | ✅ VERIFIED locally | [J dev log](../dev_logs/2026-10-19_Backend_BK-P04-J_CapturePicker.md); duplicate capture, permission, disposal, and selection tests pass. Real platform permission evidence remains a later platform gate. |
+| BK-P04-K | Atomic production scan interface/UI cutover | ✅ VERIFIED locally | [K dev log](../dev_logs/2026-10-19_Backend_BK-P04-K_AtomicScanCutover.md); atomic QR, stable request identity, asset selection, server-owned processing, and affected regressions pass. The specified real Storage image through Cloud Run trace is not present. |
+| BK-P04-L | Lease, navigation, and reopen recovery | ✅ VERIFIED locally | [L dev log](../dev_logs/2026-10-19_Backend_BK-P04-L_Recovery.md); full scan suite, recovery/controller, router, and pending-operation tests pass. No connected Flutter app was available for hot restart or live reopen testing. |
+
+## Deployment and delivery gate
+
+This is the corrected checklist for the deployment and delivery requirements
+that were previously recorded only under BK-P04-D.
+
+| # | Requirement | Status | Evidence / interpretation |
+|---:|---|---|---|
+| 1 | Cloud Run service is deployed in `asia-southeast1` | ✅ Verified | `ecoloop-vision` is deployed in the required region. |
+| 2 | Cloud Run has no public `allUsers` invoker | ✅ Verified | The recorded IAM policy has no `allUsers` invoker binding. |
+| 3 | `ecoloop-tasks@...` has `roles/run.invoker` | ✅ Verified | The task service account is bound on `ecoloop-vision`. |
+| 4 | Cloud Tasks API is enabled | ✅ Verified | `cloudtasks.googleapis.com` is enabled. |
+| 5 | Queue `vision-processing` exists in the same region | ✅ Verified | Queue exists in `asia-southeast1`. |
+| 6 | Queue concurrency is `1` | ✅ Verified | Queue configuration records `maxConcurrentDispatches: 1`. |
 | 7 | Queue attempts/backoff fit the five-minute budget | ✅ Verified | Maximum attempts `3`, retry duration `300s`, minimum backoff `5s`, maximum backoff `30s`. |
-| 8 | Firebase Functions runtime has the five dispatcher variables | ✅ Verified | Deployed function contains queue, region, Cloud Run URL, audience, and task-invoker account configuration. |
-| 9 | Firebase Functions runtime has `roles/cloudtasks.enqueuer` | ✅ Verified | `353725053297-compute@developer.gserviceaccount.com` has `roles/cloudtasks.enqueuer`. |
-| 10 | Cloud Tasks OIDC audience equals the actual private Cloud Run URL | ✅ Configured | Both `ECOLOOP_WORKER_SERVICE_URL` and `ECOLOOP_WORKER_AUDIENCE` equal the deployed Cloud Run URL. |
-| 11 | A real pending job is dispatched | ⛔ Pending | No real production `inferenceJobs/{jobId}` was available; no production task was fabricated. |
-| 12 | Cloud Run receives the task | ⛔ Pending | Requires item 11 and a real Cloud Tasks delivery log. |
-| 13 | Cloud Run accepts the OIDC identity | ⛔ Pending | IAM and OIDC configuration are present, but no real task request has been observed. |
-| 14 | Worker claim succeeds through the private gateway | ⚠️ Emulator only | Fenced claim and identity validation pass in BK-P04-C emulator tests; production claim awaits item 11. |
-| 15 | Logs contain a shared job/trace identity | ⛔ Pending | Requires a real dispatched job and task/worker logs containing its job and trace IDs. |
-| 16 | Duplicate task creation repairs metadata without a second business submission | ⚠️ Emulator verified | BK-P04-D outbox emulator test covers `ALREADY_EXISTS` recovery; production replay evidence remains pending. |
+| 8 | Firebase Functions runtime has the five dispatcher variables | ✅ Verified | Queue, region, Cloud Run URL, audience, and task-invoker account are configured in the deployed dispatcher. |
+| 9 | Firebase Functions runtime has `roles/cloudtasks.enqueuer` | ✅ Verified | The deployed Functions runtime service account has the enqueue role. |
+| 10 | Cloud Tasks OIDC audience equals the actual private Cloud Run URL | ⚠️ Configured, not delivery-verified | The configured service URL and audience equal the recorded private URL. A real OIDC task request has not yet been observed. |
+| 11 | A real pending job is dispatched | ⛔ Pending | No genuine production `inferenceJobs/{jobId}` was available during the audit; no production job was fabricated. |
+| 12 | Cloud Run receives the task | ⛔ Pending | Requires item 11 and a real task delivery log. |
+| 13 | Cloud Run accepts the OIDC identity | ⛔ Pending | IAM/OIDC configuration is present, but no real authenticated task request has been observed. |
+| 14 | Worker claim succeeds through the private gateway | ⚠️ Emulator only | Fenced identity/claim tests pass; production claim evidence requires item 11. |
+| 15 | Logs contain a shared job/trace identity | ⛔ Pending | Requires correlated Functions, Cloud Tasks, Cloud Run, worker, and settlement logs for one real job. |
+| 16 | Duplicate task creation recovers metadata without a second business submission | ⚠️ Emulator verified | `ALREADY_EXISTS` outbox recovery is covered by emulator tests; production replay evidence remains pending. |
 
-## Verified deployment state
+### Corrected count
 
-### Cloud Run
+- **9 of 16 fully verified from deployment/resource evidence**
+- **1 of 16 configured but not delivery-verified**
+- **2 of 16 verified in emulator only**
+- **4 of 16 pending real production evidence**
 
-- Service: `ecoloop-vision`
-- Region: `asia-southeast1`
-- URL: `https://ecoloop-vision-tl2e2dp5xq-as.a.run.app`
-- Container concurrency: `1`
-- No `allUsers` invoker binding
-- Task invoker:
-  `ecoloop-tasks@ecoloop-thesmartrecycling.iam.gserviceaccount.com`
+The previous audit’s “11 of 16 fully verified” statement was not sufficiently
+strict because it counted configuration/emulator evidence as full production
+delivery verification.
 
-### Cloud Tasks
+## Phase 4 requirement coverage
 
-- Queue: `vision-processing`
-- Resource:
-  `projects/ecoloop-thesmartrecycling/locations/asia-southeast1/queues/vision-processing`
-- State: `RUNNING`
-- Maximum concurrent dispatches: `1`
-- Maximum attempts: `3`
-- Retry duration: `300s`
-- Minimum backoff: `5s`
-- Maximum backoff: `30s`
+The implementation aligns with the plan in the following ways:
 
-### Firebase Functions
+- Backend state transitions use owner, reservation, version, operation, and
+  deadline fencing.
+- Submission creates one durable business operation and keeps external queue
+  work outside the transaction.
+- Worker attempts are authenticated, bounded, leased, and artifact-scoped.
+- Outbox dispatch uses deterministic task identity and repairs known duplicate
+  task creation rather than creating another business submission.
+- Settlement is atomic and distinguishes accepted, excluded, unresolved,
+  empty, review, and zero-credit outcomes.
+- Flutter read models preserve backend versions, nullable quantities, result
+  references, job metadata, and review/receipt states.
+- The Firebase scan journey uses atomic QR submission, durable request identity,
+  versioned asset selection, server-owned processing, and result watchers.
+- Navigation preserves deep links and cancellation guards; stale snapshots do
+  not move the active journey backward.
+- Lease renewal is limited to the visible foreground pre-submission journey and
+  stops on background, offstage navigation, sign-out, ownership change,
+  cancellation, or completion.
+- Mock-only client completion remains available for deterministic mock
+  regression flows but Firebase implementations reject client-side completion.
 
-- Function: `dispatchPendingJobs`
-- State: `ACTIVE`
-- Region: `asia-southeast1`
-- Schedule: every minute
-- Scheduler state: `ENABLED`
-- Firestore database: `ecoloop-db`
-- Runtime service account:
-  `353725053297-compute@developer.gserviceaccount.com`
-- Enqueue role: `roles/cloudtasks.enqueuer`
+## Outstanding Phase 4 acceptance work
 
-The production function initially returned Firestore `NOT_FOUND` because the
-composition root opened the default database while this project uses the named
-database `ecoloop-db`. The composition root was corrected, the function was
-redeployed, and no new dispatcher errors appeared after the corrected revision.
+1. Use the real resident flow to create a genuine pending inspection job with a
+   real Storage image.
+2. Capture the job’s `jobId`, `batchId`, `resultId`, `traceId`, deadline, and
+   deterministic task name.
+3. Confirm dispatch metadata, queue presence, private Cloud Run receipt, OIDC
+   acceptance, gateway claim, artifact/checkpoint activity, and settlement.
+4. Correlate one shared job/trace identity across Functions, Cloud Tasks,
+   Cloud Run, worker, and Firestore settlement logs.
+5. Repeat or fault-inject dispatch metadata loss to demonstrate duplicate task
+   recovery without another business submission.
+6. Exercise real app reopen/account-switch/background behavior when a Flutter
+   application and authenticated Firebase runtime are available.
+7. Capture the required AC-04 trace bundle and a review-case trace before
+   upgrading the phase from locally verified to production-complete.
 
-## Local implementation evidence
+## Related evidence
 
-The following gates passed before deployment:
-
-- `npm run build`
-- `npm run test:unit` — 11 tests
-- `npm run test:dispatch` — 1 test
-- `npm run test:outbox` — 3 emulator tests
-- `npm run test:sessions` — 5 emulator tests
-- `npm run test:submission` — 4 emulator tests
-- `npm run test:jobs` — 4 emulator tests
-
-The outbox tests cover:
-
-1. Deterministic task identity and one dispatch metadata update.
-2. Enqueue-success/metadata-loss recovery through `ALREADY_EXISTS`.
-3. Cloud Tasks outage preserving `dispatchState: "pending"`.
-
-## Remaining production verification procedure
-
-Use one genuine resident inspection submission; do not manually create a
-business job or modify production job state to simulate one.
-
-1. Submit an inspection through the real resident flow.
-2. Confirm the resulting `inferenceJobs/{jobId}` document starts with:
-   - `state: "queued"`
-   - `dispatchState: "pending"`
-   - a five-minute `deadlineAt`
-   - a `traceId`
-3. Run or wait for `dispatchPendingJobs`.
-4. Confirm the job changes to `dispatchState: "dispatched"` and records:
-   - deterministic `taskName`
-   - `dispatchedAt`
-   - `dispatchAttempts`
-5. Confirm the deterministic task appears in `vision-processing`.
-6. Confirm `ecoloop-vision` receives the request through the task OIDC identity.
-7. Confirm the worker retrieves the committed job and reaches the private
-   gateway claim operation.
-8. Correlate the job ID and trace ID across Functions, Cloud Tasks, Cloud Run,
-   and worker logs.
-9. For duplicate recovery, reproduce an interrupted metadata update or use a
-   controlled fault-injection harness. Confirm the same task name is recovered
-   and no second business submission is created.
-
-## Related implementation
-
-- [Cloud Tasks dispatcher](../../functions/src/infrastructure/cloud_tasks.ts)
-- [Scheduled dispatcher transport](../../functions/src/transport/dispatch.ts)
-- [Outbox emulator tests](../../functions/tests/emulator/outbox.test.ts)
-- [Dispatch unit tests](../../functions/tests/unit/dispatch.test.ts)
-- [BK-P04-D development log](../dev_logs/2026-10-19_Backend_BK-P04-D_Dispatch.md)
-- [BK-P04-D tracker entry](../backend_plan/EXECUTION_TRACKER.md)
-
+- [Execution tracker](../backend_plan/EXECUTION_TRACKER.md)
+- [BK-P04-D dev log](../dev_logs/2026-10-19_Backend_BK-P04-D_Dispatch.md)
+- [BK-P04-D deployment configuration commit](../../c78eaad)
+- [BK-P04-A through BK-P04-L dev logs](../dev_logs/)
+- [Phase 3 gap/remediation context](../backend_plan/PHASE_3_GAP_REMEDIATION_PLAN.md)
