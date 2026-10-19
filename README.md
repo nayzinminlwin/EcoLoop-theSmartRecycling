@@ -1,4 +1,4 @@
-<img width="362" height="496" alt="Screenshot 2026-10-19 235135" src="https://github.com/user-attachments/assets/cc66f9b5-6842-4978-9190-ca1fe008c4a8" /># EcoLoop AI 🌱
+# EcoLoop AI 🌱
 
 **Smart Recycling. Sustainable Communities. Rewarding Actions.**
 
