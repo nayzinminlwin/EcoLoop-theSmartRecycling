@@ -24,7 +24,6 @@ export function AdminShell(): React.ReactElement {
 
   // Mobile drawer state
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [headerSearch, setHeaderSearch] = React.useState("");
 
   // Reactive subscriptions
   const identityQuery = useObservableQuery<AdminIdentity | null>("auth.identity", () =>
@@ -47,11 +46,6 @@ export function AdminShell(): React.ReactElement {
         .toUpperCase()
     : "AD";
 
-  // Derive current breadcrumb label from active sidebar path
-  const currentNav = ADMIN_NAV.find((item) =>
-    location.pathname.startsWith(item.path)
-  );
-  const currentNavLabel = currentNav ? currentNav.label : "Dashboard";
 
   // Close drawer on route change
   React.useEffect(() => {
@@ -69,12 +63,6 @@ export function AdminShell(): React.ReactElement {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [menuOpen]);
-
-  const handleHeaderSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const term = headerSearch.trim();
-    navigate(`/bins?search=${encodeURIComponent(term)}&page=1`);
-  };
 
   const handleLogout = () => {
     navigate("/login?intent=logout");
@@ -153,25 +141,7 @@ export function AdminShell(): React.ReactElement {
             <Icon name="menu" size={20} />
           </button>
 
-          <div className="breadcrumbs" aria-label="Breadcrumb">
-            <span className="crumb-root">Admin</span>
-            <span className="crumb-sep" aria-hidden="true">/</span>
-            <span className="crumb-current">{currentNavLabel}</span>
-          </div>
 
-          <form className="search" role="search" onSubmit={handleHeaderSearchSubmit}>
-            <Icon name="search" size={16} />
-            <label htmlFor="header-bin-search" className="visually-hidden">
-              Search bins
-            </label>
-            <input
-              id="header-bin-search"
-              type="search"
-              placeholder="Search bins..."
-              value={headerSearch}
-              onChange={(e) => setHeaderSearch(e.target.value)}
-            />
-          </form>
 
           <NavLink
             to="/alerts"

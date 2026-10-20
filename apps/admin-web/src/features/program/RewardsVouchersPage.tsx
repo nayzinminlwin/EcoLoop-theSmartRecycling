@@ -461,13 +461,6 @@ export function RewardsVouchersPage(): React.ReactElement {
           <button
             type="button"
             className="table-action"
-            onClick={() => handleOpenEdit(r.id)}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="table-action"
             onClick={() => handleToggleActive(r)}
           >
             Set {r.isActive ? "draft" : "active"}
@@ -478,6 +471,13 @@ export function RewardsVouchersPage(): React.ReactElement {
             onClick={() => handleOpenDelete(r)}
           >
             Delete
+          </button>
+          <button
+            type="button"
+            className="table-action table-action-edit"
+            onClick={() => handleOpenEdit(r.id)}
+          >
+            Edit
           </button>
         </div>
       )

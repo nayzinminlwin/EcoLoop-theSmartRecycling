@@ -215,15 +215,15 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
                 isResolved
                   ? "green"
                   : isCollected
-                  ? "amber"
-                  : "red"
+                    ? "amber"
+                    : "red"
               }
             >
               {isResolved
                 ? "Resolved"
                 : isCollected
-                ? "Ready to resolve"
-                : "Critical · collection required"}
+                  ? "Ready to resolve"
+                  : "Critical · collection required"}
             </Badge>
           </div>
           <h2>
@@ -279,8 +279,8 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
                 operations.collectionStatus === "collected"
                   ? "green"
                   : operations.collectionStatus === "scheduled"
-                  ? "amber"
-                  : "gray"
+                    ? "amber"
+                    : "gray"
               }
             >
               {COLLECTION_LABELS[operations.collectionStatus]}
@@ -490,8 +490,8 @@ export function CapacityAlertsPage(): React.ReactElement {
                     toneClass === "critical"
                       ? "var(--red)"
                       : toneClass === "warning"
-                      ? "var(--amber)"
-                      : "var(--green)",
+                        ? "var(--amber)"
+                        : "var(--green)",
                   borderRadius: "999px"
                 }}
               />
@@ -518,8 +518,8 @@ export function CapacityAlertsPage(): React.ReactElement {
               cs === "collected"
                 ? "green"
                 : cs === "scheduled"
-                ? "amber"
-                : "gray"
+                  ? "amber"
+                  : "gray"
             }
           >
             {COLLECTION_LABELS[cs]}
