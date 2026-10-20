@@ -19,7 +19,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 | A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | `bf1185f` |
 | A3 Tasks/service identity/vision/fallback/evidence | Agent | IMPLEMENTED | Code gates, hosted four-call smoke, live Cloud Run/gateway configuration, and pending durable transport trace recorded in `evidence/A3_VISION_AND_TRANSPORT.md` | `413faa3` |
-| H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
+| H2 console/provider/infrastructure handoff | Developer | IN_PROGRESS | CLI configuration checks recorded; signed OIDC/private transport and durable settlement trace remain blocked | — |
 | A4 UI/operations/current deployed candidate | Agent | NOT_STARTED | — | — |
 | H3 independent device/browser rehearsal | Developer | NOT_STARTED | — | — |
 | A5 defect closure/final release freeze | Agent | NOT_STARTED | — | — |
@@ -29,7 +29,7 @@ Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCK
 ## 2. Resume checkpoint
 
 ```text
-Updated: 2026-10-20 20:00 MYT
+Updated: 2026-10-20 22:55 MYT
 Executor/model and role: Copilot SDK in VS Code; repository implementation assistant
 Actual presentation date/time/time zone; hours remaining: 2026-10-20 20:00 MYT; approximately 16 hours remaining at update time
 Phase and bounded substep: A3 implemented; durable private transport trace is the first blocker before A4
@@ -43,9 +43,9 @@ Current first failing boundary + reproduction: Durable private source-read/artif
 Safe request/trace/session/batch/job/attempt/result IDs: none; provider smoke used image SHA `d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6`
 Evidence paths: `evidence/A3_VISION_AND_TRANSPORT.md`; `evidence/SEEDING_AND_QR.md`
 Audit findings closed, with independent proof: UA-029–037 and UA-047/052 code/test gates recorded; UA-038 remains IN_PROGRESS pending durable trace
-Open blockers, owner, exact next action: Developer/H2 must perform one genuine device or seeded-image submission and capture safe job/attempt/artifact/result IDs plus the durable Tasks/gateway trace
+Open blockers, owner, exact next action: H2 CLI checks are recorded in `evidence/H2_CLOUD_HANDOFF.md`; developer must authorize/run exact Tasks-identity OIDC preflight and one genuine seeded-image/device submission, then capture safe job/attempt/artifact/result IDs plus durable Tasks/gateway/settlement evidence
 Commit SHA or explicit uncommitted/blocked state: A3 implementation/deployment fixes `94d3742`, `5679f97`, `413faa3`; phase status IMPLEMENTED, not COMPLETE
-Next exact substep and required read set: run the private source/artifact/gateway/Tasks trace using `evidence/A3_VISION_AND_TRANSPORT.md`, then update UA-038 and phase status only if the settlement evidence is durable
+Next exact substep and required read set: resolve the H2 blockers in `evidence/H2_CLOUD_HANDOFF.md`, run the private source/artifact/gateway/Tasks trace using `evidence/A3_VISION_AND_TRANSPORT.md`, then update UA-038 and phase status only if the settlement evidence is durable
 ```
 
 Preserve initially untracked `.vscode/`, `Demo_Screenshots/`, `android/build/`, `assets/trash_images/` unless their owner explicitly authorizes a scoped change. Never stage these incidentally.
@@ -114,7 +114,7 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-035 Gemini schema/prompt/bounds | A3 | FIXED_VERIFIED | Canonical labels, candidate identity, confidence, bounded object schema and normalized geometry prompt | Gemini validator tests; hosted schema smoke | `94d3742` |
 | UA-036 confidence/taxonomy/count rules | A3 | FIXED_VERIFIED | Low-confidence detector findings escalate; Gemini low confidence/invalid inventory is unresolved | Vision suite | `94d3742` |
 | UA-037 real provider/lease budgets | A3 | FIXED_VERIFIED | 300-second deadline, bounded provider calls and leases | Build; four-call smoke; deployed latency pending H2 | `94d3742` |
-| UA-038 durable canonical run evidence | A3 | IN_PROGRESS | Durable artifact bucket is required in production and references are checkpointed; H2 artifact/IAM and real trace remain pending | Code gate; H2 private write pending | `94d3742` |
+| UA-038 durable canonical run evidence | A3 | IN_PROGRESS | Durable artifact bucket is required in production and references are checkpointed; H2 CLI checks passed but private write and real trace remain pending | Code gate; H2 configuration evidence; signed/private transport pending | `94d3742` |
 | UA-039 actual artifact retention | A4 | OPEN | — | — | — |
 | UA-040 current token ownership | A4 | OPEN | — | — | — |
 | UA-041 durable multi-device dispatch | A4 | OPEN | — | — | — |
