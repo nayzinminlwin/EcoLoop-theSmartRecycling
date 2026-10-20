@@ -121,13 +121,57 @@ export class FirestoreSessionsStore implements SessionsStore {
       const current = requireSession(sessionSnapshot.data(), sessionId);
       assertOwner(current, identity.uid);
       assertVersion(current, expectedVersion);
-      assertUnsubmitted(current);
       const reservationRef = this.firestore.doc(`binOperations/${current.binId}`);
       const residentRef = this.firestore.doc(`residents/${identity.uid}`);
+      const currentRecord = current as unknown as Record<string, unknown>;
       const reservationSnapshot = await transaction.get(reservationRef);
       const residentSnapshot = await transaction.get(residentRef);
+      const jobRef = currentRecord.jobId === undefined
+        ? null
+        : this.firestore.doc(`inferenceJobs/${String(currentRecord.jobId)}`);
+      const resultRef = currentRecord.resultId === undefined
+        ? null
+        : this.firestore.doc(`depositResults/${String(currentRecord.resultId)}`);
+      const batchRef = currentRecord.batchId === undefined
+        ? null
+        : this.firestore.doc(`deposits/${String(currentRecord.batchId)}`);
+      const jobSnapshot = jobRef === null ? null : await transaction.get(jobRef);
+      const resultSnapshot = resultRef === null ? null : await transaction.get(resultRef);
+      const batchSnapshot = batchRef === null ? null : await transaction.get(batchRef);
+      if (current.stage === "completed" || current.stage === "cancelled") {
+        throw new DomainError("invalid_transition", "This scan is already finished");
+      }
       const updated = updateSession(current, now, { stage: "cancelled", terminationReason: "resident_cancelled", version: current.version + 1 });
       updateDocument(transaction, sessionRef, updated);
+      if (jobRef !== null && jobSnapshot?.exists) {
+        transaction.update(jobRef, {
+          state: "failed",
+          activeAttemptId: null,
+          activeLeaseExpiresAt: null,
+          failureReason: "resident_cancelled",
+          updatedAt: now,
+        });
+      }
+      if (resultRef !== null && resultSnapshot?.exists && resultSnapshot.data()?.outcome === "processing") {
+        transaction.update(resultRef, {
+          outcome: "review",
+          explanation: "resident_cancelled",
+          reasonCodes: ["resident_cancelled"],
+          pointsAwarded: null,
+          updatedAt: now,
+        });
+      }
+      if (batchRef !== null && batchSnapshot?.exists && batchSnapshot.data()?.status === "processing") {
+        transaction.update(batchRef, {
+          status: "review",
+          pointsAwarded: null,
+          spaceContributionSpc: 0,
+          totalDetectedObjectCount: null,
+          lines: [],
+          traceId: String(current.id),
+          updatedAt: now,
+        });
+      }
       if (reservationSnapshot.exists && reservationSnapshot.data()?.sessionId === sessionId) {
         transaction.update(reservationRef, { phase: "available", ownerId: null, sessionId: null, expiresAt: null, version: (reservationSnapshot.data()?.version ?? 0) + 1, updatedAt: now });
       }

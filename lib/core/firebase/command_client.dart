@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' hide log;
 
 import 'package:cloud_functions/cloud_functions.dart';
 
@@ -160,8 +160,16 @@ class CommandClient {
       if (envelope.requestId != requestId) {
         throw const FormatException('Callable response request ID mismatch');
       }
-      if (envelope.isError) {
+if (envelope.isError) {
         final error = envelope.error!;
+        print('[CommandClient._call] scanBinQr callable returned error envelope');
+        print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+        print('[CommandClient._call]   envelope.requestId: ${envelope.requestId}');
+        print('[CommandClient._call]   envelope.traceId: ${envelope.traceId}');
+        print('[CommandClient._call]   envelope.error.code: ${error.code}');
+        print('[CommandClient._call]   envelope.error.message: ${error.message}');
+        print('[CommandClient._call]   envelope.error.retryable: ${error.retryable}');
+        print('[CommandClient._call]   envelope.error.details: ${error.details}');
         throw AppFailure(
           code: _mapErrorCode(error.code),
           messageKey: 'backend.${error.code}',
@@ -170,10 +178,24 @@ class CommandClient {
           traceId: envelope.traceId,
         );
       }
+      print('[CommandClient._call] $operation callable succeeded');
+      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+      print('[CommandClient._call]   envelope.requestId: ${envelope.requestId}');
+      print('[CommandClient._call]   envelope.traceId: ${envelope.traceId}');
       return envelope;
-    } on AppFailure {
+} on AppFailure catch (error) {
+      print('[CommandClient._call] scanBinQr callable threw AppFailure (rethrow)');
+      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+      print('[CommandClient._call]   appFailure.code: ${error.code}');
+      print('[CommandClient._call]   appFailure.messageKey: ${error.messageKey}');
+      print('[CommandClient._call]   appFailure.retryable: ${error.retryable}');
+      print('[CommandClient._call]   appFailure.requestId: ${error.requestId}');
+      print('[CommandClient._call]   appFailure.traceId: ${error.traceId}');
       rethrow;
     } on FormatException catch (error) {
+      print('[CommandClient._call] scanBinQr callable failed (FormatException)');
+      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+      print('[CommandClient._call]   formatException.message: ${error.message}');
       throw AppFailure(
         code: AppFailureCodes.invalidData,
         messageKey: 'backendContract.${error.message}',
@@ -187,6 +209,12 @@ class CommandClient {
       final domainCode = details['code'] is String
           ? details['code']! as String
           : error.code.replaceAll('-', '_');
+      print('[CommandClient._call] scanBinQr callable failed (FirebaseFunctionsException)');
+      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+      print('[CommandClient._call]   functionsException.code: ${error.code}');
+      print('[CommandClient._call]   functionsException.message: ${error.message}');
+      print('[CommandClient._call]   functionsException.details: $details');
+      print('[CommandClient._call]   mapped domainCode: $domainCode');
       throw AppFailure(
         code: _mapErrorCode(domainCode),
         messageKey: 'backend.$domainCode',
@@ -202,6 +230,10 @@ class CommandClient {
             : null,
       );
     } catch (error) {
+      print('[CommandClient._call] scanBinQr callable failed (unknown error)');
+      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
+      print('[CommandClient._call]   error type: ${error.runtimeType}');
+      print('[CommandClient._call]   error: $error');
       throw AppFailure(
         code: AppFailureCodes.unavailable,
         messageKey: 'backend.transportUnavailable',
