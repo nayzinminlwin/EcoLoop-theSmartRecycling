@@ -13,7 +13,7 @@ void main() {
     profile: const {'id': 'RES-000842'},
     wallet: const {
       'residentId': 'RES-000842',
-      'balance': 245,
+      'balance': 25,
       'updatedAt': '2024-05-20T11:00:00+08:00',
       'version': 1,
     },
@@ -32,7 +32,7 @@ void main() {
         'categoryId': 'food',
         'tag': null,
         'imageUrl': null,
-        'pointsCost': 100,
+        'pointsCost': 10,
         'expiresAt': '2024-06-30T23:59:00.000',
         'isActive': true,
         'maxRedemptionsPerResident': 1,
@@ -67,8 +67,8 @@ void main() {
     final repeated = await repository.redeemReward('reward-snack', 'attempt-1');
 
     expect(first.voucher.id, repeated.voucher.id);
-    expect(first.wallet.balance, 145);
-    expect(repeated.wallet.balance, 145);
+    expect(first.wallet.balance, 15);
+    expect(repeated.wallet.balance, 15);
     expect((await repository.getVouchers(null)), hasLength(2));
   });
 

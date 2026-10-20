@@ -46,6 +46,10 @@ class MockAccountRepository implements AccountRepository {
       ? const AuthState(uid: 'RES-000842', role: AppRole.user, isSignedIn: true)
       : const AuthState(uid: null, role: null, isSignedIn: false);
 
+  @override
+  Future<AuthState> signInWithGoogle() =>
+      resumeDemoSession().then((_) => getAuthState());
+
   void _ensureSignedIn() {
     if (!_signedIn) {
       throw const AppFailure(

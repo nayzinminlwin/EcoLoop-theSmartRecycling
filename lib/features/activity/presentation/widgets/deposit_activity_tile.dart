@@ -27,14 +27,17 @@ class DepositActivityTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, tone, points) = switch (deposit.status) {
+      DepositStatus.processing => ('Processing', AppBadgeTone.amber, 'Pending'),
       DepositStatus.verified => (
         'Verified',
         AppBadgeTone.green,
         '+${AppFormatters.points(deposit.pointsAwarded ?? 0)}',
       ),
       DepositStatus.review => ('Review', AppBadgeTone.amber, 'Pending'),
+      DepositStatus.excluded => ('Excluded', AppBadgeTone.gray, '0'),
+      DepositStatus.empty => ('Empty', AppBadgeTone.gray, '0'),
       DepositStatus.rejected => ('Rejected', AppBadgeTone.red, '0'),
-      DepositStatus.unknown => ('Unknown', AppBadgeTone.gray, '0'),
+      DepositStatus.unknown => ('Unavailable', AppBadgeTone.gray, '0'),
     };
     final metadata = _metadata(context);
 
@@ -58,10 +61,20 @@ class DepositActivityTile extends StatelessWidget {
     final displayOccurred = clock!.toDisplay(deposit.occurredAt);
     var stamp = AppFormatters.activityStamp(displayOccurred, displayNow);
     if (showWeight) {
-      final weightKg = MaterialWeightConstants.getWeightKg(
-        deposit.materialType,
-        deposit.itemCount,
-      );
+      final weightKg = deposit.lines.isEmpty
+          ? MaterialWeightConstants.getWeightKg(
+              deposit.materialType,
+              deposit.acceptedItemCount,
+            )
+          : deposit.lines.fold<double>(
+              0,
+              (sum, line) =>
+                  sum +
+                  MaterialWeightConstants.getWeightKg(
+                    line.materialType,
+                    line.acceptedCount,
+                  ),
+            );
       stamp = '$stamp · ${AppFormatters.weight(weightKg)}';
     }
     lines.add(stamp);
@@ -85,7 +98,7 @@ class DepositActivityTile extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Text(
-        deposit.materialLabel,
+        _materialTitle,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: AppTypography.activityTitle.copyWith(color: AppColors.text),
@@ -102,6 +115,10 @@ class DepositActivityTile extends StatelessWidget {
         ),
     ],
   );
+
+  String get _materialTitle => deposit.lines.isEmpty
+      ? deposit.materialLabel
+      : deposit.lines.map((line) => line.label).toSet().join(' · ');
 
   Widget _amountBlock(
     BuildContext context,

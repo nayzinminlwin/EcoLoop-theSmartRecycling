@@ -29,7 +29,6 @@ class WalletSummaryCard extends StatelessWidget {
         : wallet.nextRewardCost! - wallet.balance;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppRadii.prominent),
@@ -40,11 +39,11 @@ class WalletSummaryCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              right: -20,
-              top: -22,
+              right: -15,
+              top: -20,
               child: Container(
-                width: 120,
-                height: 120,
+                width: 130,
+                height: 130,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24),
@@ -54,9 +53,11 @@ class WalletSummaryCard extends StatelessWidget {
                 ),
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text(
                   'Available EcoPoints',
                   style: AppTypography.body.copyWith(
@@ -141,7 +142,8 @@ class WalletSummaryCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );

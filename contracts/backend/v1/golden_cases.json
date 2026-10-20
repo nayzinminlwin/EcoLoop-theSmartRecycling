@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "backend.v1",
+  "cases": [
+    { "caseId": "ac04-normal-mixed", "scenario": "normal mixed batch", "input": { "plastic_bottle": 2, "aluminium_can": 3, "paper_bag": 1, "cardboard_item": 1 }, "expected": { "outcome": "verified", "acceptedCount": 6, "totalDetectedObjectCount": 7, "pointsAwarded": 37, "spaceContributionSpc": 61 } },
+    { "caseId": "ac05-excluded-cardboard", "scenario": "confident exclusion", "input": { "cardboard_item": 1 }, "expected": { "outcome": "excluded", "acceptedCount": 0, "totalDetectedObjectCount": 1, "pointsAwarded": 0, "spaceContributionSpc": 15 } },
+    { "caseId": "ac06-empty", "scenario": "validated empty image", "input": {}, "expected": { "outcome": "empty", "acceptedCount": 0, "totalDetectedObjectCount": 0, "pointsAwarded": 0, "spaceContributionSpc": 0 } },
+    { "caseId": "ac06-unreadable", "scenario": "unreadable image", "input": null, "expected": { "outcome": "review", "acceptedCount": null, "totalDetectedObjectCount": null, "pointsAwarded": null, "spaceContributionSpc": 50 } },
+    { "caseId": "ac07-review", "scenario": "one unresolved candidate", "input": { "plastic_bottle": 2, "unknown": 1 }, "expected": { "outcome": "review", "acceptedCount": 2, "totalDetectedObjectCount": 3, "pointsAwarded": null, "spaceContributionSpc": 30 } },
+    { "caseId": "ac08-review-correction", "scenario": "unresolved candidate resolved to paper bag", "input": { "plastic_bottle": 2, "paper_bag": 1 }, "expected": { "outcome": "verified", "acceptedCount": 3, "totalDetectedObjectCount": 3, "pointsAwarded": 13, "spaceContributionSpc": 28, "spaceCorrectionSpc": -2 } },
+    { "caseId": "ac15-redemption", "scenario": "wallet redemption", "input": { "balanceBefore": 37, "rewardId": "reward-cafe", "cost": 25 }, "expected": { "balanceAfter": 12, "voucherState": "available", "remainingUses": 1 } },
+    { "caseId": "ac17-voucher-used", "scenario": "single-use voucher", "input": { "stateBefore": "available", "remainingUsesBefore": 1 }, "expected": { "stateAfter": "used", "remainingUsesAfter": 0 } },
+    { "caseId": "ac17-voucher-expired", "scenario": "expired voucher", "input": { "stateBefore": "available", "serverTime": "2026-11-18T00:00:01Z" }, "expected": { "errorCode": "voucher_expired", "walletRefund": 0 } }
+  ]
+}

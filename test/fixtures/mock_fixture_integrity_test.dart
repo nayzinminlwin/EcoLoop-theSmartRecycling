@@ -47,7 +47,10 @@ void main() {
           .where((item) => item.status == DepositStatus.verified)
           .toList();
       expect(verified, hasLength(12));
-      expect(verified.fold<int>(0, (sum, item) => sum + item.itemCount), 26);
+      expect(
+        verified.fold<int>(0, (sum, item) => sum + (item.itemCount ?? 0)),
+        26,
+      );
       expect(
         verified.fold<double>(
           0,
@@ -55,7 +58,7 @@ void main() {
               sum +
               MaterialWeightConstants.getWeightKg(
                 item.materialType,
-                item.itemCount,
+                item.itemCount ?? 0,
               ),
         ),
         closeTo(1.04, 0.0001),

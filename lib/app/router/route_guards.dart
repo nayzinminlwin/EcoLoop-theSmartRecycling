@@ -35,6 +35,23 @@ class RouteGuards extends ChangeNotifier {
         notifyListeners();
       },
     );
+    unawaited(_resolveInitialState());
+  }
+
+  Future<void> _resolveInitialState() async {
+    try {
+      final value = await _repository.getAuthState();
+      if (_authState == null) {
+        _authState = value;
+        _error = null;
+        notifyListeners();
+      }
+    } catch (error) {
+      if (_authState == null) {
+        _error = error;
+        notifyListeners();
+      }
+    }
   }
 
   Future<void> retry() async {

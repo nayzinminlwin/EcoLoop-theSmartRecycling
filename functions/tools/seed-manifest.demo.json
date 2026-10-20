@@ -1,0 +1,43 @@
+{
+  "manifestVersion": "seed.v2",
+  "seedId": "ecoloop-demo-reference-v1",
+  "policy": { "id": "policy-v1", "version": "policy-v1" },
+  "bins": [
+    { "id": "bin-demo-main", "qrId": "qr-demo-main", "displayName": "EcoLoop Demo Bin", "locationDetail": "Demonstration Booth", "capacitySpc": 2000, "openingOccupiedSpc": 0, "enabled": true, "isOnline": true, "sampleScenario": "main", "syntheticOpeningOccupancy": false },
+    { "id": "bin-sample-near-full", "qrId": "qr-sample-near-full", "displayName": "Sample Scenario: Near-full Bin", "locationDetail": "Demonstration scenario station", "capacitySpc": 2000, "openingOccupiedSpc": 1900, "enabled": true, "isOnline": true, "sampleScenario": "near_full", "syntheticOpeningOccupancy": true },
+    { "id": "bin-sample-full", "qrId": "qr-sample-full", "displayName": "Sample Scenario: Full Bin", "locationDetail": "Demonstration scenario station", "capacitySpc": 2000, "openingOccupiedSpc": 2000, "enabled": true, "isOnline": true, "sampleScenario": "full", "syntheticOpeningOccupancy": true },
+    { "id": "bin-sample-offline", "qrId": "qr-sample-offline", "displayName": "Sample Scenario: Offline Bin", "locationDetail": "Demonstration scenario station", "capacitySpc": 2000, "openingOccupiedSpc": 0, "enabled": true, "isOnline": false, "sampleScenario": "offline", "syntheticOpeningOccupancy": false },
+    { "id": "bin-sample-disabled", "qrId": "qr-sample-disabled", "displayName": "Sample Scenario: Disabled Bin", "locationDetail": "Demonstration scenario station", "capacitySpc": 2000, "openingOccupiedSpc": 0, "enabled": false, "isOnline": true, "sampleScenario": "disabled", "syntheticOpeningOccupancy": false }
+  ],
+  "extraQrCodes": [
+    { "id": "qr-sample-disabled-code", "binId": "bin-demo-main", "enabled": false, "displayName": "Sample Scenario: Disabled QR Mapping" }
+  ],
+  "assets": [
+    { "id": "asset-demo-0001", "sourceRef": "assets/trash_images/trash0.jpg", "displayName": "Prepared image 01", "sortOrder": 1 },
+    { "id": "asset-demo-0002", "sourceRef": "assets/trash_images/trash1.webp", "displayName": "Prepared image 02", "sortOrder": 2 },
+    { "id": "asset-demo-0003", "sourceRef": "assets/trash_images/trash11.jpg", "displayName": "Prepared image 03", "sortOrder": 3 },
+    { "id": "asset-demo-0004", "sourceRef": "assets/trash_images/trash2.webp", "displayName": "Prepared image 04", "sortOrder": 4 },
+    { "id": "asset-demo-0005", "sourceRef": "assets/trash_images/trash3.webp", "displayName": "Prepared image 05", "sortOrder": 5 },
+    { "id": "asset-demo-0006", "sourceRef": "assets/trash_images/trash4.webp", "displayName": "Prepared image 06", "sortOrder": 6 },
+    { "id": "asset-demo-0007", "sourceRef": "assets/trash_images/trash5.jpg", "displayName": "Prepared image 07", "sortOrder": 7 },
+    { "id": "asset-demo-0008", "sourceRef": "assets/trash_images/trash6.jpeg", "displayName": "Prepared image 08", "sortOrder": 8 },
+    { "id": "asset-demo-0009", "sourceRef": "assets/trash_images/trash8.jpg", "displayName": "Prepared image 09", "sortOrder": 9 },
+    { "id": "asset-demo-0010", "sourceRef": "assets/trash_images/trash9.jpg", "displayName": "Prepared image 10", "sortOrder": 10 },
+    { "id": "asset-demo-0011", "sourceRef": "assets/trash_images/trash10.svg", "displayName": "Prepared image 11", "sortOrder": 11 },
+    { "id": "asset-demo-0012", "sourceRef": "assets/trash_images/trash12.jpg", "displayName": "Prepared image 12", "sortOrder": 12 },
+    { "id": "asset-demo-0013", "sourceRef": "assets/trash_images/trash13.jpg", "displayName": "Prepared image 13", "sortOrder": 13 },
+    { "id": "asset-demo-0014", "sourceRef": "assets/trash_images/trash14.webp", "displayName": "Prepared image 14", "sortOrder": 14 },
+    { "id": "asset-demo-0015", "sourceRef": "assets/trash_images/trash15.jpg", "displayName": "Prepared image 15", "sortOrder": 15 },
+    { "id": "asset-demo-0016", "sourceRef": "assets/trash_images/trash909.png", "displayName": "Prepared image 16", "sortOrder": 16 }
+  ],
+  "rewardCategories": [
+    { "id": "food", "displayName": "Food & drink", "iconKey": "utensils", "sortOrder": 1, "isActive": true },
+    { "id": "shopping", "displayName": "Shopping", "iconKey": "shopping-bag", "sortOrder": 2, "isActive": true }
+  ],
+  "rewards": [
+    { "id": "reward-snack", "title": "Vending snack", "description": "Demonstrate exchanging EcoPoints for a single-use snack voucher.", "merchant": "EcoLoop Demonstration", "categoryId": "food", "pointsCost": 10, "artKey": "snack", "tag": "Demo reward", "sortOrder": 1 },
+    { "id": "reward-cafe", "title": "RM5 cafe voucher", "description": "Demonstrate exchanging EcoPoints for a single-use cafe voucher.", "merchant": "EcoLoop Demonstration", "categoryId": "food", "pointsCost": 25, "artKey": "cafe", "tag": "Demo reward", "sortOrder": 2 },
+    { "id": "reward-meal", "title": "Meal voucher", "description": "Demonstrate exchanging EcoPoints for a single-use meal voucher.", "merchant": "EcoLoop Demonstration", "categoryId": "food", "pointsCost": 50, "artKey": "meal", "tag": "Demo reward", "sortOrder": 3 },
+    { "id": "reward-shopping", "title": "RM10 shopping voucher", "description": "Demonstrate exchanging EcoPoints for a single-use shopping voucher.", "merchant": "EcoLoop Demonstration", "categoryId": "shopping", "pointsCost": 75, "artKey": "shopping", "tag": "Demo reward", "sortOrder": 4 }
+  ]
+}

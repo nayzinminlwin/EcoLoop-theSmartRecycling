@@ -1,0 +1,31 @@
+# Cloud Build context is intentionally limited to vision and backend contract inputs.
+*
+
+!services/
+!services/vision/
+!services/vision/**
+!contracts/
+!contracts/**
+!infra/
+!infra/cloudbuild.vision.yaml
+!infra/cloudrun.vision.yaml
+!tools/
+!tools/backend/
+!tools/backend/**
+
+# Never upload local credentials, caches, generated Flutter output, design assets,
+# or user-provided screenshots even when they are added under an included tree.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+**/.uv/
+**/.cache/
+**/build/
+**/node_modules/
+**/Demo_Screenshots/
+**/EcoLoop_AI_Figma_Design_Artifacts/
+**/assets/mock/

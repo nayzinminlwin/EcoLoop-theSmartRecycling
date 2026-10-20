@@ -5,8 +5,8 @@ import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/activity/domain/models/recycling_summary.dart';
 import 'package:flutter/material.dart';
 
-/// Compact joined impact card with a center divider, keeping the derived
-/// verified deposit count and recycled weight.
+/// Compact joined impact card with a center divider and an honest estimate
+/// label for weight derived from accepted verified item counts.
 class ImpactSummaryCard extends StatelessWidget {
   const ImpactSummaryCard({required this.summary, super.key});
 
@@ -32,7 +32,7 @@ class ImpactSummaryCard extends StatelessWidget {
           Expanded(
             child: _Metric(
               value: AppFormatters.weight(summary.verifiedWeightKg),
-              label: 'Verified recycled',
+              label: 'Estimated recycled',
             ),
           ),
         ],

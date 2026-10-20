@@ -1,0 +1,123 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function canReadCatalog() {
+      return signedIn();
+    }
+
+    match /bins/{binId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /binQrMappings/{mappingId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /simulationAssets/{assetId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /policies/{policyId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /policyPointers/{pointerId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /rewards/{rewardId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /rewardCategories/{categoryId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /guideContent/{contentId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /guideMaterials/{materialId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /guideSteps/{stepId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
+    match /residents/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update, delete: if false;
+
+      match /{subcollection}/{documentId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if signedIn() &&
+        resource.data.ownerId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /batches/{batchId} {
+      allow read: if signedIn() &&
+        resource.data.ownerId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /receipts/{receiptId} {
+      allow read: if signedIn() &&
+        resource.data.ownerId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /inferenceJobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if false;
+
+      match /{subcollection}/{documentId} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    match /reviewTickets/{ticketId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /notificationEvents/{eventId} {
+      allow read: if signedIn() &&
+        resource.data.recipientUid == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

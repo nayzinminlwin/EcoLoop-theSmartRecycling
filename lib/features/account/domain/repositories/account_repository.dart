@@ -7,6 +7,7 @@ import '../models/profile_update_request.dart';
 import '../models/resident_profile.dart';
 
 abstract interface class AccountRepository {
+  Future<AuthState> signInWithGoogle();
   Future<AuthState> getAuthState();
   Stream<AuthState> watchAuthState();
   Future<ResidentProfile> getProfile();

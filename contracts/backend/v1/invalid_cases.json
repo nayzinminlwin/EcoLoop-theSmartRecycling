@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "backend.v1",
+  "cases": [
+    { "caseId": "fractional-count", "target": "receiptLine.count", "value": 1.5, "expectedError": "integer_required" },
+    { "caseId": "negative-cost", "target": "reward.cost", "value": -25, "expectedError": "non_negative_required" },
+    { "caseId": "invalid-geometry", "target": "finding.box", "value": { "x1": 0.8, "y1": 0.1, "x2": 0.2, "y2": 0.9 }, "expectedError": "ordered_normalized_box_required" },
+    { "caseId": "mismatched-source-attempt", "target": "finding.attemptId", "value": { "jobId": "job-1", "attemptId": "attempt-from-job-2" }, "expectedError": "source_identity_mismatch" },
+    { "caseId": "owner-injection", "target": "command.payload.ownerId", "value": "resident-other", "expectedError": "unexpected_owner_input" },
+    { "caseId": "award-injection", "target": "command.payload.pointsAwarded", "value": 999, "expectedError": "unexpected_award_input" },
+    { "caseId": "unsupported-version", "target": "schemaVersion", "value": "backend.v0", "expectedError": "unsupported_version" },
+    { "caseId": "malformed-timestamp", "target": "submittedAt", "value": "not-a-timestamp", "expectedError": "date_time_required" },
+    { "caseId": "zero-line-count", "target": "receiptLine.count", "value": 0, "expectedError": "positive_line_count_required" },
+    { "caseId": "unknown-count-as-zero", "target": "batch.totalDetectedObjectCount", "value": 0, "expectedError": "null_required_for_unreadable" }
+  ]
+}

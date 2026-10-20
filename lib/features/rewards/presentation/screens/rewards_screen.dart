@@ -214,7 +214,12 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
     try {
       final receipt = await ref
           .read(rewardsRepositoryProvider)
-          .redeemReward(reward.id, _idempotencyKey!);
+          .redeemReward(
+            reward.id,
+            _idempotencyKey!,
+            offerVersion: reward.offerVersion,
+            displayedCost: reward.pointsCost,
+          );
       if (!mounted) return;
       _redeeming = false;
       Navigator.pop(context);
@@ -223,7 +228,9 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         ..invalidate(rewardsProvider)
         ..invalidate(vouchersProvider(null));
       setState(() {
-        _successMessage = '${receipt.voucher.title} added to My vouchers.';
+        _successMessage =
+            '${receipt.voucher.title} added to My vouchers. '
+            'Code: ${receipt.voucher.code}';
         _successVoucherId = receipt.voucher.id;
       });
     } on AppFailure catch (failure) {
@@ -232,6 +239,10 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
           AppFailureCodes.insufficientPoints =>
             'You do not have enough points for this reward.',
           AppFailureCodes.conflict => 'You have reached the redemption limit.',
+          AppFailureCodes.offerChanged =>
+            'This offer changed. Refresh the rewards list and try again.',
+          AppFailureCodes.redemptionLimitReached =>
+            'You have reached the redemption limit for this reward.',
           _ => 'This reward is no longer available. Check and try again.',
         };
         _redeeming = false;

@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: SettingsScreen())),
     );
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Faris Rezza'), findsOneWidget);
@@ -35,7 +35,7 @@ void main() {
         child: const MaterialApp(home: SettingsScreen()),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
     expect(find.text('Settings'), findsOneWidget);
   });
 }

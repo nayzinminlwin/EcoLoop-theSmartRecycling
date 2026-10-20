@@ -17,6 +17,7 @@ class ResidentTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) => AppBar(
+    toolbarHeight: 72,
     backgroundColor: AppColors.background,
     surfaceTintColor: Colors.transparent,
     automaticallyImplyLeading: false,

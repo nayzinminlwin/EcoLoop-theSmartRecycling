@@ -31,10 +31,15 @@ final scanResultWatchProvider = StreamProvider.family<DepositResult?, String>(
 /// The unfinished scan session the resident should resume, tracked from
 /// session/controller state instead of the current route string.
 class ActiveScanSession {
-  const ActiveScanSession({required this.sessionId, required this.stage});
+  const ActiveScanSession({
+    required this.sessionId,
+    required this.stage,
+    required this.sessionVersion,
+  });
 
   final String sessionId;
   final ScanStage stage;
+  final int sessionVersion;
 
   bool get isUnfinished =>
       stage != ScanStage.completed && stage != ScanStage.cancelled;
@@ -48,8 +53,23 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
   @override
   ActiveScanSession? build() => null;
 
-  void track(DepositSession session) =>
-      state = ActiveScanSession(sessionId: session.id, stage: session.stage);
+  void track(DepositSession session) {
+    final current = state;
+    if (current != null &&
+        current.sessionId == session.id &&
+        session.sessionVersion < current.sessionVersion) {
+      return;
+    }
+    state = ActiveScanSession(
+      sessionId: session.id,
+      stage: session.stage,
+      sessionVersion: session.sessionVersion,
+    );
+  }
+
+  void clearIf(String sessionId) {
+    if (state?.sessionId == sessionId) state = null;
+  }
 
   void clear() => state = null;
 }

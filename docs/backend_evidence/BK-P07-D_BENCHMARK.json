@@ -1,0 +1,48 @@
+{
+  "benchmarkVersion": "bk-p07-d.1",
+  "endpoint": "https://ecoloop-vision-tl2e2dp5xq-as.a.run.app/operator/probe",
+  "image": {
+    "sha256": "17004ead9caa7bc9830ae5182aa37b5512f523e15a40e1b9a6c0e421f44085cf",
+    "bytes": 48751,
+    "path": "..\\..\\assets\\trash_images\\trash0.jpg"
+  },
+  "sequential": [
+    {
+      "status": "success",
+      "httpStatus": 200,
+      "elapsedMs": 52626.22,
+      "traceId": "e0bf74a581af8be3868eb78bf239c142"
+    },
+    {
+      "status": "success",
+      "httpStatus": 200,
+      "elapsedMs": 18185.67,
+      "traceId": "65de2b975d0b74652d46fedde7d16ef5"
+    }
+  ],
+  "concurrentBurst": {
+    "size": 2,
+    "results": [
+      {
+        "status": "success",
+        "httpStatus": 200,
+        "elapsedMs": 27041.31,
+        "traceId": "c270c6c36c5e834505903280fff053b6"
+      },
+      {
+        "status": "success",
+        "httpStatus": 200,
+        "elapsedMs": 16813.21,
+        "traceId": "e18adcca3ce1ef1794bb945e16d35c91"
+      }
+    ]
+  },
+  "summary": {
+    "successfulRequests": 4,
+    "totalRequests": 4,
+    "minMs": 16813.21,
+    "medianMs": 22613.489999999998,
+    "maxMs": 52626.22,
+    "providerMemory": "NOT_MEASURED_PROVIDER_EXECUTION_REMOTE"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecoloop.example/contracts/backend/v1/commands.schema.json",
+  "title": "EcoLoop backend command and response contract",
+  "description": "Authenticated logical commands and safe responses. Server-controlled identity and accounting fields are never accepted from a resident command.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/command" },
+    { "$ref": "#/$defs/response" },
+    { "$ref": "#/$defs/errorResponse" }
+  ],
+  "$defs": {
+    "schemaVersion": { "const": "backend.v1" },
+    "requestId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "instant": { "type": "string", "format": "date-time" },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "bootstrapResident", "scanBinQr", "confirmSession", "renewSession",
+        "reportFinishPressed", "saveImageSelection", "submitInspection",
+        "cancelSession", "recoverOperation", "updateProfile",
+        "saveNotificationPreferences", "registerDevice", "unregisterDevice",
+        "redeemReward", "simulateVoucherUse"
+      ]
+    },
+    "command": {
+      "type": "object",
+      "oneOf": [
+        { "$ref": "#/$defs/bootstrapCommand" }, { "$ref": "#/$defs/qrCommand" },
+        { "$ref": "#/$defs/sessionCommand" }, { "$ref": "#/$defs/finishCommand" },
+        { "$ref": "#/$defs/imageCommand" }, { "$ref": "#/$defs/submitCommand" },
+        { "$ref": "#/$defs/recoveryCommand" }, { "$ref": "#/$defs/profileCommand" },
+        { "$ref": "#/$defs/preferencesCommand" }, { "$ref": "#/$defs/deviceCommand" },
+        { "$ref": "#/$defs/redeemCommand" }, { "$ref": "#/$defs/voucherCommand" }
+      ]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "traceId", "status", "data"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "$ref": "#/$defs/operation" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+        "status": { "const": "committed" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["residentId", "recordIds", "version"],
+          "properties": {
+            "residentId": { "$ref": "#/$defs/uid" },
+            "recordIds": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "maxItems": 32 },
+            "version": { "type": "integer", "minimum": 0 },
+            "stage": { "type": "string", "enum": ["binFound", "ready", "itemDetected", "processing", "cancelled", "completed"] },
+            "operationState": { "type": "string", "enum": ["applied", "replayed"] }
+          }
+        }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "traceId", "status", "error"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "$ref": "#/$defs/operation" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+        "status": { "const": "error" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "unauthenticated", "permission_denied", "invalid_qr", "bin_full",
+                "bin_busy", "bin_unavailable", "processing_unavailable",
+                "active_session_exists", "session_expired", "invalid_transition",
+                "asset_unavailable", "asset_version_changed", "already_submitted",
+                "idempotency_conflict", "offer_changed", "reward_unavailable",
+                "redemption_limit_reached", "insufficient_points", "voucher_expired",
+                "voucher_used", "unsupported_version", "invalid_input", "internal"
+              ]
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 240 },
+            "retryable": { "type": "boolean" },
+            "details": { "type": "object", "additionalProperties": false, "maxProperties": 8 }
+          }
+        }
+      }
+    },
+        "baseCommand": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaVersion", "operation", "requestId", "payload"],
+          "properties": {
+            "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+            "operation": { "$ref": "#/$defs/operation" },
+            "requestId": { "$ref": "#/$defs/requestId" },
+            "payload": { "type": "object" }
+          }
+        },
+        "bootstrapCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "bootstrapResident" }, "payload": { "type": "object", "additionalProperties": false, "properties": { "displayName": { "type": "string", "minLength": 1, "maxLength": 120 }, "email": { "type": "string", "format": "email", "maxLength": 320 }, "avatarUrl": { "type": ["string", "null"], "maxLength": 2048 } } } } }
+          ]
+        },
+        "qrCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "scanBinQr" }, "payload": { "type": "object", "additionalProperties": false, "required": ["qrPayload"], "properties": { "qrPayload": { "type": "string", "minLength": 1, "maxLength": 512 } } } } }
+          ]
+        },
+        "sessionCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "enum": ["confirmSession", "renewSession", "cancelSession"] }, "payload": { "type": "object", "additionalProperties": false, "required": ["sessionId", "expectedVersion"], "properties": { "sessionId": { "$ref": "#/$defs/id" }, "expectedVersion": { "type": "integer", "minimum": 0 } } } } }
+          ]
+        },
+        "finishCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "reportFinishPressed" }, "payload": { "type": "object", "additionalProperties": false, "required": ["sessionId", "expectedVersion"], "properties": { "sessionId": { "$ref": "#/$defs/id" }, "expectedVersion": { "type": "integer", "minimum": 0 } } } } }
+          ]
+        },
+        "imageCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "saveImageSelection" }, "payload": { "type": "object", "additionalProperties": false, "required": ["sessionId", "assetId", "assetVersion", "expectedVersion"], "properties": { "sessionId": { "$ref": "#/$defs/id" }, "assetId": { "$ref": "#/$defs/id" }, "assetVersion": { "type": "string", "minLength": 1, "maxLength": 64 }, "expectedVersion": { "type": "integer", "minimum": 0 } } } } }
+          ]
+        },
+        "submitCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "submitInspection" }, "payload": { "type": "object", "additionalProperties": false, "required": ["sessionId", "assetId", "assetVersion", "expectedVersion"], "properties": { "sessionId": { "$ref": "#/$defs/id" }, "assetId": { "$ref": "#/$defs/id" }, "assetVersion": { "type": "string", "minLength": 1, "maxLength": 64 }, "expectedVersion": { "type": "integer", "minimum": 0 } } } } }
+          ]
+        },
+        "recoveryCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "recoverOperation" }, "payload": { "type": "object", "additionalProperties": false, "required": ["operationId"], "properties": { "operationId": { "$ref": "#/$defs/id" } } } } }
+          ]
+        },
+        "profileCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "updateProfile" }, "payload": { "type": "object", "additionalProperties": false, "required": ["displayName"], "properties": { "displayName": { "type": "string", "minLength": 1, "maxLength": 120 }, "expectedVersion": { "type": "integer", "minimum": 0 } } } } }
+          ]
+        },
+        "preferencesCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "saveNotificationPreferences" }, "payload": { "type": "object", "additionalProperties": false, "required": ["recyclingUpdates", "pointsCredits", "rewardReminders"], "properties": { "recyclingUpdates": { "type": "boolean" }, "pointsCredits": { "type": "boolean" }, "rewardReminders": { "type": "boolean" } } } } }
+          ]
+        },
+        "deviceCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "enum": ["registerDevice", "unregisterDevice"] }, "payload": { "type": "object", "additionalProperties": false, "required": ["deviceId"], "properties": { "deviceId": { "$ref": "#/$defs/id" }, "platform": { "type": "string", "enum": ["android", "web"] }, "token": { "type": "string", "minLength": 1, "maxLength": 4096 }, "permissionGranted": { "type": "boolean" } } } } }
+          ]
+        },
+        "redeemCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "redeemReward" }, "payload": { "type": "object", "additionalProperties": false, "required": ["rewardId", "offerVersion"], "properties": { "rewardId": { "$ref": "#/$defs/id" }, "offerVersion": { "type": "string", "minLength": 1, "maxLength": 64 } } } } }
+          ]
+        },
+        "voucherCommand": {
+          "allOf": [
+            { "$ref": "#/$defs/baseCommand" },
+            { "properties": { "operation": { "const": "simulateVoucherUse" }, "payload": { "type": "object", "additionalProperties": false, "required": ["voucherId"], "properties": { "voucherId": { "$ref": "#/$defs/id" } } } } }
+          ]
+        }
+  }
+}
