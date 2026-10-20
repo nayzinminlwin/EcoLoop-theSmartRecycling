@@ -13,6 +13,10 @@ param(
     [string]$TaskInvokerServiceAccount,
     [Parameter(Mandatory = $true)]
     [string]$ArtifactBucket,
+    [Parameter(Mandatory = $true)]
+    [string]$WorkerGatewayUrl,
+    [Parameter(Mandatory = $true)]
+    [string]$WorkerGatewayAudience,
     [string]$SourceBucket = "ecoloop-thesmartrecycling.firebasestorage.app",
     [string]$QueueName = "vision-processing"
 )
@@ -94,7 +98,7 @@ gcloud run deploy $ServiceName `
     --max=1 `
     --timeout=300s `
     --set-secrets="ROBOFLOW_API_KEY=${RoboflowSecretName}:latest,GEMINI_API_KEY=${GeminiSecretName}:latest" `
-    --set-env-vars="ECOLOOP_GEMINI_MODEL=gemini-3.8-flash,ECOLOOP_SOURCE_BUCKET=$SourceBucket,ECOLOOP_ARTIFACT_BUCKET=$bucket" `
+    --set-env-vars="ECOLOOP_GEMINI_MODEL=gemini-3.8-flash,ECOLOOP_SOURCE_BUCKET=$SourceBucket,ECOLOOP_ARTIFACT_BUCKET=$bucket,ECOLOOP_WORKER_GATEWAY_URL=$WorkerGatewayUrl,ECOLOOP_WORKER_AUDIENCE=$WorkerGatewayAudience" `
     --no-cpu-throttling `
     --quiet
 if ($LASTEXITCODE -ne 0) {
