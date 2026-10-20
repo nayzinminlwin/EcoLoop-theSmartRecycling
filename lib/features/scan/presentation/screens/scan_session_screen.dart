@@ -423,10 +423,14 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   ) {
     switch (session.stage) {
       case ScanStage.binFound || ScanStage.ready || ScanStage.itemDetected:
+        final hasSelection =
+            session.stage != ScanStage.itemDetected ||
+            _selectedAssetId != null ||
+            session.draftAssetId != null;
         return [
           AppButton(
             label: _actionLabel(session.stage),
-            onPressed: _busy
+            onPressed: _busy || !hasSelection
                 ? null
                 : () => unawaited(_advance(session, assets)),
             isLoading: _busy,
@@ -616,14 +620,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           final matchingAssets = assets.where((item) => item.id == assetId);
           final asset = matchingAssets.isNotEmpty
               ? matchingAssets.first
-              : (repository is MockScanRepository && assets.isNotEmpty
-                    ? assets.first
-                    : null);
+              : null;
           if (asset == null) {
-            if (repository is MockScanRepository) {
-              await repository.startVerification(session.id);
-              break;
-            }
             throw const AppFailure(
               code: AppFailureCodes.validation,
               messageKey: 'scan.assetRequired',

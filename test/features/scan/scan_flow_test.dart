@@ -86,6 +86,13 @@ void main() {
       expect(find.text('Items detected'), findsWidgets);
       expect(find.text('Continue'), findsOneWidget);
 
+      // Continue stays disabled until an image is explicitly selected.
+      await tester.tap(find.text('Continue'));
+      await settle(tester);
+      expect(find.text('Items detected'), findsWidgets);
+      await tester.tap(find.text('PET plastic bottles'));
+      await settle(tester);
+
       // Detected → processing (V07): automatic completion through the mock
       // service; there is no manual completion button.
       await tester.tap(find.text('Continue'));
@@ -141,6 +148,8 @@ void main() {
       await tester.tap(find.text('Confirm session'));
       await settle(tester);
       await tester.tap(find.text('I pressed the finish button'));
+      await settle(tester);
+      await tester.tap(find.text('PET plastic bottles'));
       await settle(tester);
       await tester.tap(find.text('Continue'));
       await settle(tester);

@@ -128,7 +128,9 @@ class FirebaseScanRepository implements ScanRepository {
   Future<SmartBin> getBin(String binId) async {
     _ensureActive();
     final json = await _requiredRead('bins', binId);
-    return BackendScanMapper.binFromJson(json);
+    final bin = BackendScanMapper.binFromJson(json);
+    _observedBins[bin.id] = bin;
+    return bin;
   }
 
   Future<SimulationAsset> getAsset(String assetId) async {
@@ -286,16 +288,18 @@ class FirebaseScanRepository implements ScanRepository {
 
   @override
   Stream<SmartBin?> watchBin(String binId) async* {
-    final observed = _observedBins[binId];
-    if (observed != null) yield observed;
+    final initial = _observedBins[binId];
+    var hasAuthoritativeValue = initial != null;
+    if (initial != null) yield initial;
     try {
-      yield* _reads.watch('bins', binId).map((json) {
+      await for (final json in _reads.watch('bins', binId)) {
         final bin = BackendScanMapper.binFromJson(json);
         _observedBins[bin.id] = bin;
-        return bin;
-      });
+        hasAuthoritativeValue = true;
+        yield bin;
+      }
     } on Object {
-      if (observed == null) rethrow;
+      if (!hasAuthoritativeValue && _observedBins[binId] == null) rethrow;
     }
   }
 

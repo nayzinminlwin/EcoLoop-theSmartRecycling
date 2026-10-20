@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'dart:async';
+
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/scan/data/firebase_scan_repository.dart';
@@ -80,6 +82,34 @@ void main() {
     await expectLater(
       repository.watchBin('BIN-004'),
       emitsInOrder([isA<SmartBin>()]),
+    );
+  });
+
+  test('keeps a live bin update when a later live read fails', () async {
+    final repository = FirebaseScanRepository(
+      uid: 'resident-1',
+      commandClient: _unusedClient(),
+      reads: _FakeReads(
+        watches: {
+          'bins/BIN-004': (() {
+            late StreamController<Map<String, Object?>> controller;
+            controller = StreamController<Map<String, Object?>>(
+              onListen: () {
+                controller
+                  ..add(_bin())
+                  ..addError(StateError('live read interrupted'))
+                  ..close();
+              },
+            );
+            return controller.stream;
+          })(),
+        },
+      ),
+    );
+
+    await expectLater(
+      repository.watchBin('BIN-004'),
+      emitsInOrder([isA<SmartBin>(), emitsDone]),
     );
   });
 
