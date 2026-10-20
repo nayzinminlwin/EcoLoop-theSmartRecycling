@@ -25,6 +25,8 @@ export interface AccountResult {
 export interface AccountsStore {
   bootstrap(input: AccountInput): Promise<AccountResult>;
   getProfile(uid: string): Promise<Record<string, unknown> | null>;
+  updateProfile(uid: string, values: Record<string, unknown>, now: Instant): Promise<Record<string, unknown>>;
+  getPreferences(uid: string): Promise<Record<string, unknown> | null>;
   savePreferences(uid: string, preferences: Record<string, boolean>, now: Instant): Promise<Record<string, unknown>>;
   registerDevice(uid: string, deviceId: string, platform: string, token: string, now: Instant): Promise<Record<string, unknown>>;
   unregisterDevice(uid: string, deviceId: string, now: Instant): Promise<void>;
@@ -66,6 +68,29 @@ export class FirestoreAccountsStore implements AccountsStore {
 
   async getProfile(uid: string): Promise<Record<string, unknown> | null> {
     const snapshot = await this.firestore.doc(`residents/${uid}`).get();
+    return snapshot.exists ? snapshot.data() ?? null : null;
+  }
+
+  async updateProfile(uid: string, values: Record<string, unknown>, now: Instant): Promise<Record<string, unknown>> {
+    const displayName = values.displayName ?? values.fullName;
+    const avatarUrl = values.avatarUrl;
+    if (typeof displayName !== "string" || displayName.trim() === "" || displayName.length > 120) {
+      throw new Error("displayName must be a non-empty string of at most 120 characters");
+    }
+    if (avatarUrl !== null && avatarUrl !== undefined && typeof avatarUrl !== "string") {
+      throw new Error("avatarUrl must be a string or null");
+    }
+    const ref = this.firestore.doc(`residents/${uid}`);
+    await ref.set({
+      displayName: displayName.trim(),
+      avatarUrl: avatarUrl ?? null,
+      updatedAt: now,
+    }, { merge: true });
+    return (await ref.get()).data() ?? {};
+  }
+
+  async getPreferences(uid: string): Promise<Record<string, unknown> | null> {
+    const snapshot = await this.firestore.doc(`residents/${uid}/preferences/current`).get();
     return snapshot.exists ? snapshot.data() ?? null : null;
   }
 

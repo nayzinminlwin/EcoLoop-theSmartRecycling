@@ -12,33 +12,34 @@ import {
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { getComposition } from "../composition.js";
 import { recoverSubmittedInspection } from "./resident_inspections.js";
+import { residentCallableOptions, requireResident } from "./request.js";
 
-export const scanBinQr = onCall((request) => callSession(request, "scanBinQr", (identity, data, now) =>
+export const scanBinQr = onCall(residentCallableOptions, (request) => callSession(request, "scanBinQr", (identity, data, now) =>
   scanBinQrApplication(getComposition().sessions, identity, stringField(data, "qrPayload"), now)));
 
-export const confirmSession = onCall((request) => callSession(request, "confirmSession", (identity, data, now) =>
+export const confirmSession = onCall(residentCallableOptions, (request) => callSession(request, "confirmSession", (identity, data, now) =>
   confirmSessionApplication(getComposition().sessions, identity, stringField(data, "sessionId"), integerField(data, "expectedVersion"), now)));
 
-export const reportFinishPressed = onCall((request) => callSession(request, "reportFinishPressed", (identity, data, now) =>
+export const reportFinishPressed = onCall(residentCallableOptions, (request) => callSession(request, "reportFinishPressed", (identity, data, now) =>
   reportFinishPressedApplication(getComposition().sessions, identity, stringField(data, "sessionId"), integerField(data, "expectedVersion"), now)));
 
-export const saveImageSelection = onCall((request) => callSession(request, "saveImageSelection", (identity, data, now) =>
+export const saveImageSelection = onCall(residentCallableOptions, (request) => callSession(request, "saveImageSelection", (identity, data, now) =>
   saveImageSelectionApplication(
     getComposition().sessions, identity, stringField(data, "sessionId"), stringField(data, "assetId"),
     stringField(data, "assetVersion"), integerField(data, "expectedVersion"), now,
   )));
 
-export const renewSession = onCall((request) => callSession(request, "renewSession", (identity, data, now) =>
+export const renewSession = onCall(residentCallableOptions, (request) => callSession(request, "renewSession", (identity, data, now) =>
   renewSessionApplication(getComposition().sessions, identity, stringField(data, "sessionId"), integerField(data, "expectedVersion"), now)));
 
-export const cancelSession = onCall((request) => callSession(request, "cancelSession", (identity, data, now) =>
+export const cancelSession = onCall(residentCallableOptions, (request) => callSession(request, "cancelSession", (identity, data, now) =>
   cancelSessionApplication(getComposition().sessions, identity, stringField(data, "sessionId"), integerField(data, "expectedVersion"), now)));
 
-export const recoverOperation = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
-  const requestId = stringField(data, "requestId");
+export const recoverOperation = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "recoverOperation");
+  const data = identity.payload;
   const operationRequestId = stringField(data, "operationId");
+  const requestId = identity.requestId;
   const sessionResult = await recoverOperationApplication(getComposition().sessions, { uid: identity.uid, requestId }, operationRequestId);
   if (sessionResult !== null) return envelope("recoverOperation", requestId, sessionResult);
   const inspectionResult = await recoverSubmittedInspection(identity.uid, operationRequestId);
@@ -71,8 +72,8 @@ async function callSession(
   operation: string,
   callback: (identity: { uid: string; requestId: string }, data: Record<string, unknown>, now: string) => ReturnType<typeof scanBinQrApplication>,
 ) {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+  const identity = requireIdentity(request, operation);
+  const data = requireResident(request, operation).payload;
   try {
     const result = await callback(identity, data, new Date().toISOString());
     return envelope(operation, identity.requestId, result);
@@ -81,11 +82,9 @@ async function callSession(
   }
 }
 
-function requireIdentity(request: CallableRequest<unknown>): { uid: string; requestId: string } {
-  if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
-  const data = payload(request.data);
-  const requestId = stringField(data, "requestId");
-  return { uid: request.auth.uid, requestId };
+function requireIdentity(request: CallableRequest<unknown>, operation: string): { uid: string; requestId: string; payload: Record<string, unknown> } {
+  const identity = requireResident(request, operation);
+  return { uid: identity.uid, requestId: identity.requestId, payload: identity.payload };
 }
 
 function payload(value: unknown): Record<string, unknown> {

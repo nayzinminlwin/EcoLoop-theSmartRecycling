@@ -11,7 +11,7 @@ import '../config/runtime_config.dart';
 import '../../firebase_options.dart';
 
 class FirebaseClients {
-  static const firestoreDatabaseId = 'ecoloop-db';
+  static const firestoreDatabaseId = RuntimeConfig.firestoreDatabaseId;
 
   const FirebaseClients({
     required this.app,
@@ -48,7 +48,7 @@ class FirebaseClients {
     );
     final functions = FirebaseFunctions.instanceFor(
       app: app,
-      region: config.region,
+      region: RuntimeConfig.residentFunctionsRegion,
     );
     final storage = FirebaseStorage.instanceFor(app: app);
     final messaging = FirebaseMessaging.instance;
@@ -62,10 +62,8 @@ class FirebaseClients {
     }
 
     if (config.useAppCheck) {
-      if (!config.usesEmulator || !kDebugMode) {
-        throw StateError(
-          'App Check debug activation is limited to debug emulator mode',
-        );
+      if (!kDebugMode) {
+        throw StateError('App Check activation requires a debug build');
       }
       if (!kIsWeb) {
         await appCheck.activate(providerAndroid: const AndroidDebugProvider());

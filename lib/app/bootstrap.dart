@@ -4,6 +4,7 @@ import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
+import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
@@ -43,6 +44,7 @@ Future<void> bootstrap() async {
       ProviderScope(
         overrides: [
           runtimeConfigProvider.overrideWithValue(config),
+          appClockProvider.overrideWithValue(AppClock.system()),
           firebaseClientsProvider.overrideWithValue(clients),
           firebaseNotificationServiceProvider.overrideWithValue(
             notificationService,

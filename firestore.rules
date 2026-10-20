@@ -78,21 +78,31 @@ service cloud.firestore {
       }
     }
 
-    match /sessions/{sessionId} {
+    match /depositSessions/{sessionId} {
       allow read: if signedIn() &&
         resource.data.ownerId == request.auth.uid;
       allow write: if false;
     }
 
-    match /batches/{batchId} {
+    match /deposits/{batchId} {
       allow read: if signedIn() &&
         resource.data.ownerId == request.auth.uid;
       allow write: if false;
     }
 
-    match /receipts/{receiptId} {
+    match /depositResults/{receiptId} {
       allow read: if signedIn() &&
         resource.data.ownerId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /walletEntries/{entryId} {
+      allow read: if signedIn() && resource.data.residentId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /vouchers/{voucherId} {
+      allow read: if signedIn() && resource.data.residentId == request.auth.uid;
       allow write: if false;
     }
 

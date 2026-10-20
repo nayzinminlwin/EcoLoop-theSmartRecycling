@@ -161,6 +161,27 @@ class CommandClient {
         retryable: false,
         requestId: requestId,
       );
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details is Map
+          ? Map<String, Object?>.from(error.details as Map)
+          : const <String, Object?>{};
+      final domainCode = details['code'] is String
+          ? details['code']! as String
+          : error.code.replaceAll('-', '_');
+      throw AppFailure(
+        code: _mapErrorCode(domainCode),
+        messageKey: 'backend.$domainCode',
+        retryable: details['retryable'] == true ||
+            error.code == 'unavailable' ||
+            error.code == 'deadline-exceeded' ||
+            error.code == 'internal',
+        requestId: details['requestId'] is String
+            ? details['requestId']! as String
+            : requestId,
+        traceId: details['traceId'] is String
+            ? details['traceId']! as String
+            : null,
+      );
     } catch (error) {
       throw AppFailure(
         code: AppFailureCodes.unavailable,

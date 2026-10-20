@@ -25,8 +25,11 @@ class ResidentProfile {
       .join();
 
   factory ResidentProfile.fromJson(JsonMap json) => ResidentProfile(
-    id: JsonReaders.string(json, 'id'),
-    fullName: JsonReaders.string(json, 'fullName'),
+    id: JsonReaders.string(json, json.containsKey('id') ? 'id' : 'residentId'),
+    fullName: JsonReaders.string(
+      json,
+      json.containsKey('fullName') ? 'fullName' : 'displayName',
+    ),
     email: JsonReaders.string(json, 'email'),
     avatarUrl: JsonReaders.nullableString(json, 'avatarUrl'),
     createdAt: JsonReaders.dateTime(json, 'createdAt'),

@@ -48,7 +48,7 @@ beforeAll(async () => {
       displayName: 'Other',
       pointsBalance: 10,
     });
-    await firestore.doc('batches/batch-owner').set({
+    await firestore.doc('deposits/batch-owner').set({
       ownerId,
       status: 'verified',
     });
@@ -70,13 +70,13 @@ afterAll(async () => {
 describe('Firestore access boundaries', () => {
   it('allows an owner to read their profile and receipt data', async () => {
     await assertSucceeds(ownerFirestore.doc(`residents/${ownerId}`).get());
-    await assertSucceeds(ownerFirestore.doc('batches/batch-owner').get());
+    await assertSucceeds(ownerFirestore.doc('deposits/batch-owner').get());
   });
 
   it('denies signed-out and cross-resident private reads', async () => {
     await assertFails(unauthenticatedFirestore.doc('bins/bin-1').get());
     await assertFails(otherFirestore.doc(`residents/${ownerId}`).get());
-    await assertFails(otherFirestore.doc('batches/batch-owner').get());
+    await assertFails(otherFirestore.doc('deposits/batch-owner').get());
   });
 
   it('allows authenticated catalog reads but denies forged direct mutations', async () => {
@@ -88,7 +88,7 @@ describe('Firestore access boundaries', () => {
       }),
     );
     await assertFails(
-      ownerFirestore.doc('batches/batch-owner').set({
+      ownerFirestore.doc('deposits/batch-owner').set({
         ownerId,
         status: 'verified',
         pointsAwarded: 999999,

@@ -3,10 +3,11 @@ import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/
 import { recoverInspectionOperation, submitInspection as submitInspectionApplication } from "../application/submit_inspection.js";
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { getComposition } from "../composition.js";
+import { residentCallableOptions, requireResident } from "./request.js";
 
-export const submitInspection = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+export const submitInspection = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "submitInspection");
+  const data = identity.payload;
   const traceId = randomBytes(16).toString("hex");
   try {
     const result = await submitInspectionApplication(
@@ -32,10 +33,9 @@ export async function recoverSubmittedInspection(
   return recoverInspectionOperation(getComposition().inspections, uid, operationRequestId);
 }
 
-function requireIdentity(request: CallableRequest<unknown>): { uid: string; requestId: string } {
-  if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
-  const data = payload(request.data);
-  return { uid: request.auth.uid, requestId: stringField(data, "requestId") };
+function requireIdentity(request: CallableRequest<unknown>, operation: string): { uid: string; requestId: string; payload: Record<string, unknown> } {
+  const identity = requireResident(request, operation);
+  return { uid: identity.uid, requestId: identity.requestId, payload: identity.payload };
 }
 
 function payload(value: unknown): Record<string, unknown> {

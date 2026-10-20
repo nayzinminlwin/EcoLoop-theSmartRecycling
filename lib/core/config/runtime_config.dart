@@ -3,6 +3,11 @@ import 'package:flutter/foundation.dart';
 enum FirebaseMode { mock, emulator, firebase }
 
 class RuntimeConfig {
+  static const residentFunctionsRegion = 'us-central1';
+  static const workerFunctionsRegion = 'us-central1';
+  static const visionTasksRegion = 'asia-southeast1';
+  static const firestoreDatabaseId = 'ecoloop-db';
+
   const RuntimeConfig({
     required this.mode,
     required this.region,
@@ -31,7 +36,7 @@ class RuntimeConfig {
       mode: mode,
       region: const String.fromEnvironment(
         'ECOLOOP_FIREBASE_REGION',
-        defaultValue: 'asia-southeast1',
+        defaultValue: residentFunctionsRegion,
       ),
       firestoreHost: const String.fromEnvironment(
         'ECOLOOP_FIRESTORE_HOST',

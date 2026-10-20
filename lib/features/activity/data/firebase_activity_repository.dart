@@ -249,15 +249,14 @@ class FirebaseStatsReadTransport implements StatsReadTransport {
 
   @override
   Future<Map<String, Object?>?> read(String uid) async {
-    final snapshot = await firestore.collection('residentStats').doc(uid).get();
+    final snapshot = await firestore.doc('residents/$uid/stats/current').get();
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
 
   @override
   Stream<Map<String, Object?>> watch(String uid) => firestore
-      .collection('residentStats')
-      .doc(uid)
+      .doc('residents/$uid/stats/current')
       .snapshots()
       .map((snapshot) {
         final data = snapshot.data();
