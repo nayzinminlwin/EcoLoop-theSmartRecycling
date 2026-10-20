@@ -17,6 +17,7 @@ class RuntimeConfig {
     required this.storageHost,
     required this.emulatorPort,
     required this.useAppCheck,
+    required this.webAppCheckSiteKey,
   });
 
   factory RuntimeConfig.fromEnvironment() {
@@ -65,6 +66,10 @@ class RuntimeConfig {
         'ECOLOOP_USE_APP_CHECK',
         defaultValue: false,
       ),
+      webAppCheckSiteKey: const String.fromEnvironment(
+        'ECOLOOP_WEB_APP_CHECK_SITE_KEY',
+        defaultValue: '',
+      ),
     );
     config.validate();
     return config;
@@ -78,6 +83,7 @@ class RuntimeConfig {
   final String storageHost;
   final int emulatorPort;
   final bool useAppCheck;
+  final String webAppCheckSiteKey;
 
   bool get usesFirebase => mode != FirebaseMode.mock;
   bool get usesEmulator => mode == FirebaseMode.emulator;

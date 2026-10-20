@@ -113,13 +113,15 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   void _syncCamera() {
     if (widget.surfaceBuilder != null) return;
-    if (!_controller.value.isInitialized && !_controller.value.isStarting) {
+    final state = _controller.value;
+    if (!state.isInitialized && !state.isStarting) {
       if (_active) unawaited(_controller.start());
       return;
     }
-    if (_active && !_controller.value.isRunning) {
+    if (state.isStarting) return; // Guard: don't call start while initializing
+    if (_active && !state.isRunning) {
       unawaited(_controller.start());
-    } else if (!_active && _controller.value.isRunning) {
+    } else if (!_active && state.isRunning) {
       unawaited(_controller.stop());
     }
   }

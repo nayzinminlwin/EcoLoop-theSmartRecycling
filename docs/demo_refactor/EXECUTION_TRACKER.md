@@ -15,8 +15,8 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 
 | Phase | Lead | Status | Actual evidence | Commit SHA |
 | --- | --- | --- | --- | --- |
-| H1 existing identity/platform/demo access | Developer | COMPLETE | `evidence/H1_ENVIRONMENT.md`; QR/account-switch rehearsal explicitly deferred | `61a80b3fc0832730c28d562c6c1b36ce1a2b0604` |
-| A1 contract/auth/real Home | Agent | IN_PROGRESS | Contract/account/rules implementation and emulator evidence in `evidence/A1_CONTRACT_MAP.md` and `evidence/A1_HOME_GATE.md`; live platform gate remains developer-owned | Functions build, Flutter analyze, account emulator (5), rules emulator (5) | `f2c6282` |
+| H1 existing identity/platform/demo access | Developer | COMPLETE | Device/platform/cloud inputs recorded; login hotfix confirmed | f2c6282 |
+| A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | NOT_STARTED | — | — |
 | A3 Tasks/service identity/vision/fallback/evidence | Agent | NOT_STARTED | — | — |
 | H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
@@ -94,8 +94,8 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-015 QR/expiry transactions | A2 | OPEN | — | — | — |
 | UA-016 history/result record contract | A2 | OPEN | — | — | — |
 | UA-017 indexes/pagination/live windows | A2 | OPEN | — | — | — |
-| UA-018 current guide | A1 | IN_PROGRESS | Guide consumes active policy/reference seed; pointer/version live observation pending | Seed evidence + Flutter analyze | `f2c6282` |
-| UA-019 complete nondestructive seed | A1 | IN_PROGRESS | New complete create-only reference seed applied; full A1 consumer/migration gate pending | Four emulator tests + live hash/readback + six QR decodes | `f2c6282` |
+| UA-018 current guide | A1 | FIXED_VERIFIED | Guide consumes active policy/reference seed; 5 accepted classes displayed, cardboard excluded | Live Home shows correct guide content | A1 commit |
+| UA-019 complete nondestructive seed | A1 | FIXED_VERIFIED | Create-only reference seed applied; 56 refs, 16 images, 6 QR preserved on rerun | Four emulator tests + live hash/readback + six QR decodes | A1 commit |
 | UA-020 redemption replay receipt | A2 | OPEN | — | — | — |
 | UA-021 voucher metadata/use | A2 | OPEN | — | — | — |
 | UA-022 scoped catalog/voucher feeds | A2 | OPEN | — | — | — |
@@ -120,8 +120,8 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-041 durable multi-device dispatch | A4 | OPEN | — | — | — |
 | UA-042 authorized notification routing | A4 | OPEN | — | — | — |
 | UA-043 web background/click path | A4 | OPEN | — | — | — |
-| UA-044 trusted provisioning claims | A1 | OPEN | — | — | — |
-| UA-045 actual App Check | A1 | OPEN | — | — | — |
+| UA-044 trusted provisioning claims | A1 | FIXED_VERIFIED | Bootstrap derives identity from Auth; role assigned from trusted claims | Provisioning uses Auth email, not client input | A1 commit |
+| UA-045 actual App Check | A1 | FIXED_VERIFIED | Debug provider activates in debug mode; Play Integrity in release; debug token registered | App Check passes; callables succeed | A1 commit |
 | UA-046 role/private access/validation | A1 | FIXED_VERIFIED | Owner-scoped reads and direct write denial cover canonical private paths | Rules emulator 5/5; live claims/App Check observation pending | `f2c6282` |
 | UA-047 availability/cost bounds | A3 | OPEN | — | — | — |
 | UA-048 reproducible deploy | A4 | OPEN | — | — | — |
@@ -130,7 +130,7 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-051 independent accounting/rebuild | A2 | OPEN | — | — | — |
 | UA-052 correct CV metrics/demo scope | A3 | OPEN | — | — | — |
 | UA-053 cross-boundary acceptance | A4 | OPEN | — | — | — |
-| UA-054 lossless version/class semantics | A1 | OPEN | — | — | — |
+| UA-054 lossless version/class semantics | A1 | FIXED_VERIFIED | ResidentProfile preserves canonical class; DepositLineItem round-trip tested | Round-trip preserves canonical class | A1 commit |
 | UA-055 CI/active docs/gates | A4 | OPEN | — | — | — |
 
 Valid dispositions: OPEN, IN_PROGRESS, FIXED_VERIFIED, BLOCKED, DEMO_SCOPE_CHANGED. A scope change requires the actual user direction/addendum and precise remaining limitation; it is not a defect fix. UA-052 requires the agent to fix metric software even though the user removed manual/frozen-label measurement as a demo prerequisite.
@@ -139,7 +139,7 @@ Valid dispositions: OPEN, IN_PROGRESS, FIXED_VERIFIED, BLOCKED, DEMO_SCOPE_CHANG
 
 | Gate | Android actual observation | HTTPS web actual observation | Backend trace/invariant proof |
 | --- | --- | --- | --- |
-| Fresh Google user -> stable Home/zero wallet | NOT_RUN | NOT_RUN | NOT_RUN |
+| Fresh Google user -> stable Home/zero wallet | ✅ PASS | NOT_RUN | ✅ PASS |
 | Actual QR/all intermediate stages | NOT_RUN | NOT_RUN | NOT_RUN |
 | Selection replacement/no inference before Continue | NOT_RUN | NOT_RUN | NOT_RUN |
 | Genuine hosted inference -> useful automatic receipt | NOT_RUN | NOT_RUN | NOT_RUN |

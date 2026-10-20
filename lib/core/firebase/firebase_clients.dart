@@ -62,11 +62,19 @@ class FirebaseClients {
     }
 
     if (config.useAppCheck) {
-      if (!kDebugMode) {
-        throw StateError('App Check activation requires a debug build');
-      }
       if (!kIsWeb) {
-        await appCheck.activate(providerAndroid: const AndroidDebugProvider());
+        if (kDebugMode) {
+          await appCheck.activate(providerAndroid: const AndroidDebugProvider());
+        } else {
+          await appCheck.activate(providerAndroid: const AndroidPlayIntegrityProvider());
+        }
+      } else {
+        if (!kDebugMode) {
+          final siteKey = config.webAppCheckSiteKey;
+          if (siteKey.isNotEmpty) {
+            await appCheck.activate(providerWeb: ReCaptchaEnterpriseProvider(siteKey));
+          }
+        }
       }
     }
 
