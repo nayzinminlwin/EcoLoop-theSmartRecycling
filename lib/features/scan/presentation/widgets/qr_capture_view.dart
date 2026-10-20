@@ -132,12 +132,14 @@ class _QrCaptureViewState extends State<QrCaptureView>
       _cameraTransition = true;
       unawaited(
         _controller.start().then((_) {
-          if (mounted) setState(() => _cameraError = false);
+          if (mounted) {
+            setState(() => _cameraError = _controller.value.error != null);
+          }
         }).catchError((_) {
           if (mounted) setState(() => _cameraError = true);
         }).whenComplete(() {
           _cameraTransition = false;
-          if (mounted) _syncCamera();
+          if (mounted && !_cameraError) _syncCamera();
         }),
       );
     } else if (!_active && state.isRunning) {
