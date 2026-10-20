@@ -228,6 +228,7 @@ export class FirestoreSettlementStore implements SettlementStore {
       const batch = requireData((await transaction.get(batchRef)).data(), "The deposit batch does not exist");
       const resultSnapshot = await transaction.get(resultRef);
       const sessionSnapshot = await transaction.get(sessionRef);
+      const residentSnapshot = await transaction.get(residentRef);
       const session = sessionSnapshot.data();
       const reservationRef = session === undefined
         ? null
@@ -268,17 +269,20 @@ export class FirestoreSettlementStore implements SettlementStore {
         outcome: "review", pointsAwarded: null, state: "pending", createdAt: input.now,
       }, { merge: true });
       const reservation = reservationSnapshot?.data();
-      if (session !== undefined &&
-          reservationRef !== null &&
-          reservation?.ownerId === job.ownerId &&
-          reservation?.sessionId === job.sessionId) {
-        transaction.update(reservationRef, {
-          phase: "available", ownerId: null, sessionId: null, expiresAt: null, updatedAt: input.now,
-        });
+      if (session !== undefined) {
+        if (reservationRef !== null &&
+            reservation?.ownerId === job.ownerId &&
+            reservation?.sessionId === job.sessionId) {
+          transaction.update(reservationRef, {
+            phase: "available", ownerId: null, sessionId: null, expiresAt: null, updatedAt: input.now,
+          });
+        }
         transaction.update(sessionRef, {
           stage: "completed", version: Number(session.version ?? 0) + 1, updatedAt: input.now,
         });
-        transaction.update(residentRef, { activeSessionId: null, updatedAt: input.now });
+        if (residentSnapshot.data()?.activeSessionId === job.sessionId) {
+          transaction.update(residentRef, { activeSessionId: null, updatedAt: input.now });
+        }
       }
       return { jobId: input.jobId, batchId, resultId: resultRef.id, outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion, replayed: false };
     });
