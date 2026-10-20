@@ -390,7 +390,7 @@ export function SmartBinsPage(): React.ReactElement {
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <AdminPageHeader
         eyebrow="FLEET OPERATIONS"
-        title="Smart Bins Fleet"
+        title="Smart Bins"
         description="Monitor bin fill levels, manage registered bins, configure accepted recyclables, and schedule collections."
         actions={
           <Button variant="primary" onClick={handleOpenCreateModal}>
