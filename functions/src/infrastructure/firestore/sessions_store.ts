@@ -197,6 +197,7 @@ export class FirestoreSessionsStore implements SessionsStore {
   }
 
   private async scan(transaction: Transaction, uid: string, operation: OperationIdentity, qrPayload: string, now: Instant): Promise<SessionCommandResult> {
+    qrPayload = qrPayload.trim();
     const residentRef = this.firestore.doc(`residents/${uid}`);
     const residentSnapshot = await transaction.get(residentRef);
     const resident = residentSnapshot.data();

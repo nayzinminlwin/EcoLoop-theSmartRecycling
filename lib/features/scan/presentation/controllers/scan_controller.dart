@@ -120,6 +120,10 @@ final scanCompletionProvider =
 String scanFailureCopy(Object error) {
   final messageKey = error is AppFailure ? error.messageKey : '';
   return switch (messageKey) {
+    'backend.invalid_qr' => 'That QR code is not a valid EcoLoop bin.',
+    'backend.bin_full' => 'This bin is full right now. Please try another bin.',
+    'backend.bin_busy' => 'This bin is currently in use. Please try again later.',
+    'backend.bin_unavailable' => 'This bin is unavailable right now.',
     'scan.invalidQr' => 'That QR code is not a valid EcoLoop bin.',
     'scan.binFull' => 'This bin is full right now. Please try another bin.',
     'scan.binOffline' => 'This bin is offline. Please try again later.',

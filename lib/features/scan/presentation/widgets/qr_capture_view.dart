@@ -45,6 +45,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
   late final bool _ownsController = widget.controller == null;
   bool _handlingCapture = false;
   bool _active = false;
+  Timer? _syncDebounce;
 
   @override
   void initState() {
@@ -60,7 +61,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
     if (oldWidget.visible != widget.visible ||
         oldWidget.commandActive != widget.commandActive) {
       _active = widget.visible && !widget.commandActive;
-      _syncCamera();
+      _debouncedSyncCamera();
     }
   }
 
@@ -70,11 +71,17 @@ class _QrCaptureViewState extends State<QrCaptureView>
         widget.visible &&
         !widget.commandActive &&
         state == AppLifecycleState.resumed;
-    _syncCamera();
+    _debouncedSyncCamera();
+  }
+
+  void _debouncedSyncCamera() {
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 300), _syncCamera);
   }
 
   @override
   void dispose() {
+    _syncDebounce?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (_ownsController) unawaited(_controller.dispose());
     super.dispose();
@@ -128,12 +135,14 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   void _handleCode(String value) {
     if (!_active || _handlingCapture || widget.commandActive) return;
+    final normalized = value.trim();
+    if (normalized.isEmpty) return;
     _handlingCapture = true;
     _active = false;
     unawaited(
       _controller.stop().then((_) async {
         try {
-          await widget.onCodeCaptured(value);
+          await widget.onCodeCaptured(normalized);
         } finally {
           _handlingCapture = false;
           if (mounted && widget.visible && !widget.commandActive) {
