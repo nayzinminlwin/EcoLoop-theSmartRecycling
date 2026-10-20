@@ -5,10 +5,10 @@
 
 import * as React from "react";
 import { NavLink } from "react-router-dom";
-import { services, useObservableQuery, useMutation } from "../../app/services.ts";
+import { services, useObservableQuery } from "../../app/services.ts";
 import type { DashboardSummary, SmartBinRow, CapacityBand, CollectionStatus } from "../../contracts/admin.ts";
 import type { MaterialType } from "../../contracts/shared.ts";
-import { AdminPageHeader, Button, Badge, AsyncState, Feedback, Icon } from "../../ui/primitives.tsx";
+import { AdminPageHeader, Button, Badge, AsyncState, Icon } from "../../ui/primitives.tsx";
 import { DataTable, type Column } from "../../ui/DataTable.tsx";
 import "./fleet.css";
 
@@ -57,21 +57,7 @@ export function OverviewPage(): React.ReactElement {
   const summaryQuery = useObservableQuery<DashboardSummary>("dashboard", () =>
     services.repositories.dashboard.watchSummary()
   );
-  const simulateMutation = useMutation();
-  const [feedback, setFeedback] = React.useState<string | null>(null);
-
   const summary = summaryQuery.data;
-
-  const handleSimulateCapacity = async () => {
-    setFeedback(null);
-    simulateMutation.clearError();
-    const result = await simulateMutation.run(() =>
-      services.repositories.bins.simulateCapacity("BIN-004", 85)
-    );
-    if (result) {
-      setFeedback("BIN-004 capacity simulated to 85%. Threshold alert triggered.");
-    }
-  };
 
   if (summaryQuery.loading && !summary) {
     return (
@@ -193,31 +179,11 @@ export function OverviewPage(): React.ReactElement {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <AdminPageHeader
-        eyebrow="FLEET VISIBILITY"
-        title="Fleet Overview"
+        eyebrow="ADMIN CONSOLE"
+        title="Township Overview"
         description="Real-time smart bin statuses, collection alerts, weekly deposit trends, and material distribution."
-        actions={
-          <Button
-            variant="secondary"
-            busy={simulateMutation.pending}
-            onClick={handleSimulateCapacity}
-          >
-            Simulate 85% on BIN-004
-          </Button>
-        }
       />
 
-      {feedback && (
-        <Feedback kind="success" onDismiss={() => setFeedback(null)}>
-          {feedback}
-        </Feedback>
-      )}
-
-      {simulateMutation.error && (
-        <Feedback kind="error" onDismiss={() => simulateMutation.clearError()}>
-          {simulateMutation.error}
-        </Feedback>
-      )}
 
       {summary.activeAlerts > 0 && (
         <NavLink to="/alerts" className="alert-banner">
@@ -383,15 +349,15 @@ export function OverviewPage(): React.ReactElement {
         </div>
 
         <DataTable<SmartBinRow, "id" | "locationName" | "capacityPercent">
-          caption="Attention Bins List"
+          caption=""
           rows={summary.attentionBins}
           columns={attentionColumns}
           getRowId={(row) => row.bin.id}
           sort={{ key: "capacityPercent", direction: "desc" }}
-          onSortChange={() => {}}
+          onSortChange={() => { }}
           loading={false}
           error={null}
-          onRetry={() => {}}
+          onRetry={() => { }}
           emptyTitle="No attention bins at this time — all bins operating normally"
         />
       </div>
