@@ -124,6 +124,14 @@ String scanFailureCopy(Object error) {
     'backend.bin_full' => 'This bin is full right now. Please try another bin.',
     'backend.bin_busy' => 'This bin is currently in use. Please try again later.',
     'backend.bin_unavailable' => 'This bin is unavailable right now.',
+    'backend.active_session_exists' =>
+      'You already have an active scan. Return to it or cancel it before scanning another bin.',
+    'backend.unauthenticated' => 'Please sign in again before scanning.',
+    'backend.permission_denied' =>
+      'This scan is not permitted for the current account.',
+    'backend.transportUnavailable' =>
+      'The scan service is temporarily unavailable. Try again.',
+    'backendContract.' => 'The scan service returned an invalid response. Try again.',
     'scan.invalidQr' => 'That QR code is not a valid EcoLoop bin.',
     'scan.binFull' => 'This bin is full right now. Please try another bin.',
     'scan.binOffline' => 'This bin is offline. Please try again later.',

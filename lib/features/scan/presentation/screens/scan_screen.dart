@@ -100,6 +100,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                 color: Theme.of(context).colorScheme.error,
               ),
             ),
+            const SizedBox(height: 8),
+            AppButton(
+              label: AppCopy.retry,
+              onPressed: _busy
+                  ? null
+                  : () => setState(() => _error = null),
+              expand: true,
+            ),
           ],
           const SizedBox(height: 18),
           if (ref.watch(runtimeConfigProvider).mode == FirebaseMode.mock)
@@ -129,7 +137,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         child: ScannerFrameContent(),
       );
     }
-    return QrCaptureView(commandActive: _busy, onCodeCaptured: _scan);
+    return QrCaptureView(
+      commandActive: _busy || _error != null,
+      onCodeCaptured: _scan,
+    );
   }
 
   Future<void> _scan(String payload) async {
