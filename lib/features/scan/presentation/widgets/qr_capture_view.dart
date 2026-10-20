@@ -45,6 +45,8 @@ class _QrCaptureViewState extends State<QrCaptureView>
   late final bool _ownsController = widget.controller == null;
   bool _handlingCapture = false;
   bool _active = false;
+  bool _cameraTransition = false;
+  bool _cameraError = false;
   Timer? _syncDebounce;
 
   @override
@@ -99,6 +101,9 @@ class _QrCaptureViewState extends State<QrCaptureView>
             state.error?.errorCode == MobileScannerErrorCode.permissionDenied) {
           return const _CameraDenied();
         }
+        if (_cameraError) {
+          return _CameraStartError(onRetry: _retryCamera);
+        }
         return ScannerStage(child: child!);
       },
       child: surface,
@@ -120,17 +125,36 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   void _syncCamera() {
     if (widget.surfaceBuilder != null) return;
+    if (_cameraTransition) return;
     final state = _controller.value;
-    if (!state.isInitialized && !state.isStarting) {
-      if (_active) unawaited(_controller.start());
-      return;
-    }
-    if (state.isStarting) return; // Guard: don't call start while initializing
-    if (_active && !state.isRunning) {
-      unawaited(_controller.start());
+    if (_active && !state.isRunning && !state.isStarting) {
+      _cameraTransition = true;
+      unawaited(
+        _controller.start().then((_) {
+          if (mounted) setState(() => _cameraError = false);
+        }).catchError((_) {
+          if (mounted) setState(() => _cameraError = true);
+        }).whenComplete(() {
+          _cameraTransition = false;
+          if (mounted) _syncCamera();
+        }),
+      );
     } else if (!_active && state.isRunning) {
-      unawaited(_controller.stop());
+      _cameraTransition = true;
+      unawaited(
+        _controller.stop().whenComplete(() {
+          _cameraTransition = false;
+          if (mounted) _syncCamera();
+        }),
+      );
     }
+  }
+
+  void _retryCamera() {
+    if (!mounted) return;
+    setState(() => _cameraError = false);
+    _active = widget.visible && !widget.commandActive;
+    _syncCamera();
   }
 
   void _handleCode(String value) {
@@ -170,5 +194,29 @@ class _CameraDenied extends StatelessWidget {
         style: TextStyle(color: Colors.white),
       ),
     ],
+  );
+}
+
+class _CameraStartError extends StatelessWidget {
+  const _CameraStartError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => ScannerStage(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 42),
+        const SizedBox(height: 10),
+        const Text(
+          'We could not start a scan.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
+      ],
+    ),
   );
 }
