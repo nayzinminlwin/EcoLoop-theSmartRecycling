@@ -78,6 +78,7 @@ class FirebaseScanRepository implements ScanRepository {
   final CommandClient commandClient;
   final ScanReadTransport _reads;
   final Map<String, DepositSession> _observedSessions = {};
+  final Map<String, SmartBin> _observedBins = {};
   bool _disposed = false;
 
   @override
@@ -115,6 +116,7 @@ class FirebaseScanRepository implements ScanRepository {
     final session = BackendScanMapper.sessionFromEnvelope(envelope);
     final bin = BackendScanMapper.binFromEnvelope(envelope);
     _observe(session);
+    if (bin != null) _observedBins[bin.id] = bin;
     return ScanCommandResult(
       session: session,
       bin: bin,
@@ -283,9 +285,19 @@ class FirebaseScanRepository implements ScanRepository {
   }
 
   @override
-  Stream<SmartBin?> watchBin(String binId) => _reads
-      .watch('bins', binId)
-      .map(BackendScanMapper.binFromJson);
+  Stream<SmartBin?> watchBin(String binId) async* {
+    final observed = _observedBins[binId];
+    if (observed != null) yield observed;
+    try {
+      yield* _reads.watch('bins', binId).map((json) {
+        final bin = BackendScanMapper.binFromJson(json);
+        _observedBins[bin.id] = bin;
+        return bin;
+      });
+    } on Object {
+      if (observed == null) rethrow;
+    }
+  }
 
   @override
   Future<DepositSession> startVerification(String sessionId) =>
@@ -302,6 +314,7 @@ class FirebaseScanRepository implements ScanRepository {
   void dispose() {
     _disposed = true;
     _observedSessions.clear();
+    _observedBins.clear();
   }
 
   Future<DepositSession> _sessionCommand(

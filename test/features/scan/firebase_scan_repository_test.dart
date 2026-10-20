@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/scan/data/firebase_scan_repository.dart';
+import 'package:eco_loop/features/scan/domain/models/smart_bin.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -45,6 +46,41 @@ void main() {
     final payload = requests.single['payload']! as Map<String, Object?>;
     expect(payload['requestId'], 'request-1');
     expect((payload['payload']! as Map)['qrPayload'], 'ecoloop://bin/BIN-004');
+  });
+
+  test('keeps the bin returned by a successful scan when live bin reads fail', () async {
+    final client = CommandClient(
+      uid: 'resident-1',
+      store: PendingOperationStore(preferences: _MemoryPreferences()),
+      requestIdFactory: () => 'request-1',
+      transport: (operation, _) async => _envelope(
+        requestId: 'request-1',
+        operation: operation,
+        data: {
+          'residentId': 'resident-1',
+          'recordIds': ['depositSessions/session-1'],
+          'version': 0,
+          'operationState': 'applied',
+          'stage': 'binFound',
+          'session': _session(),
+          'bin': _bin(),
+        },
+      ),
+    );
+    final repository = FirebaseScanRepository(
+      uid: 'resident-1',
+      commandClient: client,
+      reads: _FakeReads(
+        watches: {'bins/BIN-004': Stream.error(StateError('live read unavailable'))},
+      ),
+    );
+
+    await repository.scanBinQr('ecoloop://bin/BIN-004', 'request-1');
+
+    await expectLater(
+      repository.watchBin('BIN-004'),
+      emitsInOrder([isA<SmartBin>()]),
+    );
   });
 
   test('suppresses stale session snapshots from the watch stream', () async {
