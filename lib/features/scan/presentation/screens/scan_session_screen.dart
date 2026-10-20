@@ -628,11 +628,17 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
               retryable: false,
             );
           }
-          await repository.submitInspection(
+          final selectedSession = await repository.saveImageSelection(
             sessionId: session.id,
             assetId: asset.id,
             assetVersion: asset.version,
             expectedVersion: session.sessionVersion,
+          );
+          await repository.submitInspection(
+            sessionId: session.id,
+            assetId: asset.id,
+            assetVersion: asset.version,
+            expectedVersion: selectedSession.sessionVersion,
           );
         default:
           break;

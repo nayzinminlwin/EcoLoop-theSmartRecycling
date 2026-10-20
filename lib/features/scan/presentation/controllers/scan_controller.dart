@@ -119,6 +119,12 @@ final scanCompletionProvider =
 /// Maps repository failure identities to resident-facing copy.
 String scanFailureCopy(Object error) {
   final messageKey = error is AppFailure ? error.messageKey : '';
+
+  // Prefix matches for contract validation errors
+  if (messageKey.startsWith('backendContract.')) {
+    return 'The scan service returned an invalid response. Try again.';
+  }
+
   return switch (messageKey) {
     'backend.invalid_qr' => 'That QR code is not a valid EcoLoop bin.',
     'backend.bin_full' => 'This bin is full right now. Please try another bin.',
@@ -129,9 +135,19 @@ String scanFailureCopy(Object error) {
     'backend.unauthenticated' => 'Please sign in again before scanning.',
     'backend.permission_denied' =>
       'This scan is not permitted for the current account.',
+    'backend.failed-precondition' =>
+      'The selected image is no longer available. Please choose it again.',
+    'backend.aborted' =>
+      'The scan session changed. Please try the image again.',
+    'backend.already-exists' => 'This scan has already been submitted.',
     'backend.transportUnavailable' =>
       'The scan service is temporarily unavailable. Try again.',
-    'backendContract.' => 'The scan service returned an invalid response. Try again.',
+    'backend.not_found' =>
+      'The scan service is not available. Check deployment.',
+    'backend.unavailable' =>
+      'The scan service is temporarily unavailable. Try again.',
+    'backend.deadline_exceeded' => 'The scan request timed out. Try again.',
+    'backend.internal' => 'The scan service had an internal error. Try again.',
     'scan.invalidQr' => 'That QR code is not a valid EcoLoop bin.',
     'scan.binFull' => 'This bin is full right now. Please try another bin.',
     'scan.binOffline' => 'This bin is offline. Please try again later.',
