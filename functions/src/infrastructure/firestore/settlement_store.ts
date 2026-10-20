@@ -241,7 +241,16 @@ export class FirestoreSettlementStore implements SettlementStore {
       }
       const decisionVersion = Number(batch.decisionVersion ?? 0) + 1;
       transaction.update(jobRef, { state: "failed", activeAttemptId: null, activeLeaseExpiresAt: null, failureReason: input.reason, updatedAt: input.now });
-      transaction.update(batchRef, { status: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion, updatedAt: input.now });
+      transaction.update(batchRef, {
+        status: "review",
+        pointsAwarded: null,
+        spaceContributionSpc: 0,
+        totalDetectedObjectCount: null,
+        lines: [],
+        traceId: String(job.traceId),
+        decisionVersion,
+        updatedAt: input.now,
+      });
       transaction.set(resultRef, {
         id: resultRef.id, ownerId: String(job.ownerId), sessionId: String(job.sessionId), batchId,
         outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion,
