@@ -151,7 +151,7 @@ export function calculateFinalization(
     unresolvedCount * policy.unresolvedSpcPerCandidate;
   const hasUnresolved = inventoryState === "uncertain" || unresolvedCount > 0;
   return {
-    status: hasUnresolved ? "review" : (acceptedCount === 0 ? "excluded" : "verified"),
+    status: hasUnresolved ? "review" : (acceptedCount === 0 ? "rejected" : "verified"),
     totalDetectedObjectCount: validFindings.length,
     pointsAwarded: hasUnresolved ? null : lines.reduce((total, line) => total + line.points, 0),
     spaceContributionSpc,

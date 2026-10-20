@@ -2,7 +2,7 @@
   "schemaVersion": "backend.v1",
   "cases": [
     { "caseId": "ac04-normal-mixed", "scenario": "normal mixed batch", "input": { "plastic_bottle": 2, "aluminium_can": 3, "paper_bag": 1, "cardboard_item": 1 }, "expected": { "outcome": "verified", "acceptedCount": 6, "totalDetectedObjectCount": 7, "pointsAwarded": 37, "spaceContributionSpc": 61 } },
-    { "caseId": "ac05-excluded-cardboard", "scenario": "confident exclusion", "input": { "cardboard_item": 1 }, "expected": { "outcome": "excluded", "acceptedCount": 0, "totalDetectedObjectCount": 1, "pointsAwarded": 0, "spaceContributionSpc": 15 } },
+    { "caseId": "ac05-rejected-cardboard", "scenario": "confident exclusion", "input": { "cardboard_item": 1 }, "expected": { "outcome": "rejected", "acceptedCount": 0, "totalDetectedObjectCount": 1, "pointsAwarded": 0, "spaceContributionSpc": 15 } },
     { "caseId": "ac06-empty", "scenario": "validated empty image", "input": {}, "expected": { "outcome": "empty", "acceptedCount": 0, "totalDetectedObjectCount": 0, "pointsAwarded": 0, "spaceContributionSpc": 0 } },
     { "caseId": "ac06-unreadable", "scenario": "unreadable image", "input": null, "expected": { "outcome": "review", "acceptedCount": null, "totalDetectedObjectCount": null, "pointsAwarded": null, "spaceContributionSpc": 50 } },
     { "caseId": "ac07-review", "scenario": "one unresolved candidate", "input": { "plastic_bottle": 2, "unknown": 1 }, "expected": { "outcome": "review", "acceptedCount": 2, "totalDetectedObjectCount": 3, "pointsAwarded": null, "spaceContributionSpc": 30 } },

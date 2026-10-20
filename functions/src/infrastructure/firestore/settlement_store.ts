@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { DocumentData, Firestore } from "firebase-admin/firestore";
+import type { DocumentData, DocumentReference, Firestore, Transaction } from "firebase-admin/firestore";
 import { DomainError } from "../../domain/errors.js";
 import { calculateFinalization, initialPolicy, type PolicySnapshot } from "../../domain/policy.js";
 import type { Instant, WorkerFindings } from "../../domain/types.js";
@@ -62,11 +62,13 @@ export class FirestoreSettlementStore implements SettlementStore {
       const session = requireData(sessionSnapshot.data(), "The deposit session does not exist");
       const reservationRef = this.firestore.doc(`binOperations/${String(session.binId)}`);
       const binRef = this.firestore.doc(`bins/${String(session.binId)}`);
+      const cycleRef = this.firestore.doc(`binCycles/${String(job.cycleId)}`);
       const residentRef = this.firestore.doc(`residents/${String(job.ownerId)}`);
       const walletRef = this.firestore.doc(`residents/${String(job.ownerId)}/wallet/current`);
       const statsRef = this.firestore.doc(`residents/${String(job.ownerId)}/stats/current`);
       const reservationSnapshot = await transaction.get(reservationRef);
       const binSnapshot = await transaction.get(binRef);
+      const cycleSnapshot = await transaction.get(cycleRef);
       const residentSnapshot = await transaction.get(residentRef);
       const walletSnapshot = await transaction.get(walletRef);
       const statsSnapshot = await transaction.get(statsRef);
@@ -81,7 +83,8 @@ export class FirestoreSettlementStore implements SettlementStore {
       if (Number(batchSnapshot.data()?.decisionVersion ?? 0) !== input.expectedDecisionVersion) {
         throw new DomainError("invalid_transition", "The inspection decision has changed", { retryability: "after_refresh" });
       }
-      const policy = policySnapshot.exists ? policyFrom(policySnapshot.data()) : initialPolicy();
+      const policy = requirePolicy(policySnapshot.data());
+      validateFindings(input.findings, policy);
       const deadlinePassed = Date.parse(input.now) >= Date.parse(String(job.deadlineAt));
       const plan = deadlinePassed
         ? { ...calculateFinalization(policy, "uncertain", input.findings.findings), status: "review" as const, pointsAwarded: null, reasonCodes: ["deadline_exceeded"] }
@@ -100,7 +103,7 @@ export class FirestoreSettlementStore implements SettlementStore {
       const batchData = {
         status: outcome, totalDetectedObjectCount: plan.totalDetectedObjectCount,
         pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc,
-        decisionVersion, lines: plan.lines, updatedAt: input.now,
+        decisionVersion, lines: plan.lines, policyVersion: policy.id, updatedAt: input.now,
       };
       const capacityRef = this.firestore.doc(`capacityEntries/${batchId}-initial`);
       const notificationRef = this.firestore.doc(`notificationEvents/${batchId}-${decisionVersion}`);
@@ -111,6 +114,7 @@ export class FirestoreSettlementStore implements SettlementStore {
         batchId, deltaSpc: plan.spaceContributionSpc, kind: "initial",
         decisionVersion, createdAt: input.now,
       }, { merge: false });
+      applyCapacity(transaction, binRef, cycleRef, binSnapshot.data(), cycleSnapshot.data(), String(job.cycleId), plan.spaceContributionSpc, input.now);
       if (plan.status === "review") {
         transaction.set(this.firestore.doc(`reviewTickets/${batchId}`), {
           id: batchId, batchId, sessionId: String(job.sessionId), ownerId: String(job.ownerId),
@@ -122,17 +126,19 @@ export class FirestoreSettlementStore implements SettlementStore {
         id: notificationRef.id, recipientUid: String(job.ownerId), batchId,
         outcome, pointsAwarded: plan.pointsAwarded, state: "pending", createdAt: input.now,
       }, { merge: true });
-      if (plan.pointsAwarded !== null && plan.pointsAwarded > 0) {
+      if (plan.acceptedCount !== null && plan.acceptedCount > 0) {
         const wallet = requireData(walletSnapshot.data(), "Resident wallet does not exist");
         const stats = requireData(statsSnapshot.data(), "Resident stats do not exist");
         const balance = Number(wallet.balance ?? 0);
         const nextVersion = Number(wallet.version ?? 0) + 1;
-        transaction.update(walletRef, { balance: balance + plan.pointsAwarded, version: nextVersion, updatedAt: input.now });
-        transaction.create(this.firestore.doc(`walletEntries/${batchId}`), {
-          id: batchId, residentId: String(job.ownerId), type: "deposit_credit",
-          pointsDelta: plan.pointsAwarded, sourceType: "deposit", sourceId: batchId,
-          balanceAfter: balance + plan.pointsAwarded, walletVersion: nextVersion, createdAt: input.now,
-        });
+        if ((plan.pointsAwarded ?? 0) > 0) {
+          transaction.update(walletRef, { balance: balance + plan.pointsAwarded!, version: nextVersion, updatedAt: input.now });
+          transaction.create(this.firestore.doc(`walletEntries/${batchId}`), {
+            id: batchId, residentId: String(job.ownerId), type: "deposit_credit",
+            pointsDelta: plan.pointsAwarded, sourceType: "deposit", sourceId: batchId,
+            balanceAfter: balance + plan.pointsAwarded!, walletVersion: nextVersion, createdAt: input.now,
+          });
+        }
         transaction.update(statsRef, {
           verifiedBatchCount: Number(stats.verifiedBatchCount ?? 0) + 1,
           acceptedItemCount: Number(stats.acceptedItemCount ?? 0) + Number(plan.acceptedCount ?? 0),
@@ -173,11 +179,15 @@ export class FirestoreSettlementStore implements SettlementStore {
         throw new DomainError("invalid_transition", "The review decision is no longer current");
       }
       const policySnapshot = await transaction.get(this.firestore.doc(`policies/${String(batch.policyVersion)}`));
-      const plan = calculateFinalization(policySnapshot.exists ? policyFrom(policySnapshot.data()) : initialPolicy(), input.findings.inventoryState, input.findings.findings);
+      const policy = requirePolicy(policySnapshot.data());
+      validateFindings(input.findings, policy);
+      const plan = calculateFinalization(policy, input.findings.inventoryState, input.findings.findings);
       const nextVersion = input.decisionVersion + 1;
       const oldSpace = Number(batch.spaceContributionSpc ?? 0);
       const binRef = this.firestore.doc(`bins/${String(batch.binId)}`);
+      const cycleRef = this.firestore.doc(`binCycles/${String(batch.cycleId)}`);
       const binSnapshot = await transaction.get(binRef);
+      const cycleSnapshot = await transaction.get(cycleRef);
       const walletRef = this.firestore.doc(`residents/${String(batch.ownerId)}/wallet/current`);
       const walletSnapshot = await transaction.get(walletRef);
       const bin = requireData(binSnapshot.data(), "The recycling bin does not exist");
@@ -187,12 +197,17 @@ export class FirestoreSettlementStore implements SettlementStore {
       transaction.update(resultRef, { outcome: plan.status, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc, decisionVersion: nextVersion, lines: plan.lines, updatedAt: input.now });
       transaction.update(ticketRef, { state: "resolved", decisionVersion: nextVersion, resolvedBy: input.actorId, resolvedAt: input.now });
       transaction.create(capacityRef, { id: capacityRef.id, binId: String(batch.binId), cycleId: String(batch.cycleId), batchId: input.batchId, deltaSpc: delta, kind: "review_correction", decisionVersion: nextVersion, createdAt: input.now, historical: String(batch.cycleId) !== String(bin.cycleId) });
+      applyCapacity(transaction, binRef, cycleRef, binSnapshot.data(), cycleSnapshot.data(), String(batch.cycleId), delta, input.now);
       if (plan.pointsAwarded !== null && plan.pointsAwarded > 0) {
         const wallet = requireData(walletSnapshot.data(), "Resident wallet does not exist");
         const nextWalletVersion = Number(wallet.version ?? 0) + 1;
         transaction.update(walletRef, { balance: Number(wallet.balance ?? 0) + plan.pointsAwarded, version: nextWalletVersion, updatedAt: input.now });
         transaction.create(this.firestore.doc(`walletEntries/${input.batchId}-review`), { residentId: batch.ownerId, type: "deposit_credit", pointsDelta: plan.pointsAwarded, sourceType: "deposit_review", sourceId: input.batchId, balanceAfter: Number(wallet.balance ?? 0) + plan.pointsAwarded, walletVersion: nextWalletVersion, createdAt: input.now });
       }
+      transaction.set(this.firestore.doc(`notificationEvents/${input.batchId}-${nextVersion}`), {
+        id: `${input.batchId}-${nextVersion}`, recipientUid: String(batch.ownerId), batchId: input.batchId,
+        outcome: plan.status, pointsAwarded: plan.pointsAwarded, state: "pending", createdAt: input.now,
+      }, { merge: true });
       return { jobId: String(result.jobId ?? ""), batchId: input.batchId, resultId: resultRef.id, outcome: plan.status, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc, decisionVersion: nextVersion, replayed: false };
     });
   }
@@ -253,16 +268,86 @@ function validateArtifacts(references: readonly string[], jobId: string, attempt
   }
 }
 
-function policyFrom(data: DocumentData | undefined): PolicySnapshot {
-  const value = data ?? {};
+function requirePolicy(data: DocumentData | undefined): PolicySnapshot {
+  if (data === undefined || typeof data.id !== "string" ||
+      !Array.isArray(data.acceptedObjectClasses) ||
+      typeof data.pointsPerItemByCategory !== "object" ||
+      typeof data.spcPerItemByClass !== "object") {
+    throw new DomainError("processing_unavailable", "The pinned recycling policy is missing or corrupt", {
+      retryability: "after_backoff",
+    });
+  }
   return {
     ...initialPolicy(),
-    id: String(value.id ?? value.version ?? initialPolicy().id),
-    acceptedObjectClasses: Array.isArray(value.acceptedObjectClasses) ? value.acceptedObjectClasses : initialPolicy().acceptedObjectClasses,
-    rewardCategoryByClass: value.rewardCategoryByClass ?? initialPolicy().rewardCategoryByClass,
-    pointsPerItemByCategory: value.pointsPerItemByCategory ?? initialPolicy().pointsPerItemByCategory,
-    spcPerItemByClass: value.spcPerItemByClass ?? initialPolicy().spcPerItemByClass,
+    id: data.id,
+    acceptedObjectClasses: data.acceptedObjectClasses as PolicySnapshot["acceptedObjectClasses"],
+    rewardCategoryByClass: data.rewardCategoryByClass ?? initialPolicy().rewardCategoryByClass,
+    pointsPerItemByCategory: data.pointsPerItemByCategory,
+    spcPerItemByClass: data.spcPerItemByClass,
+    defaultSpcPerRecognizedItem: typeof data.defaultSpcPerRecognizedItem === "number"
+      ? data.defaultSpcPerRecognizedItem : initialPolicy().defaultSpcPerRecognizedItem,
+    unresolvedSpcPerCandidate: typeof data.unresolvedSpcPerCandidate === "number"
+      ? data.unresolvedSpcPerCandidate : initialPolicy().unresolvedSpcPerCandidate,
+    unreadableBatchSpc: typeof data.unreadableBatchSpc === "number"
+      ? data.unreadableBatchSpc : initialPolicy().unreadableBatchSpc,
   };
+}
+
+function validateFindings(findings: WorkerFindings, policy: PolicySnapshot): void {
+  if (findings.findings.length > 12) throw new DomainError("invalid_input", "The finding inventory exceeds the bounded object limit");
+  if (findings.inventoryState === "empty" && findings.findings.length !== 0) {
+    throw new DomainError("invalid_input", "An empty inventory cannot contain visible findings");
+  }
+  const ids = new Set<string>();
+  for (const finding of findings.findings) {
+    if (ids.has(finding.objectId)) throw new DomainError("invalid_input", "Finding object IDs must be unique");
+    ids.add(finding.objectId);
+    if (!Number.isFinite(finding.confidence) || finding.confidence < 0 || finding.confidence > 1) {
+      throw new DomainError("invalid_input", "Finding confidence is outside the supported range");
+    }
+    if (finding.box !== null) {
+      const values = [finding.box.x1, finding.box.y1, finding.box.x2, finding.box.y2];
+      if (values.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
+          finding.box.x2 <= finding.box.x1 || finding.box.y2 <= finding.box.y1) {
+        throw new DomainError("invalid_input", "Finding geometry is invalid");
+      }
+    }
+    if (finding.eligibility === "eligible" && !policy.acceptedObjectClasses.includes(finding.resolution)) {
+      throw new DomainError("invalid_input", "An unsupported class cannot be eligible");
+    }
+    if (finding.resolution === "unknown" && finding.eligibility !== "unresolved") {
+      throw new DomainError("invalid_input", "Unknown findings must remain unresolved");
+    }
+  }
+}
+
+function applyCapacity(
+  transaction: Transaction,
+  binRef: DocumentReference,
+  cycleRef: DocumentReference,
+  binData: DocumentData | undefined,
+  cycleData: DocumentData | undefined,
+  cycleId: string,
+  delta: number,
+  now: Instant,
+): void {
+  if (cycleData === undefined || binData === undefined) {
+    throw new DomainError("processing_unavailable", "The settlement cycle or bin record is missing", {
+      retryability: "after_backoff",
+    });
+  }
+  const contribution = Number(cycleData.contributionTotalSpc ?? 0) + delta;
+  transaction.update(cycleRef, { contributionTotalSpc: contribution, updatedAt: now });
+  if (String(binData.cycleId) === cycleId) {
+    const capacity = Number(binData.capacitySpc);
+    const occupied = Number(binData.occupiedSpc ?? 0) + delta;
+    transaction.update(binRef, {
+      occupiedSpc: occupied,
+      capacityPercent: capacity > 0 ? Math.max(0, Math.min(100, Math.floor(occupied * 100 / capacity))) : 0,
+      availability: occupied >= capacity ? "full" : "available",
+      updatedAt: now,
+    });
+  }
 }
 
 function resultResult(data: DocumentData | undefined, jobId: string, batchId: string, replayed: boolean): SettlementResult {

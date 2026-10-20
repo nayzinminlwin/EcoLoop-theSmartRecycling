@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_functions/cloud_functions.dart';
@@ -27,6 +28,7 @@ class CommandClient {
   final PendingOperationStore store;
   final CallableTransport _transport;
   final String Function() _requestIdFactory;
+  static final Map<String, Future<void>> _uidLocks = <String, Future<void>>{};
 
   static const _durableOperations = <String>{
     'scanBinQr',
@@ -45,7 +47,7 @@ class CommandClient {
     String operation,
     Map<String, Object?> payload, {
     String? requestId,
-  }) async {
+  }) => _synchronized(() async {
     final durable = _durableOperations.contains(operation);
     final existing = durable ? await store.read(uid) : null;
     if (existing != null) {
@@ -77,6 +79,21 @@ class CommandClient {
       }
       if (durable) await store.clear(uid);
       rethrow;
+    }
+  }, uid);
+
+  Future<T> _synchronized<T>(Future<T> Function() action, String key) async {
+    final previous = _uidLocks[key] ?? Future<void>.value();
+    final gate = Completer<void>();
+    _uidLocks[key] = gate.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      gate.complete();
+      if (identical(_uidLocks[key], gate.future)) {
+        _uidLocks.remove(key);
+      }
     }
   }
 
@@ -114,7 +131,9 @@ class CommandClient {
       await store.clear(uid);
       return envelope;
     } on AppFailure catch (error) {
-      if (!error.retryable) {
+      if (!error.retryable &&
+          error.code != 'not-found' &&
+          error.code != 'not_found') {
         await store.clear(uid);
         rethrow;
       }

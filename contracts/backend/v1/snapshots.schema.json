@@ -63,7 +63,7 @@
       "properties": {
         "kind": { "const": "batch" }, "schemaVersion": { "const": "backend.v1" }, "batchId": { "$ref": "#/$defs/id" },
         "ownerId": { "$ref": "#/$defs/id" }, "sessionId": { "$ref": "#/$defs/id" }, "assetId": { "$ref": "#/$defs/id" },
-        "policyVersion": { "$ref": "#/$defs/id" }, "status": { "type": "string", "enum": ["processing", "review", "verified", "excluded", "empty", "failed"] },
+        "policyVersion": { "$ref": "#/$defs/id" }, "status": { "type": "string", "enum": ["processing", "review", "verified", "rejected", "empty", "failed"] },
         "totalDetectedObjectCount": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
         "pointsAwarded": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
         "spaceContributionSpc": { "type": "integer", "minimum": 0 }, "decisionVersion": { "type": "integer", "minimum": 0 },
@@ -76,7 +76,7 @@
       "required": ["kind", "schemaVersion", "receiptId", "batchId", "outcome", "pointsAwarded", "spaceContributionSpc", "decisionVersion"],
       "properties": {
         "kind": { "const": "receipt" }, "schemaVersion": { "const": "backend.v1" }, "receiptId": { "$ref": "#/$defs/id" },
-        "batchId": { "$ref": "#/$defs/id" }, "outcome": { "type": "string", "enum": ["processing", "review", "verified", "excluded", "empty"] },
+        "batchId": { "$ref": "#/$defs/id" }, "outcome": { "type": "string", "enum": ["processing", "review", "verified", "rejected", "empty"] },
         "pointsAwarded": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
         "spaceContributionSpc": { "type": "integer", "minimum": 0 }, "decisionVersion": { "type": "integer", "minimum": 0 },
         "explanation": { "type": "string", "minLength": 1, "maxLength": 240 }

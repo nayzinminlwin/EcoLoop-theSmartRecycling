@@ -66,6 +66,7 @@ export class FirestoreRewardsStore implements RewardStore {
       transaction.create(voucherRef, {
         id: voucherRef.id, residentId: input.uid, redemptionId: redemptionRef.id,
         rewardId: input.rewardId, code: voucherCode, demo: true, status: "available",
+        remainingUses: 1,
         title: redemption.title, merchant: redemption.merchant, terms: redemption.terms,
         offerVersion, issuedAt: input.now, expiresAt: expiry,
       });
@@ -80,6 +81,8 @@ export class FirestoreRewardsStore implements RewardStore {
         payloadFingerprint: input.payloadFingerprint, redemptionId: redemptionRef.id,
         voucherId: voucherRef.id, voucherCode, rewardId: input.rewardId,
         offerVersion, cost, balance: nextBalance, expiresAt: expiry,
+        issuedAt: input.now, redeemedAt: input.now, walletVersion: nextVersion,
+        title: redemption.title, merchant: redemption.merchant, terms: redemption.terms,
       });
       return {
         redemptionId: redemptionRef.id, voucherId: voucherRef.id, voucherCode,
@@ -110,7 +113,9 @@ export class FirestoreRewardsStore implements RewardStore {
       const voucher = voucherSnap.data()!;
       if (voucher.residentId !== input.uid) throw new DomainError("permission_denied", "Voucher belongs to another resident");
       if (voucher.demo !== true) throw new DomainError("reward_unavailable", "Only demo vouchers can be simulated");
-      if (voucher.status !== "available" || usageSnap.exists) throw new DomainError("voucher_used", "Voucher has already been used");
+      if (voucher.status !== "available" || Number(voucher.remainingUses ?? 0) !== 1 || usageSnap.exists) {
+        throw new DomainError("voucher_used", "Voucher has already been used");
+      }
       if (!canUseDemoVoucher({
         demo: voucher.demo,
         status: String(voucher.status),
@@ -118,7 +123,7 @@ export class FirestoreRewardsStore implements RewardStore {
         now: input.now,
       })) throw new DomainError("voucher_expired", "Voucher has expired");
       transaction.create(usageRef, { id: usageRef.id, voucherId: input.voucherId, residentId: input.uid, usedAt: input.now, requestId: input.requestId });
-      transaction.update(voucherRef, { status: "used", usedAt: input.now, updatedAt: input.now });
+      transaction.update(voucherRef, { status: "used", remainingUses: 0, usedAt: input.now, updatedAt: input.now });
       transaction.create(requestRef, { payloadFingerprint: input.payloadFingerprint, voucherId: input.voucherId, usedAt: input.now });
       return { voucherId: input.voucherId, usedAt: input.now, replayed: false };
     });

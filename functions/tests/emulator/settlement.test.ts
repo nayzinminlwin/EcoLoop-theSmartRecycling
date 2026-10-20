@@ -26,7 +26,7 @@ beforeAll(() => {
 });
 
 beforeEach(async () => {
-  for (const collection of ["inferenceJobs", "deposits", "depositResults", "depositSessions", "binOperations", "bins", "residents", "policies", "capacityEntries", "walletEntries", "reviewTickets", "notificationEvents"]) {
+  for (const collection of ["inferenceJobs", "deposits", "depositResults", "depositSessions", "binOperations", "bins", "binCycles", "residents", "policies", "capacityEntries", "walletEntries", "reviewTickets", "notificationEvents"]) {
     await firestore.recursiveDelete(firestore.collection(collection));
   }
   await firestore.doc(`inferenceJobs/${jobId}`).set({
@@ -53,6 +53,7 @@ beforeEach(async () => {
     binId, ownerId: uid, sessionId, phase: "processing",
   });
   await firestore.doc(`bins/${binId}`).set({ id: binId, cycleId: "cycle-1", capacitySpc: 100, occupiedSpc: 10 });
+  await firestore.doc("binCycles/cycle-1").set({ id: "cycle-1", binId, openingOccupiedSpc: 10, capacitySpc: 100, contributionTotalSpc: 0 });
   await firestore.doc(`residents/${uid}`).set({ activeSessionId: sessionId });
   await firestore.doc(`residents/${uid}/wallet/current`).set({ residentId: uid, balance: 0, version: 0 });
   await firestore.doc(`residents/${uid}/stats/current`).set({ residentId: uid, verifiedBatchCount: 0, acceptedItemCount: 0 });
@@ -89,7 +90,7 @@ describe("atomic inspection settlement", () => {
 
   it("records excluded, empty, and unreadable semantics without positive credit", async () => {
     const excluded = await settlements.finalizeInspection(input(resolvedFindings([finding("cardboard_item", "excluded")])));
-    expect(excluded).toMatchObject({ outcome: "excluded", pointsAwarded: 0, spaceContributionSpc: 15 });
+    expect(excluded).toMatchObject({ outcome: "rejected", pointsAwarded: 0, spaceContributionSpc: 15 });
     await resetForSecondScenario();
     const empty = await settlements.finalizeInspection(input({ ...emptyFindings(), jobId }));
     expect(empty).toMatchObject({ outcome: "empty", pointsAwarded: 0, spaceContributionSpc: 0 });
