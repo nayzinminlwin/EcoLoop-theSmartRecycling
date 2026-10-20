@@ -276,6 +276,14 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         outcomeTone: _outcomeTone(result),
       );
     }
+    if (session.stage == ScanStage.processing ||
+        session.stage == ScanStage.completed) {
+      return ScanStageVisual(
+        stage: session.stage,
+        capacityPercent: 0,
+        outcomeTone: _outcomeTone(result),
+      );
+    }
     return binAsync.when(
       loading: () => const ScannerStage(
         child: SizedBox.square(
