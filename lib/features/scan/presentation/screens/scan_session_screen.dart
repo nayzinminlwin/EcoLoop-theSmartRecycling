@@ -244,22 +244,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          binAsync.when(
-            loading: () => const ScannerStage(
-              child: SizedBox.square(
-                dimension: 28,
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
-            error: (error, _) => _binError(context, error, session),
-            data: (bin) => bin == null
-                ? _binError(context, null, session)
-                : ScanStageVisual(
-                    stage: session.stage,
-                    capacityPercent: bin.capacityPercent,
-                    outcomeTone: _outcomeTone(result),
-                  ),
-          ),
+          _binVisual(context, binAsync, bin, result, session),
           const SizedBox(height: 18),
           _flowInfo(
             context,
@@ -274,6 +259,32 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           ..._actions(context, session, completion, assets),
         ],
       ),
+    );
+  }
+
+  Widget _binVisual(
+    BuildContext context,
+    AsyncValue<SmartBin?> binAsync,
+    SmartBin? bin,
+    DepositResult? result,
+    DepositSession session,
+  ) {
+    if (bin != null) {
+      return ScanStageVisual(
+        stage: session.stage,
+        capacityPercent: bin.capacityPercent,
+        outcomeTone: _outcomeTone(result),
+      );
+    }
+    return binAsync.when(
+      loading: () => const ScannerStage(
+        child: SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      ),
+      error: (error, _) => _binError(context, error, session),
+      data: (_) => _binError(context, null, session),
     );
   }
 
