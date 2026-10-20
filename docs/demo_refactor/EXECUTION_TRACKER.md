@@ -17,7 +17,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 | --- | --- | --- | --- | --- |
 | H1 existing identity/platform/demo access | Developer | COMPLETE | Device/platform/cloud inputs recorded; login hotfix confirmed | f2c6282 |
 | A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
-| A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | A2 commit |
+| A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | `bf1185f` |
 | A3 Tasks/service identity/vision/fallback/evidence | Agent | NOT_STARTED | — | — |
 | H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
 | A4 UI/operations/current deployed candidate | Agent | NOT_STARTED | — | — |
@@ -85,26 +85,26 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-006 request envelope | A1 | FIXED_VERIFIED | Shared strict `backend.v1` request unpacker wired to resident callables | Functions build; callable emulator smoke remains pending | `f2c6282` |
 | UA-007 missing account operations | A1 | FIXED_VERIFIED | Added profile update and preferences read exports/store operations | Functions build + Flutter account tests | `f2c6282` |
 | UA-008 callable errors | A1 | FIXED_VERIFIED | Firebase callable exception details map to stable domain failures | Flutter targeted analyze; business-error live smoke pending | `f2c6282` |
-| UA-009 intent recovery | A2 | FIXED_VERIFIED | UID-scoped client serialization; pending intent preserved across inconclusive recovery | Flutter command client tests; `A2_INVARIANTS.md` | A2 commit |
+| UA-009 intent recovery | A2 | FIXED_VERIFIED | UID-scoped client serialization; pending intent preserved across inconclusive recovery | Flutter command client tests; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-010 UID lifecycle | A1 | FIXED_VERIFIED | UID-scoped account stream replay and provisioning fence preserve owner transitions | Flutter account/provider tests | `f2c6282` |
 | UA-011 real clock | A1 | FIXED_VERIFIED | Firebase bootstrap uses advancing system Malaysia clock instead of fixed mock time | Flutter targeted analyze | `f2c6282` |
-| UA-012 draft/Continue | A2 | FIXED_VERIFIED | Expected-version draft selection and submission identity are persisted by production stores | Session emulator; `A2_INVARIANTS.md` | A2 commit |
-| UA-013 scan instructions/result rendering | A2 | FIXED_VERIFIED | Canonical terminal result/status contract preserved through settlement | Settlement emulator; `A2_INVARIANTS.md` | A2 commit |
-| UA-014 active-session discovery | A2 | FIXED_VERIFIED | Resident active session is owner-fenced and cleared only on matching terminal completion | Session/settlement emulators; `A2_INVARIANTS.md` | A2 commit |
-| UA-015 QR/expiry transactions | A2 | FIXED_VERIFIED | Exact enabled QR mapping and matching reservation expiry are transactionally enforced | Session emulator; `SEEDING_AND_QR.md` | A2 commit |
-| UA-016 history/result record contract | A2 | FIXED_VERIFIED | Terminal result includes stable batch/result/decision/policy/reason fields | Settlement emulator; `A2_INVARIANTS.md` | A2 commit |
+| UA-012 draft/Continue | A2 | FIXED_VERIFIED | Expected-version draft selection and submission identity are persisted by production stores | Session emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-013 scan instructions/result rendering | A2 | FIXED_VERIFIED | Canonical terminal result/status contract preserved through settlement | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-014 active-session discovery | A2 | FIXED_VERIFIED | Resident active session is owner-fenced and cleared only on matching terminal completion | Session/settlement emulators; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-015 QR/expiry transactions | A2 | FIXED_VERIFIED | Exact enabled QR mapping and matching reservation expiry are transactionally enforced | Session emulator; `SEEDING_AND_QR.md` | `bf1185f` |
+| UA-016 history/result record contract | A2 | FIXED_VERIFIED | Terminal result includes stable batch/result/decision/policy/reason fields | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-017 indexes/pagination/live windows | A2 | OPEN | Requires A4 read-model/UI integration proof | — | — |
 | UA-018 current guide | A1 | FIXED_VERIFIED | Guide consumes active policy/reference seed; 5 accepted classes displayed, cardboard excluded | Live Home shows correct guide content | A1 commit |
 | UA-019 complete nondestructive seed | A1 | FIXED_VERIFIED | Create-only reference seed applied; 56 refs, 16 images, 6 QR preserved on rerun | Four emulator tests + live hash/readback + six QR decodes | A1 commit |
-| UA-020 redemption replay receipt | A2 | FIXED_VERIFIED | Immutable request receipt is replayed before catalog validation | Rewards emulator; `A2_INVARIANTS.md` | A2 commit |
-| UA-021 voucher metadata/use | A2 | FIXED_VERIFIED | Demo voucher metadata and remaining-use transition are persisted atomically | Rewards emulator; `A2_INVARIANTS.md` | A2 commit |
+| UA-020 redemption replay receipt | A2 | FIXED_VERIFIED | Immutable request receipt is replayed before catalog validation | Rewards emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-021 voucher metadata/use | A2 | FIXED_VERIFIED | Demo voucher metadata and remaining-use transition are persisted atomically | Rewards emulator; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-022 scoped catalog/voucher feeds | A2 | OPEN | Requires A4 owner-scoped presentation query proof | — | — |
-| UA-023 capacity projections | A2 | FIXED_VERIFIED | Cycle totals and current-bin display occupancy are updated with raw-overflow preservation | Settlement emulator; `A2_INVARIANTS.md` | A2 commit |
-| UA-024 accepted stats | A2 | FIXED_VERIFIED | Accepted-item statistics update independently of positive reward rate | Settlement emulator; `A2_INVARIANTS.md` | A2 commit |
+| UA-023 capacity projections | A2 | FIXED_VERIFIED | Cycle totals and current-bin display occupancy are updated with raw-overflow preservation | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-024 accepted stats | A2 | FIXED_VERIFIED | Accepted-item statistics update independently of positive reward rate | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-025 terminal recovery | A2 | OPEN | Deadline/reconciliation paths require a dedicated failure/third-attempt emulator proof | — | — |
 | UA-026 review/collection contract | A2 | OPEN | Review correction is covered; complete collection/report harness proof remains | — | — |
-| UA-027 pinned complete policy | A2 | FIXED_VERIFIED | Missing/corrupt pinned policy now produces recoverable technical failure, never default rates | Settlement emulator; `A2_INVARIANTS.md` | A2 commit |
-| UA-028 semantic finalization validation | A2 | FIXED_VERIFIED | Duplicate IDs, invalid geometry/confidence, unsupported eligibility, and inconsistent empty findings are rejected | Settlement implementation; `A2_INVARIANTS.md` | A2 commit |
+| UA-027 pinned complete policy | A2 | FIXED_VERIFIED | Missing/corrupt pinned policy now produces recoverable technical failure, never default rates | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-028 semantic finalization validation | A2 | FIXED_VERIFIED | Duplicate IDs, invalid geometry/confidence, unsupported eligibility, and inconsistent empty findings are rejected | Settlement implementation; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-029 service OIDC identity | A3 | OPEN | — | — | — |
 | UA-030 private committed source | A3 | OPEN | — | — | — |
 | UA-031 Tasks route/retry/deadline | A3 | OPEN | — | — | — |
