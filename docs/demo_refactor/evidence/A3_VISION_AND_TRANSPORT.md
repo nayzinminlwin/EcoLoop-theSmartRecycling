@@ -33,19 +33,21 @@ Implemented and locally verified:
 
 The smoke was a provider-access check, not a settlement or release gate. Its raw report was written to a local temporary directory and is not committed because it contains verbose provider payloads.
 
+## Live infrastructure handoff
+
+The live infrastructure configuration was applied and verified on 2026-10-20:
+
+- Cloud Run vision revision `ecoloop-vision-00007-zwl` is ready and serves immutable image digest `sha256:eb0ae8757e106213a56c7add6f51a301d866127537b32c92d93df12ea38d2c66`.
+- Vision runs as `ecoloop-vision-runtime@ecoloop-thesmartrecycling.iam.gserviceaccount.com` with source bucket `ecoloop-thesmartrecycling.firebasestorage.app` and artifact bucket `ecoloop-thesmartrecycling-vision-artifacts`.
+- The `vision-processing` queue exists in `asia-southeast1` with one concurrent dispatch, three attempts and a 300-second retry duration.
+- The `workerGateway` revision `workergateway-00004-bep` is ready in `us-central1` with `demo-vision-v1`, the Google OIDC issuer, the numeric Tasks service-account subject, and the explicit `/tasks/vision` route/audience settings.
+- The Tasks service account has Cloud Run invoker access to the private vision service.
+
 ## Remaining H2 transport handoff
 
-A3 code is implemented, but the complete phase exit gate is **BLOCKED pending H2 configuration**, not silently passed:
+A3 code and infrastructure configuration are implemented, but the complete phase exit gate is **BLOCKED pending durable transport evidence**, not silently passed:
 
-- `ECOLOOP_SOURCE_BUCKET`
-- `ECOLOOP_ARTIFACT_BUCKET`
-- `ECOLOOP_VISION_TASK_URL` ending in `/tasks/vision`
-- `ECOLOOP_VISION_SERVICE_AUDIENCE` as the service root, distinct from the route
-- `ECOLOOP_TASK_INVOKER_SERVICE_ACCOUNT`
-- `ECOLOOP_WORKER_SUBJECT` and `ECOLOOP_WORKER_ISSUER`
-- Managed provider secret bindings and Cloud Run/Tasks IAM
-
-These values were absent from the local environment at capture time. No secret contents were recorded. Until H2 supplies them, a private source-read, durable artifact-write, signed gateway invocation, real Tasks delivery, and end-to-end settlement trace cannot honestly be claimed.
+Configuration values are now deployed and verified without recording secret contents. A private source-read, durable artifact-write, signed gateway invocation, real Tasks delivery, and end-to-end settlement trace have not yet been captured, so they cannot honestly be claimed.
 
 ## Known limitations carried forward
 

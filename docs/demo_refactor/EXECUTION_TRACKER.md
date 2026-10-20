@@ -18,7 +18,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 | H1 existing identity/platform/demo access | Developer | COMPLETE | Device/platform/cloud inputs recorded; login hotfix confirmed | f2c6282 |
 | A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | `bf1185f` |
-| A3 Tasks/service identity/vision/fallback/evidence | Agent | IMPLEMENTED | Code gates, hosted four-call smoke and blocked H2 handoff recorded in `evidence/A3_VISION_AND_TRANSPORT.md` | `94d3742` |
+| A3 Tasks/service identity/vision/fallback/evidence | Agent | IMPLEMENTED | Code gates, hosted four-call smoke, live Cloud Run/gateway configuration, and pending durable transport trace recorded in `evidence/A3_VISION_AND_TRANSPORT.md` | `413faa3` |
 | H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
 | A4 UI/operations/current deployed candidate | Agent | NOT_STARTED | — | — |
 | H3 independent device/browser rehearsal | Developer | NOT_STARTED | — | — |
@@ -29,23 +29,23 @@ Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCK
 ## 2. Resume checkpoint
 
 ```text
-Updated: 2026-10-20 19:35 MYT
+Updated: 2026-10-20 20:00 MYT
 Executor/model and role: Copilot SDK in VS Code; repository implementation assistant
 Actual presentation date/time/time zone; hours remaining: 2026-10-20 20:00 MYT; approximately 16 hours remaining at update time
-Phase and bounded substep: A3 implemented; H2 private transport handoff is the first blocker before A4
+Phase and bounded substep: A3 implemented; durable private transport trace is the first blocker before A4
 Source SHA and current dirty/user-owned paths: A2 scan handoff at `d72fe45`; unrelated pre-existing dirty and untracked paths preserved
 Explicit Firebase mode / project / database / regions: `firebase` / `ecoloop-thesmartrecycling` / `ecoloop-db` / resident Functions `us-central1`
 Android distribution/signing/App Check mode: debug APK; `sd.idk.ecoLoop`; debug SHA-1/SHA-256 recorded; App Check not enforced
 Exact target files inspected/changed: Functions worker gateway/jobs/dispatch/inspection store; vision config/gateway/source loader/provider composition/evaluator; A3 evidence
 Contract/schema/policy/config/model identities: `demo-vision-v1`; registry A/B/D plus `gemini-3.8-flash`; private source generation and `backend.v1`
-Last actually executed command and result: Functions build passed; `npm run test:jobs` passed 4/4; vision `uv run --frozen pytest -q` passed 35/35; hosted A/B/D/Gemini smoke passed 4/4
-Current first failing boundary + reproduction: H2 private transport inputs absent locally; production task processing fails closed without bucket, route/audience, identity and artifact configuration
+Last actually executed command and result: Vision `uv run --frozen pytest -q` passed 35/35; vision Cloud Run revision and worker gateway deployed; Functions deployment completed successfully
+Current first failing boundary + reproduction: Durable private source-read/artifact-write, signed Tasks delivery and settlement trace are not yet captured; do not mark A3 complete without them
 Safe request/trace/session/batch/job/attempt/result IDs: none; provider smoke used image SHA `d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6`
 Evidence paths: `evidence/A3_VISION_AND_TRANSPORT.md`; `evidence/SEEDING_AND_QR.md`
-Audit findings closed, with independent proof: UA-029–037 and UA-047/052 code/test gates recorded; UA-038 remains IN_PROGRESS pending H2 durable trace
-Open blockers, owner, exact next action: Developer/H2 must supply nonsecret runtime resource names and IAM; then run private source/artifact/gateway/Tasks trace before A4
-Commit SHA or explicit uncommitted/blocked state: A3 implementation commit `94d3742`; phase status IMPLEMENTED, not COMPLETE
-Next exact substep and required read set: H2 handoff using `evidence/A3_VISION_AND_TRANSPORT.md`, then private transport preflight
+Audit findings closed, with independent proof: UA-029–037 and UA-047/052 code/test gates recorded; UA-038 remains IN_PROGRESS pending durable trace
+Open blockers, owner, exact next action: Developer/H2 must perform one genuine device or seeded-image submission and capture safe job/attempt/artifact/result IDs plus the durable Tasks/gateway trace
+Commit SHA or explicit uncommitted/blocked state: A3 implementation/deployment fixes `94d3742`, `5679f97`, `413faa3`; phase status IMPLEMENTED, not COMPLETE
+Next exact substep and required read set: run the private source/artifact/gateway/Tasks trace using `evidence/A3_VISION_AND_TRANSPORT.md`, then update UA-038 and phase status only if the settlement evidence is durable
 ```
 
 Preserve initially untracked `.vscode/`, `Demo_Screenshots/`, `android/build/`, `assets/trash_images/` unless their owner explicitly authorizes a scoped change. Never stage these incidentally.
