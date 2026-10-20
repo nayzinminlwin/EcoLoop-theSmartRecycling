@@ -16,7 +16,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 | Phase | Lead | Status | Actual evidence | Commit SHA |
 | --- | --- | --- | --- | --- |
 | H1 existing identity/platform/demo access | Developer | COMPLETE | `evidence/H1_ENVIRONMENT.md`; QR/account-switch rehearsal explicitly deferred | `61a80b3fc0832730c28d562c6c1b36ce1a2b0604` |
-| A1 contract/auth/real Home | Agent | IN_PROGRESS | Contract/account/rules implementation and emulator evidence in `evidence/A1_CONTRACT_MAP.md` and `evidence/A1_HOME_GATE.md`; live platform gate remains developer-owned | Functions build, Flutter analyze, account emulator (5), rules emulator (5) |
+| A1 contract/auth/real Home | Agent | IN_PROGRESS | Contract/account/rules implementation and emulator evidence in `evidence/A1_CONTRACT_MAP.md` and `evidence/A1_HOME_GATE.md`; live platform gate remains developer-owned | Functions build, Flutter analyze, account emulator (5), rules emulator (5) | `f2c6282` |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | NOT_STARTED | — | — |
 | A3 Tasks/service identity/vision/fallback/evidence | Agent | NOT_STARTED | — | — |
 | H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
@@ -77,25 +77,25 @@ Each finding has exactly one primary implementation owner below. Other phases su
 
 | Audit ID | Primary owner phase | Status | Actual change | Independent regression/live evidence | Commit |
 | --- | --- | --- | --- | --- | --- |
-| UA-001 regions | A1 | FIXED_VERIFIED | Explicit resident `us-central1` client/export contract; worker/scheduled split retained | Functions build + Flutter analyze; live callable smoke pending | Pending A1 commit |
-| UA-002 named database | A1 | FIXED_VERIFIED | Flutter and Functions use explicit `ecoloop-db`; canonical resident reads use seeded layout | Seed live evidence plus Functions build and account emulator | Pending A1 commit |
-| UA-003 actual-path rules | A1 | FIXED_VERIFIED | Rules and Flutter reads aligned to canonical resident and owner paths | Rules emulator 5/5 | Pending A1 commit |
-| UA-004 auth readiness/replay | A1 | FIXED_VERIFIED | Auth stream replays current state; provisioning is UID-fenced and retryable | Flutter account tests + targeted analyze | Pending A1 commit |
-| UA-005 profile DTO | A1 | FIXED_VERIFIED | Backend writer fields map to strict resident DTO fields | Functions build + account emulator | Pending A1 commit |
-| UA-006 request envelope | A1 | FIXED_VERIFIED | Shared strict `backend.v1` request unpacker wired to resident callables | Functions build; callable emulator smoke remains pending | Pending A1 commit |
-| UA-007 missing account operations | A1 | FIXED_VERIFIED | Added profile update and preferences read exports/store operations | Functions build + Flutter account tests | Pending A1 commit |
-| UA-008 callable errors | A1 | FIXED_VERIFIED | Firebase callable exception details map to stable domain failures | Flutter targeted analyze; business-error live smoke pending | Pending A1 commit |
+| UA-001 regions | A1 | FIXED_VERIFIED | Explicit resident `us-central1` client/export contract; worker/scheduled split retained | Functions build + Flutter analyze; live callable smoke pending | `f2c6282` |
+| UA-002 named database | A1 | FIXED_VERIFIED | Flutter and Functions use explicit `ecoloop-db`; canonical resident reads use seeded layout | Seed live evidence plus Functions build and account emulator | `f2c6282` |
+| UA-003 actual-path rules | A1 | FIXED_VERIFIED | Rules and Flutter reads aligned to canonical resident and owner paths | Rules emulator 5/5 | `f2c6282` |
+| UA-004 auth readiness/replay | A1 | FIXED_VERIFIED | Auth stream replays current state; provisioning is UID-fenced and retryable | Flutter account tests + targeted analyze | `f2c6282` |
+| UA-005 profile DTO | A1 | FIXED_VERIFIED | Backend writer fields map to strict resident DTO fields | Functions build + account emulator | `f2c6282` |
+| UA-006 request envelope | A1 | FIXED_VERIFIED | Shared strict `backend.v1` request unpacker wired to resident callables | Functions build; callable emulator smoke remains pending | `f2c6282` |
+| UA-007 missing account operations | A1 | FIXED_VERIFIED | Added profile update and preferences read exports/store operations | Functions build + Flutter account tests | `f2c6282` |
+| UA-008 callable errors | A1 | FIXED_VERIFIED | Firebase callable exception details map to stable domain failures | Flutter targeted analyze; business-error live smoke pending | `f2c6282` |
 | UA-009 intent recovery | A2 | OPEN | — | — | — |
-| UA-010 UID lifecycle | A1 | FIXED_VERIFIED | UID-scoped account stream replay and provisioning fence preserve owner transitions | Flutter account/provider tests | Pending A1 commit |
-| UA-011 real clock | A1 | FIXED_VERIFIED | Firebase bootstrap uses advancing system Malaysia clock instead of fixed mock time | Flutter targeted analyze | Pending A1 commit |
+| UA-010 UID lifecycle | A1 | FIXED_VERIFIED | UID-scoped account stream replay and provisioning fence preserve owner transitions | Flutter account/provider tests | `f2c6282` |
+| UA-011 real clock | A1 | FIXED_VERIFIED | Firebase bootstrap uses advancing system Malaysia clock instead of fixed mock time | Flutter targeted analyze | `f2c6282` |
 | UA-012 draft/Continue | A2 | OPEN | — | — | — |
 | UA-013 scan instructions/result rendering | A2 | OPEN | — | — | — |
 | UA-014 active-session discovery | A2 | OPEN | — | — | — |
 | UA-015 QR/expiry transactions | A2 | OPEN | — | — | — |
 | UA-016 history/result record contract | A2 | OPEN | — | — | — |
 | UA-017 indexes/pagination/live windows | A2 | OPEN | — | — | — |
-| UA-018 current guide | A1 | IN_PROGRESS | Guide consumes active policy/reference seed; pointer/version live observation pending | Seed evidence + Flutter analyze | Pending A1 commit |
-| UA-019 complete nondestructive seed | A1 | IN_PROGRESS | New complete create-only reference seed applied; full A1 consumer/migration gate pending | Four emulator tests + live hash/readback + six QR decodes | Pending A1 commit |
+| UA-018 current guide | A1 | IN_PROGRESS | Guide consumes active policy/reference seed; pointer/version live observation pending | Seed evidence + Flutter analyze | `f2c6282` |
+| UA-019 complete nondestructive seed | A1 | IN_PROGRESS | New complete create-only reference seed applied; full A1 consumer/migration gate pending | Four emulator tests + live hash/readback + six QR decodes | `f2c6282` |
 | UA-020 redemption replay receipt | A2 | OPEN | — | — | — |
 | UA-021 voucher metadata/use | A2 | OPEN | — | — | — |
 | UA-022 scoped catalog/voucher feeds | A2 | OPEN | — | — | — |
@@ -122,7 +122,7 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-043 web background/click path | A4 | OPEN | — | — | — |
 | UA-044 trusted provisioning claims | A1 | OPEN | — | — | — |
 | UA-045 actual App Check | A1 | OPEN | — | — | — |
-| UA-046 role/private access/validation | A1 | FIXED_VERIFIED | Owner-scoped reads and direct write denial cover canonical private paths | Rules emulator 5/5; live claims/App Check observation pending | Pending A1 commit |
+| UA-046 role/private access/validation | A1 | FIXED_VERIFIED | Owner-scoped reads and direct write denial cover canonical private paths | Rules emulator 5/5; live claims/App Check observation pending | `f2c6282` |
 | UA-047 availability/cost bounds | A3 | OPEN | — | — | — |
 | UA-048 reproducible deploy | A4 | OPEN | — | — | — |
 | UA-049 current live deployment | A4 | OPEN | — | — | — |

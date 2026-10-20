@@ -1,7 +1,7 @@
 # A1 Home Gate
 
 - **Captured:** 2026-10-20
-- **Implementation source:** A1 changes committed with the phase commit
+- **Implementation source:** A1 commit `f2c6282`
 - **Firebase mode contract:** `ECOLOOP_FIREBASE_MODE=firebase`
 - **Project/database:** `ecoloop-thesmartrecycling` / `ecoloop-db`
 - **Callable region:** `us-central1`

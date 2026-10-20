@@ -2,7 +2,7 @@
 
 - **Captured:** 2026-10-20
 - **Phase:** A1
-- **Source identity:** `8abdc1a` plus the uncommitted A1 changes recorded with this evidence
+- **Source identity:** A1 implementation commit `f2c6282`
 - **Project/database:** `ecoloop-thesmartrecycling` / `ecoloop-db`
 - **Resident callable region:** `us-central1`
 - **Vision/Tasks/scheduled region:** `asia-southeast1`
