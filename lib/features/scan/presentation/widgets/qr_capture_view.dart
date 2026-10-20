@@ -112,6 +112,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   Widget _productionSurface() => MobileScanner(
     controller: _controller,
+    useAppLifecycleState: false,
     onDetect: (capture) {
       for (final barcode in capture.barcodes) {
         final value = barcode.rawValue;
