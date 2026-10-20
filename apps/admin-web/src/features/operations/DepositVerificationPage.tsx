@@ -375,23 +375,37 @@ export function DepositVerificationPage(): React.ReactElement {
 
   const urlTicketId = searchParams.get("ticketId");
 
-  // Normalize initial selection:
-  // "When selecting the initial first ticket, normalize its ID into ticketId once with a replace-style query update."
+  // Normalize selection:
+  // 1. If list has items and no ticket is selected (or urlTicketId is not in items), pick the first item.
+  // 2. If list is loaded and empty, clear ticketId from URL.
   React.useEffect(() => {
-    if (!urlTicketId && listQuery.data && listQuery.data.items.length > 0) {
-      const firstId = listQuery.data.items[0].ticket.id;
-      setSearchParams(patchQuery(searchParams, { ticketId: firstId }), { replace: true });
+    if (!listQuery.data) return;
+
+    if (listQuery.data.items.length === 0) {
+      if (urlTicketId) {
+        setSearchParams(patchQuery(searchParams, { ticketId: null }), { replace: true });
+      }
+    } else {
+      const exists = listQuery.data.items.some((it) => it.ticket.id === urlTicketId);
+      if (!urlTicketId || !exists) {
+        const firstId = listQuery.data.items[0].ticket.id;
+        setSearchParams(patchQuery(searchParams, { ticketId: firstId }), { replace: true });
+      }
     }
   }, [urlTicketId, listQuery.data, searchParams, setSearchParams]);
 
-  const selectedTicketId = urlTicketId ?? null;
+  const items = listQuery.data?.items ?? [];
+  const selectedTicketId = items.some((it) => it.ticket.id === urlTicketId)
+    ? urlTicketId
+    : null;
 
   // Handlers
   const handleTabChange = (status: VerificationStatus) => {
     setSearchParams(
       patchQuery(searchParams, {
         status,
-        page: "1"
+        page: "1",
+        ticketId: null
       })
     );
   };
@@ -411,8 +425,6 @@ export function DepositVerificationPage(): React.ReactElement {
   const handlePageSizeChange = (nextSize: number) => {
     setSearchParams(patchQuery(searchParams, { pageSize: String(nextSize), page: "1" }));
   };
-
-  const items = listQuery.data?.items ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>

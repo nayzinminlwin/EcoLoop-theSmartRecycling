@@ -40,6 +40,16 @@
   background: var(--red-bg);
 }
 
+.table-action.table-action-edit {
+  color: #8c968c;
+  background: transparent;
+}
+
+.table-action.table-action-edit:hover:not(:disabled) {
+  color: #2b332b;
+  background: #e2e8e0;
+}
+
 .table-actions-group {
   display: flex;
   align-items: center;
