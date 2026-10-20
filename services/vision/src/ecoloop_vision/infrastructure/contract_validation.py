@@ -7,10 +7,9 @@ from typing import Any
 from jsonschema import Draft202012Validator, FormatChecker
 
 
-_CONTRACT_ROOT_CANDIDATES = (
-    Path(__file__).resolve().parents[5] / "contracts" / "backend" / "v1",
-    Path(__file__).resolve().parents[3] / "contracts" / "backend" / "v1",
-)
+_CONTRACT_ROOT_CANDIDATES = [Path("/app/contracts/backend/v1")]
+for parent in Path(__file__).resolve().parents:
+    _CONTRACT_ROOT_CANDIDATES.append(parent / "contracts" / "backend" / "v1")
 CONTRACT_ROOT = next(
     (path for path in _CONTRACT_ROOT_CANDIDATES if path.is_dir()),
     _CONTRACT_ROOT_CANDIDATES[-1],
