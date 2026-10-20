@@ -245,6 +245,7 @@ export class FirestoreSettlementStore implements SettlementStore {
         status: "review",
         pointsAwarded: null,
         spaceContributionSpc: 0,
+        binLocation: String(session?.binLocation ?? session?.binId ?? batch.binId),
         totalDetectedObjectCount: null,
         lines: [],
         traceId: String(job.traceId),

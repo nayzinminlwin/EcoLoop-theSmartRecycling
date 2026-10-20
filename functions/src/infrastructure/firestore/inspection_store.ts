@@ -141,7 +141,9 @@ export class FirestoreInspectionStore implements InspectionStore {
         updatedAt: now,
       };
       transaction.create(batchRef, {
-        id: batchId, ownerId: identity.uid, sessionId, binId: session.binId, cycleId: bin.cycleId,
+        id: batchId, ownerId: identity.uid, sessionId, binId: session.binId,
+        binLocation: String(bin.locationName ?? bin.displayName ?? session.binId),
+        cycleId: bin.cycleId,
         assetId, assetVersion, assetContentSha256: asset.contentSha256, policyVersion: policy.id ?? policy.version,
         status: "processing", totalDetectedObjectCount: null, pointsAwarded: null,
         spaceContributionSpc: 0, decisionVersion: 0, createdAt: now,
