@@ -43,12 +43,10 @@ async def process_task(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(job_id, str) or not job_id:
         raise HTTPException(status_code=400, detail="jobId is required")
     try:
-        artifact_bucket = os.getenv("ECOLOOP_ARTIFACT_BUCKET")
-        writer = (
-            CloudStorageArtifactWriter(artifact_bucket)
-            if artifact_bucket
-            else LocalArtifactWriter(Path(os.getenv("ECOLOOP_ARTIFACT_ROOT", "/tmp/ecoloop-artifacts")))
-        )
+        artifact_bucket = os.getenv("ECOLOOP_ARTIFACT_BUCKET", "").strip()
+        if not artifact_bucket:
+            raise RuntimeError("ECOLOOP_ARTIFACT_BUCKET is required for task processing")
+        writer = CloudStorageArtifactWriter(artifact_bucket)
         result = run_job(
             job_id,
             gateway=JobGateway(),

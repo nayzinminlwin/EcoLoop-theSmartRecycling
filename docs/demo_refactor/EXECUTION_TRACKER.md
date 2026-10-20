@@ -18,7 +18,7 @@ Developer approved reasonable defaults and live sample seeding. [Seeding and QR 
 | H1 existing identity/platform/demo access | Developer | COMPLETE | Device/platform/cloud inputs recorded; login hotfix confirmed | f2c6282 |
 | A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
 | A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | `bf1185f` |
-| A3 Tasks/service identity/vision/fallback/evidence | Agent | NOT_STARTED | — | — |
+| A3 Tasks/service identity/vision/fallback/evidence | Agent | IMPLEMENTED | Code gates, hosted four-call smoke and blocked H2 handoff recorded in `evidence/A3_VISION_AND_TRANSPORT.md` | A3 commit |
 | H2 console/provider/infrastructure handoff | Developer | NOT_STARTED | — | — |
 | A4 UI/operations/current deployed candidate | Agent | NOT_STARTED | — | — |
 | H3 independent device/browser rehearsal | Developer | NOT_STARTED | — | — |
@@ -29,23 +29,23 @@ Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCK
 ## 2. Resume checkpoint
 
 ```text
-Updated: 2026-10-20 04:00 MYT
+Updated: 2026-10-20 19:35 MYT
 Executor/model and role: Copilot SDK in VS Code; repository implementation assistant
 Actual presentation date/time/time zone; hours remaining: 2026-10-20 20:00 MYT; approximately 16 hours remaining at update time
-Phase and bounded substep: H1 complete; defer QR and account-switch rehearsal until the developer requests it
-Source SHA and current dirty/user-owned paths: H1 commit `61a80b3`; unrelated pre-existing dirty and untracked paths preserved
+Phase and bounded substep: A3 implemented; H2 private transport handoff is the first blocker before A4
+Source SHA and current dirty/user-owned paths: A2 scan handoff at `d72fe45`; unrelated pre-existing dirty and untracked paths preserved
 Explicit Firebase mode / project / database / regions: `firebase` / `ecoloop-thesmartrecycling` / `ecoloop-db` / resident Functions `us-central1`
 Android distribution/signing/App Check mode: debug APK; `sd.idk.ecoLoop`; debug SHA-1/SHA-256 recorded; App Check not enforced
-Exact target files inspected/changed: `lib/core/firebase/firebase_clients.dart`, `docs/demo_refactor/evidence/H1_ENVIRONMENT.md`, `docs/ECOLOOP_DEMO_REFACTOR_PLAN.md`
-Contract/schema/policy/config/model identities: Flutter Firestore client explicitly selects `ecoloop-db`; Android 15/API 35 device `qgfy7xz9eaci4tvs`
-Last actually executed command and result: `flutter analyze lib/core/firebase/firebase_clients.dart` passed; full `flutter test` had three unrelated pre-existing failures
-Current first failing boundary + reproduction: unrelated existing tests fail in Firebase repository setup and one stale Home text assertion; no failure from the H1 database-selection change
-Safe request/trace/session/batch/job/attempt/result IDs: none
-Evidence paths: `evidence/H1_ENVIRONMENT.md`; `evidence/SEEDING_AND_QR.md`
-Audit findings closed, with independent proof: H1 environment identity/configuration findings recorded; QR/account-switch flow findings intentionally deferred
-Open blockers, owner, exact next action: Developer owns deferred QR/account-switch rehearsal; request continuation before H3 or final release gate
-Commit SHA or explicit uncommitted/blocked state: `61a80b3fc0832730c28d562c6c1b36ce1a2b0604`; tracker update pending commit
-Next exact substep and required read set: Begin A1 from the plan; read H1 evidence and the A1 contract/home-gate sections
+Exact target files inspected/changed: Functions worker gateway/jobs/dispatch/inspection store; vision config/gateway/source loader/provider composition/evaluator; A3 evidence
+Contract/schema/policy/config/model identities: `demo-vision-v1`; registry A/B/D plus `gemini-3.8-flash`; private source generation and `backend.v1`
+Last actually executed command and result: Functions build passed; `npm run test:jobs` passed 4/4; vision `uv run --frozen pytest -q` passed 35/35; hosted A/B/D/Gemini smoke passed 4/4
+Current first failing boundary + reproduction: H2 private transport inputs absent locally; production task processing fails closed without bucket, route/audience, identity and artifact configuration
+Safe request/trace/session/batch/job/attempt/result IDs: none; provider smoke used image SHA `d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6`
+Evidence paths: `evidence/A3_VISION_AND_TRANSPORT.md`; `evidence/SEEDING_AND_QR.md`
+Audit findings closed, with independent proof: UA-029–037 and UA-047/052 code/test gates recorded; UA-038 remains IN_PROGRESS pending H2 durable trace
+Open blockers, owner, exact next action: Developer/H2 must supply nonsecret runtime resource names and IAM; then run private source/artifact/gateway/Tasks trace before A4
+Commit SHA or explicit uncommitted/blocked state: A3 commit pending; phase status IMPLEMENTED, not COMPLETE
+Next exact substep and required read set: H2 handoff using `evidence/A3_VISION_AND_TRANSPORT.md`, then private transport preflight
 ```
 
 Preserve initially untracked `.vscode/`, `Demo_Screenshots/`, `android/build/`, `assets/trash_images/` unless their owner explicitly authorizes a scoped change. Never stage these incidentally.
@@ -105,16 +105,16 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-026 review/collection contract | A2 | OPEN | Review correction is covered; complete collection/report harness proof remains | — | — |
 | UA-027 pinned complete policy | A2 | FIXED_VERIFIED | Missing/corrupt pinned policy now produces recoverable technical failure, never default rates | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
 | UA-028 semantic finalization validation | A2 | FIXED_VERIFIED | Duplicate IDs, invalid geometry/confidence, unsupported eligibility, and inconsistent empty findings are rejected | Settlement implementation; `A2_INVARIANTS.md` | `bf1185f` |
-| UA-029 service OIDC identity | A3 | OPEN | — | — | — |
-| UA-030 private committed source | A3 | OPEN | — | — | — |
-| UA-031 Tasks route/retry/deadline | A3 | OPEN | — | — | — |
-| UA-032 production provider composition | A3 | OPEN | — | — | — |
-| UA-033 safe inventory/failure decision | A3 | OPEN | — | — | — |
-| UA-034 specialist evidence application | A3 | OPEN | — | — | — |
-| UA-035 Gemini schema/prompt/bounds | A3 | OPEN | — | — | — |
-| UA-036 confidence/taxonomy/count rules | A3 | OPEN | — | — | — |
-| UA-037 real provider/lease budgets | A3 | OPEN | — | — | — |
-| UA-038 durable canonical run evidence | A3 | OPEN | — | — | — |
+| UA-029 service OIDC identity | A3 | FIXED_VERIFIED | Google OIDC audience/issuer/exact-subject verifier replaces resident-token verification; live IAM remains H2 | Build; gateway code gate; H2 private invocation pending | A3 commit |
+| UA-030 private committed source | A3 | FIXED_VERIFIED | Immutable Storage path/generation/MIME/hash claim and attached-identity loader with bounds | Build; source-loader code gate; H2 private read pending | A3 commit |
+| UA-031 Tasks route/retry/deadline | A3 | FIXED_VERIFIED | Separate route/audience configuration and 300-second dispatch/worker bounds | Build; job emulator; H2 delivery pending | A3 commit |
+| UA-032 production provider composition | A3 | FIXED_VERIFIED | Registry-backed A/B/D/Gemini composition with explicit model IDs | Four-call hosted smoke | A3 commit |
+| UA-033 safe inventory/failure decision | A3 | FIXED_VERIFIED | Detector failures are provider outcomes; no-proposal full fallback only; invalid fallback remains review | Vision suite | A3 commit |
+| UA-034 specialist evidence application | A3 | FIXED_VERIFIED | D updates an existing unresolved candidate only when canonical/high-confidence | Vision suite | A3 commit |
+| UA-035 Gemini schema/prompt/bounds | A3 | FIXED_VERIFIED | Canonical labels, candidate identity, confidence, bounded object schema and normalized geometry prompt | Gemini validator tests; hosted schema smoke | A3 commit |
+| UA-036 confidence/taxonomy/count rules | A3 | FIXED_VERIFIED | Low-confidence detector findings escalate; Gemini low confidence/invalid inventory is unresolved | Vision suite | A3 commit |
+| UA-037 real provider/lease budgets | A3 | FIXED_VERIFIED | 300-second deadline, bounded provider calls and leases | Build; four-call smoke; deployed latency pending H2 | A3 commit |
+| UA-038 durable canonical run evidence | A3 | IN_PROGRESS | Durable artifact bucket is required in production and references are checkpointed; H2 artifact/IAM and real trace remain pending | Code gate; H2 private write pending | A3 commit |
 | UA-039 actual artifact retention | A4 | OPEN | — | — | — |
 | UA-040 current token ownership | A4 | OPEN | — | — | — |
 | UA-041 durable multi-device dispatch | A4 | OPEN | — | — | — |
@@ -123,12 +123,12 @@ Each finding has exactly one primary implementation owner below. Other phases su
 | UA-044 trusted provisioning claims | A1 | FIXED_VERIFIED | Bootstrap derives identity from Auth; role assigned from trusted claims | Provisioning uses Auth email, not client input | A1 commit |
 | UA-045 actual App Check | A1 | FIXED_VERIFIED | Debug provider activates in debug mode; Play Integrity in release; debug token registered | App Check passes; callables succeed | A1 commit |
 | UA-046 role/private access/validation | A1 | FIXED_VERIFIED | Owner-scoped reads and direct write denial cover canonical private paths | Rules emulator 5/5; live claims/App Check observation pending | `f2c6282` |
-| UA-047 availability/cost bounds | A3 | OPEN | — | — | — |
+| UA-047 availability/cost bounds | A3 | FIXED_VERIFIED | Bounded 10 MiB/40M-pixel input, 300-second task budget and explicit provider-call cap | Vision suite and hosted smoke | A3 commit |
 | UA-048 reproducible deploy | A4 | OPEN | — | — | — |
 | UA-049 current live deployment | A4 | OPEN | — | — | — |
 | UA-050 trustworthy diagnosis/replay | A4 | OPEN | — | — | — |
 | UA-051 independent accounting/rebuild | A2 | OPEN | Existing reconciliation tooling remains to be exercised against cycle, ledger, and voucher rebuild fixtures | — | — |
-| UA-052 correct CV metrics/demo scope | A3 | OPEN | — | — | — |
+| UA-052 correct CV metrics/demo scope | A3 | FIXED_VERIFIED | Evaluator false positives count in precision denominator; review/unresolved cannot auto-complete; no dataset work added | Vision evaluator suite | A3 commit |
 | UA-053 cross-boundary acceptance | A4 | OPEN | — | — | — |
 | UA-054 lossless version/class semantics | A1 | FIXED_VERIFIED | ResidentProfile preserves canonical class; DepositLineItem round-trip tested | Round-trip preserves canonical class | A1 commit |
 | UA-055 CI/active docs/gates | A4 | OPEN | — | — | — |

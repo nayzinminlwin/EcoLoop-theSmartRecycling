@@ -149,12 +149,15 @@ export class FirestoreInspectionStore implements InspectionStore {
       transaction.create(jobRef, {
         id: jobId, batchId, sessionId, ownerId: identity.uid, source: {
           assetId, assetVersion, contentSha256: asset.contentSha256,
+          storagePath: String(asset.storagePath),
+          mimeType: String(asset.mimeType),
+          ...(typeof asset.storageGeneration === "string" ? { storageGeneration: asset.storageGeneration } : {}),
         },
         policyVersion: policy.id ?? policy.version, cycleId: bin.cycleId, state: "queued",
         submittedAt: now, deadlineAt, dispatchState: "pending", traceId,
         configurationVersion: String(processing.providerMode === "gemini_only"
           ? "inspection-gemini-only"
-          : process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "inspection-v1"),
+          : process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "demo-vision-v1"),
         providerMode: processing.providerMode === "gemini_only" ? "gemini_only" : "standard",
         attemptCount: 0, workerSubject: configuredWorkerSubject(), workerIssuer: configuredWorkerIssuer(),
         createdAt: now,

@@ -17,6 +17,8 @@ def run_gemini(
     *,
     image_path: Path,
     config: ProbeConfig,
+    mode: str = "full_image",
+    candidate_id: str | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     client = genai.Client(api_key=config.gemini_api_key)
@@ -28,12 +30,7 @@ def run_gemini(
                     data=image_path.read_bytes(),
                     mime_type=mimetypes.guess_type(image_path.name)[0] or "image/jpeg",
                 ),
-                (
-                    "Return a structured inventory of visible waste objects in this "
-                    "image. Use one object per physical item. Allowed labels are "
-                    "plastic_bottle, metal_can, glass_bottle, paper, cardboard, "
-                    "other, or unknown. Do not infer hidden objects."
-                ),
+                _prompt(mode, candidate_id),
             ],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -47,9 +44,18 @@ def run_gemini(
                                 "properties": {
                                     "label": {"type": "STRING"},
                                     "count": {"type": "INTEGER"},
+                                    "confidence": {"type": "NUMBER"},
+                                    "candidateId": {"type": "STRING"},
+                                    "box": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "x1": {"type": "NUMBER"}, "y1": {"type": "NUMBER"},
+                                            "x2": {"type": "NUMBER"}, "y2": {"type": "NUMBER"},
+                                        },
+                                    },
                                     "notes": {"type": "STRING"},
                                 },
-                                "required": ["label", "count"],
+                                "required": ["label", "count", "confidence"],
                             },
                         },
                     },
@@ -80,6 +86,22 @@ def run_gemini(
         "text": response.text,
         "usageMetadata": _usage_metadata(response),
     }
+
+
+def _prompt(mode: str, candidate_id: str | None) -> str:
+    labels = "plastic_bottle, aluminium_can, glass_bottle, paper_item, paper_bag, cardboard_item, unknown"
+    if mode == "crop":
+        return (
+            f"Inspect only the supplied crop for candidate {candidate_id or 'unknown'}. "
+            f"Return exactly one physical object or an unresolved empty list. Allowed canonical labels: {labels}. "
+            "Use count=1, include confidence from 0 to 1 and candidateId when resolving. Do not infer hidden objects."
+        )
+    return (
+        f"Inventory the supplied pixels one physical object per item. Allowed canonical labels: {labels}. "
+        "Return bounded JSON with distinct objects, count=1 for each object, normalized box when visible, "
+        "and confidence from 0 to 1. Box coordinates must be normalized decimals from 0 to 1, never 0-1000. "
+        "Do not use filenames, display labels, expected answers, or hidden objects."
+    )
 
 
 def _usage_metadata(response: Any) -> dict[str, Any] | None:

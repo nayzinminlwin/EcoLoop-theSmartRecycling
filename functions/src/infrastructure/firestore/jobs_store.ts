@@ -23,6 +23,9 @@ export interface JobClaim {
     readonly assetId: string;
     readonly assetVersion: string;
     readonly contentSha256: string;
+    readonly storagePath?: string;
+    readonly storageGeneration?: string;
+    readonly mimeType?: string;
   };
   readonly policyVersion: string;
   readonly configurationVersion: string;
@@ -97,7 +100,7 @@ export class FirestoreJobsStore implements JobsStore {
       const artifactPrefix = `${ARTIFACT_ROOT}/${jobId}/${attemptId}/`;
       const attemptRef = this.firestore.doc(`inferenceJobs/${jobId}/attempts/${attemptId}`);
       const source = requireSource(job.source);
-      const configurationVersion = String(job.configurationVersion ?? "inspection-v1");
+      const configurationVersion = String(job.configurationVersion ?? "demo-vision-v1");
       void batchSnapshot;
       transaction.create(attemptRef, {
         id: attemptId, attemptNumber, workerSubject: identity.subject, state: "claimed",
@@ -211,14 +214,37 @@ function requireAttempt(value: DocumentData | undefined, attemptId: string): Doc
   return value;
 }
 
-function requireSource(value: unknown): { assetId: string; assetVersion: string; contentSha256: string } {
+function requireSource(value: unknown): {
+  assetId: string;
+  assetVersion: string;
+  contentSha256: string;
+  storagePath?: string;
+  storageGeneration?: string;
+  mimeType?: string;
+} {
   if (value === null || typeof value !== "object") throw new DomainError("invalid_input", "Job source is invalid");
   const source = value as Record<string, unknown>;
   if (typeof source.assetId !== "string" || typeof source.assetVersion !== "string" ||
       typeof source.contentSha256 !== "string" || !/^[a-f0-9]{64}$/.test(source.contentSha256)) {
     throw new DomainError("invalid_input", "Job source identity is invalid");
   }
-  return { assetId: source.assetId, assetVersion: source.assetVersion, contentSha256: source.contentSha256 };
+  if (source.storagePath !== undefined && (typeof source.storagePath !== "string" || !source.storagePath.startsWith("simulation-assets/"))) {
+    throw new DomainError("invalid_input", "Job source storage path is invalid");
+  }
+  if (source.storageGeneration !== undefined && (typeof source.storageGeneration !== "string" || !/^\d+$/.test(source.storageGeneration))) {
+    throw new DomainError("invalid_input", "Job source generation is invalid");
+  }
+  if (source.mimeType !== undefined && (source.mimeType !== "image/jpeg" && source.mimeType !== "image/png" && source.mimeType !== "image/webp")) {
+    throw new DomainError("invalid_input", "Job source MIME type is invalid");
+  }
+  return {
+    assetId: source.assetId,
+    assetVersion: source.assetVersion,
+    contentSha256: source.contentSha256,
+    ...(source.storagePath === undefined ? {} : { storagePath: source.storagePath }),
+    ...(source.storageGeneration === undefined ? {} : { storageGeneration: source.storageGeneration }),
+    ...(source.mimeType === undefined ? {} : { mimeType: source.mimeType }),
+  };
 }
 
 function verifyIdentity(job: DocumentData, identity: WorkerIdentity): void {
@@ -253,7 +279,7 @@ function claimFromJob(
     jobId, batchId: String(job.batchId), attemptId, attemptNumber: Number(attempt?.attemptNumber ?? job.attemptCount ?? 0),
     leaseExpiresAt: String(attempt?.leaseExpiresAt ?? job.activeLeaseExpiresAt ?? job.deadlineAt),
     deadlineAt: String(job.deadlineAt), source, policyVersion: String(job.policyVersion),
-    configurationVersion: String(job.configurationVersion ?? "inspection-v1"),
+    configurationVersion: String(job.configurationVersion ?? "demo-vision-v1"),
     artifactPrefix: String(attempt?.artifactPrefix ?? `${ARTIFACT_ROOT}/${jobId}/${attemptId}/`),
     traceId: String(job.traceId), state,
   };

@@ -31,6 +31,8 @@ class InspectionConfig:
     total_budget_ms: int = 30_000
     call_timeout_ms: int = 15_000
     max_retries: int = 1
+    detector_models: tuple[str, str] = ("waste-detection-0momv/6", "yolo-waste-detection/1")
+    specialist_model: str = "waste-classification-rjo28/2"
 
 
 @dataclass(frozen=True)
@@ -82,8 +84,8 @@ def inspect_image(
     detector_results: dict[str, NormalizedResult] = {}
     candidates: list[DetectionCandidate] = []
     for role, model_id in (
-        ("A", "waste-detection-0momv/6"),
-        ("B", "yolo-waste-detection/1"),
+        ("A", config.detector_models[0]),
+        ("B", config.detector_models[1]),
     ):
         if len(detector_results) >= config.max_detector_calls or _budget_exhausted(started_at, config):
             outcomes.append(StageOutcome("detectors", "budget_exhausted", "detector_call_budget"))
@@ -124,6 +126,7 @@ def inspect_image(
         "unresolvedCount": sum(item.eligibility == "unresolved" for item in objects),
     })
     specialist_results: list[NormalizedResult] = []
+    specialist_by_group: dict[str, NormalizedResult] = {}
     if specialist_provider is not None:
         for group in groups[:config.max_specialist_crops]:
             if not _needs_specialist(group, objects):
@@ -138,19 +141,22 @@ def inspect_image(
                 continue
             raw_responses[f"D:{group.group_id}"] = raw
             try:
-                specialist_results.append(normalize_specialist_response(
+                normalized_specialist = normalize_specialist_response(
                     raw,
-                    model_id="waste-classification-rjo28/2",
-                ))
+                    model_id=config.specialist_model,
+                )
+                specialist_results.append(normalized_specialist)
+                specialist_by_group[group.group_id] = normalized_specialist
             except (TypeError, ValueError) as error:
                 outcomes.append(StageOutcome("specialist", "invalid_response", "normalization_failed", type(error).__name__))
+        objects = _apply_specialist_evidence(objects, specialist_by_group)
 
     fallbacks: list[FallbackEvidence] = []
     if gemini_provider is not None:
         uncertain_groups = [
             (group, item)
             for group, item in zip(groups, objects)
-            if item.eligibility == "unresolved"
+            if item.eligibility == "unresolved" or item.confidence < 0.85
         ][:config.max_gemini_crops]
         for group, _ in uncertain_groups:
             crop, _ = crop_candidate(image, object_id=group.group_id, box=group.box)
@@ -176,7 +182,13 @@ def inspect_image(
                 outcomes.append(StageOutcome("gemini_crop", "review_required", evidence.result.reason_code))
             if evidence.result.status == "resolved":
                 objects = _apply_crop_fallback(objects, evidence.result, group.group_id, image.width, image.height)
-        if not groups and not detector_results["A"].candidates and not detector_results["B"].candidates:
+        if (
+            not groups
+            and not detector_results["A"].candidates
+            and not detector_results["B"].candidates
+            and detector_results["A"].error is None
+            and detector_results["B"].error is None
+        ):
             try:
                 raw = _invoke_provider(
                     gemini_provider, (image, "full_image", None), "gemini_full_image", started_at, config, outcomes
@@ -235,7 +247,47 @@ def inspect_image(
 
 def _needs_specialist(group: CandidateGroup, objects: tuple[ResolvedObject, ...]) -> bool:
     object_index = int(group.group_id.rsplit("-", 1)[-1]) - 1
-    return 0 <= object_index < len(objects) and objects[object_index].eligibility == "unresolved"
+    return (
+        0 <= object_index < len(objects)
+        and (objects[object_index].eligibility == "unresolved" or objects[object_index].confidence < 0.85)
+    )
+
+
+def _apply_specialist_evidence(
+    objects: tuple[ResolvedObject, ...],
+    specialist_results: Mapping[str, NormalizedResult],
+) -> tuple[ResolvedObject, ...]:
+    updated: list[ResolvedObject] = []
+    for item in objects:
+        result = specialist_results.get(item.object_id)
+        vector = None if result is None else result.score_vector
+        if vector is None or item.eligibility != "unresolved":
+            updated.append(item)
+            continue
+        candidates = sorted(vector.scores.items(), key=lambda pair: (-pair[1], pair[0]))
+        if not candidates or candidates[0][1] < 0.85:
+            updated.append(item)
+            continue
+        label = classify_label(candidates[0][0])
+        if label.canonical is None or label.specificity != "specific":
+            updated.append(item)
+            continue
+        eligibility = "eligible" if label.canonical in {
+            "plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag"
+        } else "excluded"
+        updated.append(ResolvedObject(
+            object_id=item.object_id,
+            resolution=label.canonical,
+            eligibility=eligibility,
+            box=item.box,
+            normalized_box=item.normalized_box,
+            model_ids=item.model_ids + (vector.model_id,),
+            raw_labels=item.raw_labels + (candidates[0][0],),
+            confidence=item.confidence,
+            rule_id="rule.specialist_existing_candidate",
+            reason_code="fallback",
+        ))
+    return tuple(updated)
 
 
 def _apply_crop_fallback(

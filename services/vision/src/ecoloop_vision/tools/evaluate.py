@@ -118,6 +118,10 @@ def score_case(expected: list[dict[str, Any]], predictions: list[dict[str, Any]]
     correct_labels = sum(match.label_correct for match in matches)
     expected_eligible = sum(item.get("eligibility") == "eligible" for item in expected)
     predicted_eligible = sum(item.get("eligibility") == "eligible" for item in predictions)
+    reviewed = any(
+        item.get("outcome") == "review" or item.get("eligibility") == "unresolved"
+        for item in predictions
+    )
     return {
         "expectedCount": len(expected),
         "predictedCount": len(predictions),
@@ -129,7 +133,13 @@ def score_case(expected: list[dict[str, Any]], predictions: list[dict[str, Any]]
         "expectedEligibleCount": expected_eligible,
         "predictedEligibleCount": predicted_eligible,
         "exactCount": len(expected) == len(predictions) and len(matches) == len(expected),
-        "autoCompleted": bool(expected) and len(matches) == len(expected) and correct_labels == len(expected),
+        "autoCompleted": (
+            bool(expected)
+            and not reviewed
+            and len(matches) == len(expected)
+            and len(predictions) == len(expected)
+            and correct_labels == len(expected)
+        ),
     }
 
 
@@ -164,7 +174,7 @@ def evaluate_manifest(manifest: dict[str, Any], predictions: dict[str, Any] | No
         report["metrics"] = {
             "rewardedClassificationPrecision": _ratio(
                 sum(score["correctLabelCount"] for score in scores),
-                sum(score["matchedCount"] for score in scores),
+                sum(score["predictedCount"] for score in scores),
             ),
             "exactVisibleObjectCount": _ratio(
                 sum(score["exactCount"] for score in clear_supported), len(clear_supported)

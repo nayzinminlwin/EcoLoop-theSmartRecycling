@@ -41,6 +41,9 @@ class JobClaim:
     artifact_prefix: str
     trace_id: str
     state: str
+    storage_path: str | None = None
+    storage_generation: str | None = None
+    mime_type: str | None = None
 
 
 class JobGateway:
@@ -70,6 +73,9 @@ class JobGateway:
             asset_id=_string(_mapping(claim["source"]), "assetId"),
             asset_version=_string(_mapping(claim["source"]), "assetVersion"),
             content_sha256=_string(_mapping(claim["source"]), "contentSha256"),
+            storage_path=_optional_string(_mapping(claim["source"]), "storagePath"),
+            storage_generation=_optional_string(_mapping(claim["source"]), "storageGeneration"),
+            mime_type=_optional_string(_mapping(claim["source"]), "mimeType"),
             configuration_version=_string(claim, "configurationVersion"),
             artifact_prefix=_string(claim, "artifactPrefix"),
             trace_id=_string(claim, "traceId"),
@@ -140,4 +146,13 @@ def _string(value: Mapping[str, Any], key: str) -> str:
     item = value.get(key)
     if not isinstance(item, str) or not item:
         raise GatewayError(f"Worker gateway payload is missing {key}", retryable=False)
+    return item
+
+
+def _optional_string(value: Mapping[str, Any], key: str) -> str | None:
+    item = value.get(key)
+    if item is None:
+        return None
+    if not isinstance(item, str) or not item:
+        raise GatewayError(f"Worker gateway payload has invalid {key}", retryable=False)
     return item

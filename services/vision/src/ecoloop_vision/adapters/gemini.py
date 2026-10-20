@@ -25,6 +25,7 @@ class GeminiFinding:
     notes: str | None
     box: Box | None
     candidate_id: str | None
+    confidence: float
 
 
 @dataclass(frozen=True)
@@ -73,12 +74,18 @@ def validate_gemini_response(
         if raw.get("box") is not None and box is None:
             return _unresolved(mode, model_id, prompt_version, "invalid_geometry")
         notes = raw.get("notes")
+        confidence = raw.get("confidence", 1.0)
+        if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
+            return _unresolved(mode, model_id, prompt_version, "invalid_confidence")
+        if float(confidence) < 0.90:
+            return _unresolved(mode, model_id, prompt_version, "low_confidence")
         findings.append(GeminiFinding(
             label=label,
             count=count,
             notes=notes if isinstance(notes, str) else None,
             box=box,
             candidate_id=object_candidate_id or candidate_id,
+            confidence=float(confidence),
         ))
     return GeminiResult(
         mode=mode,

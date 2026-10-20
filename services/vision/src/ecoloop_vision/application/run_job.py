@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any, Protocol
-from urllib.request import Request, urlopen
+from google.cloud import storage
 
 from ecoloop_vision.application.inspect_image import InspectionConfig, InspectionResult, inspect_image
 from ecoloop_vision.config import ProbeConfig
@@ -25,18 +27,29 @@ class InspectionRunner(Protocol):
 
 
 def load_committed_source(claim: JobClaim) -> ProcessingInput:
-    template = os.getenv("ECOLOOP_ASSET_URL_TEMPLATE", "")
-    if not template:
-        raise RuntimeError("ECOLOOP_ASSET_URL_TEMPLATE is not configured")
-    url = template.format(asset_id=claim.asset_id, asset_version=claim.asset_version)
-    with urlopen(Request(url, method="GET"), timeout=10) as response:
-        content_type = response.headers.get_content_type()
-        content = response.read(10 * 1024 * 1024 + 1)
+    if not claim.storage_path or not claim.storage_generation:
+        raise RuntimeError("Committed source path and generation are required")
+    bucket_name = os.getenv("ECOLOOP_SOURCE_BUCKET", "").strip()
+    if not bucket_name:
+        raise RuntimeError("ECOLOOP_SOURCE_BUCKET is not configured")
+    blob = storage.Client().bucket(bucket_name).blob(
+        claim.storage_path, generation=claim.storage_generation
+    )
+    blob.reload()
+    if str(blob.generation) != claim.storage_generation:
+        raise RuntimeError("Committed source generation does not match the job")
+    content_type = blob.content_type or claim.mime_type or ""
+    if content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise RuntimeError("Committed source MIME type is unsupported")
+    content = blob.download_as_bytes(start=0, end=10 * 1024 * 1024)
     if len(content) > 10 * 1024 * 1024:
         raise RuntimeError("Committed image exceeds the 10 MiB limit")
     if hashlib.sha256(content).hexdigest() != claim.content_sha256:
         raise RuntimeError("Committed image digest does not match the job source")
-    return decode_image(content, content_type)
+    image = decode_image(content, content_type)
+    if image.width * image.height > 40_000_000:
+        raise RuntimeError("Committed image exceeds the pixel limit")
+    return image
 
 
 def run_job(
@@ -90,13 +103,27 @@ def run_job(
 def _default_runner(image: ProcessingInput, config: InspectionConfig) -> InspectionResult:
     probe = ProbeConfig.from_environment()
     from ecoloop_vision.adapters.detectors import run_roboflow
+    from ecoloop_vision.adapters.specialist import run_gemini
 
     return inspect_image(
         image,
-        config=config,
+        config=replace(
+            config,
+            detector_models=(probe.detector_a_model, probe.detector_b_model),
+            specialist_model=probe.specialist_model,
+        ),
         detector_provider=lambda model_id, _image: run_roboflow(
             image_path=_write_temp_image(image), model_id=model_id, config=probe
         )["response"],
+        specialist_provider=lambda crop, _object_id: run_roboflow(
+            image_path=_write_temp_image(crop), model_id=probe.specialist_model, config=probe
+        )["response"],
+        gemini_provider=lambda provider_image, mode, object_id: json.loads(run_gemini(
+            image_path=_write_temp_image(provider_image),
+            config=probe,
+            mode=mode,
+            candidate_id=object_id,
+        )["text"]),
     )
 
 

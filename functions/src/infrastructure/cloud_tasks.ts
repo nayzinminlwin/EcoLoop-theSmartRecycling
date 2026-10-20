@@ -129,9 +129,11 @@ export class CloudTasksDispatcher implements Dispatcher {
 
 export function createDispatchConfig(environment: NodeJS.ProcessEnv = process.env): DispatchConfig {
   const projectId = environment.GCLOUD_PROJECT ?? environment.GCP_PROJECT ?? "ecoloop-thesmartrecycling";
-  const workerServiceUrl = requiredEnvironment(environment, "ECOLOOP_WORKER_SERVICE_URL");
+  const workerServiceUrl = requiredEnvironment(environment, "ECOLOOP_VISION_TASK_URL", "ECOLOOP_WORKER_SERVICE_URL");
   const taskInvokerServiceAccount = requiredEnvironment(environment, "ECOLOOP_TASK_INVOKER_SERVICE_ACCOUNT");
-  const audience = environment.ECOLOOP_WORKER_AUDIENCE ?? workerServiceUrl;
+  const audience = environment.ECOLOOP_VISION_SERVICE_AUDIENCE
+    ?? environment.ECOLOOP_WORKER_AUDIENCE
+    ?? workerServiceUrl;
   return {
     projectId,
     region: environment.ECOLOOP_TASKS_REGION ?? "asia-southeast1",
@@ -139,7 +141,7 @@ export function createDispatchConfig(environment: NodeJS.ProcessEnv = process.en
     workerServiceUrl,
     taskInvokerServiceAccount,
     audience,
-    dispatchDeadlineSeconds: 30,
+    dispatchDeadlineSeconds: 300,
   };
 }
 
@@ -174,8 +176,8 @@ export function createTaskRequest(
   };
 }
 
-function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string): string {
-  const value = environment[name]?.trim();
+function requiredEnvironment(environment: NodeJS.ProcessEnv, name: string, legacyName?: string): string {
+  const value = environment[name]?.trim() ?? (legacyName === undefined ? undefined : environment[legacyName]?.trim());
   if (value === undefined || value === "") {
     throw new DomainError("processing_unavailable", `${name} must be configured for dispatch`);
   }
