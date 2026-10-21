@@ -125,6 +125,23 @@ def test_worker_findings_use_normalized_boxes_and_native_model_ids():
     assert finding["evidence"]["modelIds"]
 
 
+def test_specialist_predictions_are_normalized_as_scores():
+    from ecoloop_vision.adapters.specialist import normalize_specialist_response
+
+    result = normalize_specialist_response(
+        {
+            "version": 2,
+            "predictions": {
+                "Plastic Bottle": {"confidence": 0.94},
+                "Glass Bottles": {"confidence": 0.01},
+            },
+            "predicted_classes": ["Plastic Bottle"],
+        },
+        model_id="waste-classification-rjo28/2",
+    )
+    assert result.score_vector.scores["Plastic Bottle"] == 0.94
+
+
 def test_result_to_dict_replaces_non_finite_values():
     result = inspect_image(
         image_input(),

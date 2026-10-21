@@ -122,7 +122,13 @@ def normalize_specialist_response(
 ) -> NormalizedResult:
     if not isinstance(response, dict):
         raise ValueError("Specialist response must be an object")
-    raw_scores = response.get("class_scores", response.get("scores", {}))
+    raw_scores = response.get("class_scores", response.get("scores"))
+    if raw_scores is None:
+        raw_scores = {
+            label: value.get("confidence")
+            for label, value in response.get("predictions", {}).items()
+            if isinstance(value, dict) and "confidence" in value
+        }
     if not isinstance(raw_scores, dict):
         raise ValueError("Specialist class scores must be an object")
     scores: dict[str, float] = {}
