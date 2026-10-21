@@ -41,3 +41,7 @@ export {
   adminDeleteUnusedBin,
   getAdminBinQr,
 } from "./transport/admin_bins.js";
+export {
+  getAdminSettings,
+  adminPublishSettings,
+} from "./transport/admin_settings.js";

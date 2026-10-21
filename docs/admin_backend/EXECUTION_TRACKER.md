@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-04 — COMPLETE
-- **Next phase:** AB-05 — Immutable program settings and policy publication
+- **Current phase:** AB-05 — COMPLETE
+- **Next phase:** AB-06 — Capacity alerts and audited collection cycles
 
 ---
 
@@ -17,7 +17,7 @@
 | **AB-02** | Real admin identity, service composition and command recovery | Agent | COMPLETE | [AB-02_auth_and_recovery.md](evidence/AB-02_auth_and_recovery.md) | `feat: connect admin authentication and trusted command transport` | `cfda97c` / `a4dfcde` |
 | **AB-03** | Real read layer, query projections and indexes | Agent | COMPLETE | [AB-03_read_projections.md](evidence/AB-03_read_projections.md) | `feat: add admin query adapters and rebuildable read models` | `34b813c` / `62726b1` |
 | **AB-04** | Bin management and usable registered QR codes | Agent | COMPLETE | [AB-04_bin_fleet_management.md](evidence/AB-04_bin_fleet_management.md) | `feat: activate admin bin management and QR registration` | `600a20f` |
-| **AB-05** | Immutable program settings and policy publication | Agent | NOT_STARTED | `evidence/AB-05_program_settings_policy.md` | `feat: implement admin program policy publication` | — |
+| **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | — |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | NOT_STARTED | `evidence/AB-06_capacity_alerts_collection.md` | `feat: integrate capacity alert lifecycle and collection cycles` | — |
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | NOT_STARTED | `evidence/AB-07_review_and_settlement.md` | `feat: implement evidence-backed review resolution and settlement` | — |
 | **AB-08** | Versioned reward-offer catalog management | Agent | NOT_STARTED | `evidence/AB-08_rewards_catalog.md` | `feat: activate admin reward offer catalog management` | — |
@@ -31,10 +31,10 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 10:48 UTC+8
+Updated: 2026-10-21 11:15 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-04 complete; ready for commit and Phase AB-05 startup
+Phase and substep: AB-05 complete; ready for commit and Phase AB-06 startup
 Source SHA: dev1 branch
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
@@ -42,32 +42,32 @@ Explicit Firebase mode / project / database / regions:
   - Storage Bucket: ecoloop-thesmartrecycling.firebasestorage.app
   - Functions Region: us-central1 (admin callables & resident gateway)
   - Vision Worker Region: asia-southeast1
-Exact target files created/staged for AB-04:
-  - functions/src/domain/admin_bins.ts
-  - functions/src/infrastructure/firestore/admin_bins_store.ts
-  - functions/src/transport/admin_bins.ts
+Exact target files created/staged for AB-05:
+  - functions/src/domain/admin_settings.ts
+  - functions/src/infrastructure/firestore/admin_settings_store.ts
+  - functions/src/transport/admin_settings.ts
   - functions/src/composition.ts
   - functions/src/index.ts
   - functions/package.json
-  - functions/tests/unit/admin_bins.test.ts
+  - functions/tests/unit/admin_settings.test.ts
   - firestore.rules
   - apps/admin-web/src/contracts/admin.ts
-  - apps/admin-web/src/data/repositories.ts
   - apps/admin-web/src/data/mockRepositories.ts
-  - apps/admin-web/src/data/firebase/firebaseBinRepository.ts
-  - apps/admin-web/src/features/fleet/SmartBinsPage.tsx
-  - apps/admin-web/src/features/operations/CapacityAlertsPage.tsx
+  - apps/admin-web/src/data/firebase/firebaseSettingsRepository.ts
+  - apps/admin-web/src/features/program/SettingsPage.tsx
+  - apps/admin-web/src/features/program/program.css
+  - apps/admin-web/src/app/services.ts
   - apps/admin-web/package.json
-  - apps/admin-web/tests/admin_bins_ab04.test.ts
+  - apps/admin-web/tests/admin_settings_ab05.test.ts
   - docs/admin_backend/EXECUTION_TRACKER.md
-  - docs/admin_backend/evidence/AB-04_bin_fleet_management.md
-  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB04_BinManagementAndRegisteredQr.md
+  - docs/admin_backend/evidence/AB-05_program_settings_policy.md
+  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB05_ProgramSettingsPolicy.md
 Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Commit Phase AB-04: `feat: activate admin bin management and QR registration`
-  - Begin Phase AB-05: Immutable program settings and policy publication
+  - Commit Phase AB-05: `feat: publish versioned admin program settings`
+  - Begin Phase AB-06: Capacity alerts and audited collection cycles
 ```
 
 ---

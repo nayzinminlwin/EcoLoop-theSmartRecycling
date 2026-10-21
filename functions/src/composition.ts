@@ -19,6 +19,7 @@ import { FirestoreAdminReadVersionsStore } from "./infrastructure/firestore/admi
 import { FirestoreAdminProjectionsStore } from "./infrastructure/firestore/admin_projections_store.js";
 import { FirestoreAdminQueriesStore } from "./infrastructure/firestore/admin_queries_store.js";
 import { FirestoreAdminBinsStore } from "./infrastructure/firestore/admin_bins_store.js";
+import { FirestoreAdminSettingsStore } from "./infrastructure/firestore/admin_settings_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -40,6 +41,11 @@ export function createComposition() {
     adminProjections,
     adminReadVersions
   );
+  const adminSettings = new FirestoreAdminSettingsStore(
+    firestore,
+    adminOperations,
+    adminReadVersions
+  );
 
   return {
     app,
@@ -52,6 +58,7 @@ export function createComposition() {
     adminProjections,
     adminQueries,
     adminBins,
+    adminSettings,
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     jobs: new FirestoreJobsStore(firestore),

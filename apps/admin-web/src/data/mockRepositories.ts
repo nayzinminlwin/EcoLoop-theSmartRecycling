@@ -1266,8 +1266,19 @@ export function createMockRepositories(options?: {
   function buildAdminSettings(): AdminSettings {
     return {
       id: "global",
+      version: state.programSettings.version ?? 1,
+      policyVersion: state.programSettings.policyVersion ?? "policy-v1",
       capacityAlertThreshold: state.programSettings.capacityAlertThreshold,
       acceptedMaterials: clone(state.programSettings.acceptedMaterials),
+      acceptedClasses: clone(
+        state.programSettings.acceptedClasses ?? [
+          "plastic_bottle",
+          "aluminium_can",
+          "glass_bottle",
+          "paper_item",
+          "paper_bag",
+        ]
+      ),
       materialRates: clone(state.materialRates),
       updatedAt: state.programSettings.updatedAt
     };
@@ -1288,6 +1299,15 @@ export function createMockRepositories(options?: {
       checkFailure("settings.update");
       requireAdmin();
 
+      const currentVer = state.programSettings.version ?? 1;
+      if (input.expectedVersion !== undefined && input.expectedVersion !== currentVer) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Stale settings version. Current operational version is ${currentVer}, but draft expected ${input.expectedVersion}.`,
+          fieldErrors: { expectedVersion: "Version conflict" }
+        });
+      }
+
       if (![75, 80, 85].includes(input.capacityAlertThreshold)) {
         throw new RepositoryError({
           code: "validation",
@@ -1300,6 +1320,13 @@ export function createMockRepositories(options?: {
           code: "validation",
           message: "At least one accepted material is required",
           fieldErrors: { acceptedMaterials: "Select at least one" }
+        });
+      }
+      if (input.acceptedClasses && input.acceptedClasses.includes("cardboard_item")) {
+        throw new RepositoryError({
+          code: "validation",
+          message: "Cardboard cannot be accepted in smart bin automated deposits",
+          fieldErrors: { acceptedClasses: "Cardboard excluded" }
         });
       }
       const knownMat: MaterialType[] = ["plastic", "aluminium", "paper", "glass"];
@@ -1333,8 +1360,12 @@ export function createMockRepositories(options?: {
         }
       }
 
+      state.programSettings.version = currentVer + 1;
       state.programSettings.capacityAlertThreshold = input.capacityAlertThreshold;
       state.programSettings.acceptedMaterials = [...input.acceptedMaterials];
+      if (input.acceptedClasses) {
+        state.programSettings.acceptedClasses = [...input.acceptedClasses];
+      }
       state.programSettings.updatedAt = MOCK_NOW;
       state.materialRates = clone(input.materialRates);
 

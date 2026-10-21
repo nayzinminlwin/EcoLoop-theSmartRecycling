@@ -13,6 +13,7 @@ import { FirebaseCommandClient } from "../core/firebase/commandClient.ts";
 import { FirebaseAuthRepository } from "../data/firebase/firebaseAuthRepository.ts";
 import { FirebaseBinRepository } from "../data/firebase/firebaseBinRepository.ts";
 import { FirebaseRewardRepository } from "../data/firebase/firebaseRewardRepository.ts";
+import { FirebaseSettingsRepository } from "../data/firebase/firebaseSettingsRepository.ts";
 
 export interface AdminServiceBundle {
   readonly repositories: AdminRepositories;
@@ -75,6 +76,12 @@ function createAdminServiceBundle(): AdminServiceBundle {
     commandClient,
     fallbackMock.repositories.rewards
   );
+  const settingsRepo = new FirebaseSettingsRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.settings
+  );
 
   let revision = 1;
   let authGeneration = 1;
@@ -109,6 +116,7 @@ function createAdminServiceBundle(): AdminServiceBundle {
     auth: authRepo,
     bins: binsRepo,
     rewards: rewardsRepo,
+    settings: settingsRepo,
   };
 
   return {

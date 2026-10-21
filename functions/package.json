@@ -40,6 +40,7 @@
     "test:admin:auth": "vitest run tests/unit/admin_auth.test.ts",
     "test:admin:queries": "vitest run tests/unit/admin_projections.test.ts",
     "test:admin:bins": "vitest run tests/unit/admin_bins.test.ts",
+    "test:admin:settings": "vitest run tests/unit/admin_settings.test.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },
