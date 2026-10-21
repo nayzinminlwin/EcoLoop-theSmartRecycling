@@ -75,6 +75,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ref.read(activeScanSessionProvider.notifier).observe(widget.sessionId);
     _leaveGuardDisposer = ref.read(leaveDecisionProvider).register(_leaveGuard);
     _authSubscription = ref
         .read(accountRepositoryProvider)
@@ -560,7 +561,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         return [
           AppButton(
             label: 'Back to home',
-            onPressed: () => unawaited(_backToHome()),
+            onPressed: () => unawaited(_backToHome(clearActiveSession: false)),
             expand: true,
           ),
         ];
@@ -675,15 +676,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   void _sync(DepositSession session) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final tracker = ref.read(activeScanSessionProvider.notifier);
       final visible = _isVisible(session);
-      if (session.stage == ScanStage.cancelled ||
-          (session.stage == ScanStage.completed && visible)) {
-        tracker.clearIf(session.id);
-        _stopRenewal();
-      } else {
-        tracker.track(session);
-      }
+      if (session.stage == ScanStage.cancelled) _stopRenewal();
 
       if (!visible) return;
       if (session.stage != widget.expectedStage) {
@@ -902,9 +896,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     if (session == null || !_isPreProcessing(session.stage)) {
       if (session?.stage == ScanStage.processing ||
           session?.stage == ScanStage.completed) {
-        await _backToHome(
-          clearActiveSession: session?.stage != ScanStage.processing,
-        );
+        await _backToHome(clearActiveSession: false);
       }
       return;
     }

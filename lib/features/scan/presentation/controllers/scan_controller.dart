@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
@@ -35,11 +38,15 @@ class ActiveScanSession {
     required this.sessionId,
     required this.stage,
     required this.sessionVersion,
+    this.session,
+    this.result,
   });
 
   final String sessionId;
   final ScanStage stage;
   final int sessionVersion;
+  final DepositSession? session;
+  final DepositResult? result;
 
   bool get isUnfinished =>
       stage != ScanStage.completed && stage != ScanStage.cancelled;
@@ -50,10 +57,42 @@ class ActiveScanSession {
 }
 
 class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
+  StreamSubscription<DepositSession?>? _sessionSubscription;
+  StreamSubscription<DepositResult?>? _resultSubscription;
+  String? _observedSessionId;
+  String? _observedResultId;
+
   @override
-  ActiveScanSession? build() => null;
+  ActiveScanSession? build() {
+    final authSubscription = ref
+        .read(accountRepositoryProvider)
+        .watchAuthState()
+        .listen(
+          (authState) {
+            if (!authState.isSignedIn) clear();
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work auth observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+    ref.onDispose(() async {
+      await authSubscription.cancel();
+      await _sessionSubscription?.cancel();
+      await _resultSubscription?.cancel();
+    });
+    return null;
+  }
 
   void track(DepositSession session) {
+    if (session.stage == ScanStage.cancelled) {
+      clearIf(session.id);
+      return;
+    }
     final current = state;
     if (current != null &&
         current.sessionId == session.id &&
@@ -64,14 +103,106 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
       sessionId: session.id,
       stage: session.stage,
       sessionVersion: session.sessionVersion,
+      session: session,
+      result: current?.sessionId == session.id ? current?.result : null,
     );
   }
 
-  void clearIf(String sessionId) {
-    if (state?.sessionId == sessionId) state = null;
+  void observe(String sessionId) {
+    if (_observedSessionId == sessionId && _sessionSubscription != null) {
+      return;
+    }
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = sessionId;
+    _sessionSubscription = ref
+        .read(scanRepositoryProvider)
+        .watchSession(sessionId)
+        .listen(
+          (session) {
+            if (session == null) {
+              clearIf(sessionId);
+              return;
+            }
+            track(session);
+            _observeResult(session);
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work session observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
   }
 
-  void clear() => state = null;
+  void _observeResult(DepositSession session) {
+    final resultId = session.resultId;
+    if (resultId == null) {
+      unawaited(_resultSubscription?.cancel());
+      _resultSubscription = null;
+      _observedResultId = null;
+      return;
+    }
+    if (_resultSubscription != null && _observedResultId == resultId) {
+      return;
+    }
+    unawaited(_resultSubscription?.cancel());
+    _observedResultId = resultId;
+    _resultSubscription = ref
+        .read(scanRepositoryProvider)
+        .watchResult(resultId)
+        .listen(
+          (result) {
+            final current = state;
+            if (current == null ||
+                current.sessionId != session.id ||
+                result == null) {
+              return;
+            }
+            state = ActiveScanSession(
+              sessionId: current.sessionId,
+              stage: current.stage,
+              sessionVersion: current.sessionVersion,
+              session: current.session,
+              result: result,
+            );
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work result observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+  }
+
+  void clearIf(String sessionId) {
+    if (state?.sessionId != sessionId) return;
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _sessionSubscription = null;
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = null;
+    state = null;
+  }
+
+  void clear() {
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _sessionSubscription = null;
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = null;
+    state = null;
+  }
 }
 
 final activeScanSessionProvider =
@@ -128,10 +259,10 @@ String scanFailureCopy(Object error) {
   return switch (messageKey) {
     'backend.invalid_qr' => 'That QR code is not a valid EcoLoop bin.',
     'backend.bin_full' => 'This bin is full right now. Please try another bin.',
-    'backend.bin_busy' => 'This bin is currently in use. Please try again later.',
+    'backend.bin_busy' =>
+      'This bin is currently in use. Please try again later.',
     'backend.bin_unavailable' => 'This bin is unavailable right now.',
-    'backend.active_session_exists' =>
-      'You already have an active scan. Return to it or cancel it before scanning another bin.',
+    'backend.active_session_exists' => 'You already have an active scan. Return to it or cancel it before scanning another bin.',
     'backend.unauthenticated' => 'Please sign in again before scanning.',
     'backend.permission_denied' =>
       'This scan is not permitted for the current account.',
