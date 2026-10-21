@@ -87,6 +87,7 @@ class DepositSession {
     this.jobId,
     this.jobSubstage,
     this.progress,
+    this.submittedAt,
     this.deadlineAt,
     this.reservationExpiresAt,
     this.terminationReason,
@@ -110,6 +111,7 @@ class DepositSession {
   final String? jobId;
   final String? jobSubstage;
   final ScanProgressSummary? progress;
+  final DateTime? submittedAt;
   final DateTime? deadlineAt;
   final DateTime? reservationExpiresAt;
   final String? terminationReason;
@@ -123,6 +125,7 @@ class DepositSession {
     updatedAt: JsonReaders.dateTime(json, 'updatedAt'),
     creationRequestId: JsonReaders.string(json, 'creationRequestId'),
     resultId: JsonReaders.nullableString(json, 'resultId'),
+    submittedAt: _dateOrNull(json, 'submittedAt'),
   );
 
   factory DepositSession.fromBackendJson(JsonMap json) {
@@ -159,6 +162,7 @@ class DepositSession {
       jobId: JsonReaders.nullableString(json, 'jobId'),
       jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
       progress: _progressOrNull(json),
+      submittedAt: _dateOrNull(json, 'submittedAt'),
       deadlineAt: _dateOrNull(json, 'deadlineAt'),
       reservationExpiresAt: _dateOrNull(json, 'reservationExpiresAt'),
       terminationReason: JsonReaders.nullableString(json, 'terminationReason'),
@@ -184,6 +188,7 @@ class DepositSession {
     'jobId': jobId,
     'jobSubstage': jobSubstage,
     'progress': progress?.toJson(),
+    'submittedAt': submittedAt?.toIso8601String(),
     'deadlineAt': deadlineAt?.toIso8601String(),
     'reservationExpiresAt': reservationExpiresAt?.toIso8601String(),
     'terminationReason': terminationReason,
@@ -203,6 +208,7 @@ class DepositSession {
     String? jobId,
     String? jobSubstage,
     ScanProgressSummary? progress,
+    DateTime? submittedAt,
     DateTime? deadlineAt,
     DateTime? reservationExpiresAt,
     String? terminationReason,
@@ -225,6 +231,7 @@ class DepositSession {
     jobId: jobId ?? this.jobId,
     jobSubstage: jobSubstage ?? this.jobSubstage,
     progress: progress ?? this.progress,
+    submittedAt: submittedAt ?? this.submittedAt,
     deadlineAt: deadlineAt ?? this.deadlineAt,
     reservationExpiresAt: reservationExpiresAt ?? this.reservationExpiresAt,
     terminationReason: terminationReason ?? this.terminationReason,

@@ -24,7 +24,7 @@ void main() {
     expect(progress.detailMessage, 'Some items need an additional check.');
   });
 
-  test('uses timed estimated segments only without backend substage', () {
+  test('uses timed reassurance without advancing the segment', () {
     final startedAt = DateTime(2026, 10, 22, 6);
 
     expect(
@@ -37,16 +37,33 @@ void main() {
     expect(
       ScanProgress.fromSession(
         _session(updatedAt: startedAt),
-        now: startedAt.add(const Duration(seconds: 20)),
+        now: startedAt.add(const Duration(seconds: 30)),
       ).step,
-      3,
+      2,
     );
     expect(
       ScanProgress.fromSession(
         _session(updatedAt: startedAt),
-        now: startedAt.add(const Duration(seconds: 45)),
-      ).step,
-      4,
+        now: startedAt.add(const Duration(seconds: 60)),
+      ).detailMessage,
+      'This is taking longer than usual; you can continue using EcoLoop.',
+    );
+  });
+
+  test('shows deadline recovery without changing the active segment', () {
+    final startedAt = DateTime(2026, 10, 22, 6);
+    final progress = ScanProgress.fromSession(
+      _session(
+        updatedAt: startedAt,
+        deadlineAt: startedAt.add(const Duration(seconds: 30)),
+      ),
+      now: startedAt.add(const Duration(seconds: 31)),
+    ).withDetail('Checking whether your request completed...');
+
+    expect(progress.step, 2);
+    expect(
+      progress.detailMessage,
+      'Checking whether your request completed...',
     );
   });
 
@@ -76,7 +93,11 @@ void main() {
   });
 }
 
-DepositSession _session({String? jobSubstage, DateTime? updatedAt}) {
+DepositSession _session({
+  String? jobSubstage,
+  DateTime? updatedAt,
+  DateTime? deadlineAt,
+}) {
   final timestamp = updatedAt ?? DateTime(2026, 10, 22, 6);
   return DepositSession(
     id: 'session-1',
@@ -87,5 +108,6 @@ DepositSession _session({String? jobSubstage, DateTime? updatedAt}) {
     updatedAt: timestamp,
     creationRequestId: 'request-1',
     jobSubstage: jobSubstage,
+    deadlineAt: deadlineAt,
   );
 }

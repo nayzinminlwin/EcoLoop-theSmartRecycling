@@ -6,10 +6,18 @@ import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
 import 'package:flutter/material.dart';
 
 class ScanProgressCard extends StatefulWidget {
-  const ScanProgressCard({required this.session, super.key, this.now});
+  const ScanProgressCard({
+    required this.session,
+    super.key,
+    this.now,
+    this.streamError = false,
+  });
 
   final DepositSession session;
   final DateTime Function()? now;
+  final bool streamError;
+  static const reassuranceAfter = Duration(seconds: 30);
+  static const longWaitAfter = Duration(seconds: 60);
 
   @override
   State<ScanProgressCard> createState() => _ScanProgressCardState();
@@ -46,8 +54,24 @@ class _ScanProgressCardState extends State<ScanProgressCard> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = ScanProgress.fromSession(widget.session, now: _now);
-    final elapsed = _now.difference(widget.session.updatedAt);
+    var progress = ScanProgress.fromSession(widget.session, now: _now);
+    final deadline = widget.session.deadlineAt;
+    if (deadline != null &&
+        !_now.isBefore(deadline) &&
+        progress.detailMessage == null) {
+      progress = progress.withDetail(
+        'Checking whether your request completed...',
+      );
+    } else if (widget.streamError && progress.detailMessage == null) {
+      progress = progress.withDetail(
+        'Reconnecting — showing the last loaded progress.',
+      );
+    }
+    final startedAt =
+        widget.session.progress?.submissionAt ??
+        widget.session.submittedAt ??
+        widget.session.updatedAt;
+    final elapsed = _now.difference(startedAt);
     final elapsedText = _formatElapsed(
       elapsed.isNegative ? Duration.zero : elapsed,
     );
@@ -209,6 +233,12 @@ class ScanProgress {
   final String activeMessage;
   final String? detailMessage;
 
+  ScanProgress withDetail(String? detail) => ScanProgress(
+    step: step,
+    activeMessage: activeMessage,
+    detailMessage: detail,
+  );
+
   factory ScanProgress.fromSession(DepositSession session, {DateTime? now}) {
     final substage = session.jobSubstage?.toLowerCase();
     final summary = session.progress;
@@ -219,25 +249,20 @@ class ScanProgress {
       );
     }
     if (substage == null) {
-      final elapsed = (now ?? DateTime.now()).difference(session.updatedAt);
-      if (elapsed >= const Duration(seconds: 45)) {
-        return const ScanProgress(
-          step: 4,
-          activeMessage: 'Confirming materials',
-          detailMessage: 'Estimated progress — waiting for verification.',
-        );
-      }
-      if (elapsed >= const Duration(seconds: 20)) {
-        return const ScanProgress(
-          step: 3,
-          activeMessage: 'Identifying recyclable items',
-          detailMessage: 'Estimated progress — waiting for verification.',
-        );
-      }
-      return const ScanProgress(
+      final startedAt =
+          session.progress?.submissionAt ??
+          session.submittedAt ??
+          session.updatedAt;
+      final elapsed = (now ?? DateTime.now()).difference(startedAt);
+      final reassurance = elapsed >= ScanProgressCard.longWaitAfter
+          ? 'This is taking longer than usual; you can continue using EcoLoop.'
+          : elapsed >= ScanProgressCard.reassuranceAfter
+          ? 'Verification is taking a little longer than usual.'
+          : null;
+      return ScanProgress(
         step: 2,
         activeMessage: 'Validating the image',
-        detailMessage: 'Estimated progress — waiting for verification.',
+        detailMessage: reassurance,
       );
     }
     return switch (substage) {

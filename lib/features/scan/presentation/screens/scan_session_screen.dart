@@ -263,6 +263,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
             bin,
             instructions,
             result,
+            resultAsync?.hasError == true,
             completion,
             assets,
           ),
@@ -362,6 +363,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     SmartBin? bin,
     ScanInstructions? instructions,
     DepositResult? result,
+    bool resultStreamFailed,
     ScanCompletionState completion,
     List<SimulationAsset> assets,
   ) => Column(
@@ -376,7 +378,13 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           instructions: instructions ?? _fallbackInstructions,
         )
       else if (session.stage == ScanStage.processing)
-        ScanProgressCard(session: session)
+        ScanProgressCard(
+          session: session,
+          now: DateTime.now,
+          streamError: resultStreamFailed,
+        )
+      else if (session.stage == ScanStage.completed && result == null)
+        _resultLoading(context, resultStreamFailed)
       else ...[
         Text(
           _stageTitle(instructions, session, result),
@@ -423,6 +431,38 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           ),
         ),
       ],
+    ],
+  );
+
+  Widget _resultLoading(BuildContext context, bool streamFailed) => Column(
+    children: [
+      Text(
+        'Loading your result',
+        textAlign: TextAlign.center,
+        style: AppTypography.sectionHeading,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        streamFailed
+            ? 'We could not load the receipt yet. Try again or open History later.'
+            : 'Your scan is complete. We are loading the receipt.',
+        textAlign: TextAlign.center,
+        style: AppTypography.body.copyWith(
+          color: AppColors.muted,
+          height: 1.55,
+        ),
+      ),
+      const SizedBox(height: 14),
+      AppButton(
+        label: 'Retry result',
+        onPressed: () {
+          final resultId = _latestSession?.resultId;
+          if (resultId != null) {
+            ref.invalidate(scanResultWatchProvider(resultId));
+          }
+        },
+        expand: true,
+      ),
     ],
   );
 
