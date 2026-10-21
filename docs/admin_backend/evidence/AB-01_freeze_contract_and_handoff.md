@@ -5,7 +5,8 @@
 - **Author/Role:** Antigravity (Gemini 3.8 Flash High) / Backend & Integration Specialist
 - **Date:** 2026-10-21
 - **Status:** COMPLETE
-- **Target Commit Message:** `docs: define admin backend integration contracts and handoff`
+- **Committed Commit SHA:** `7dda851`
+- **Tracker Record SHA:** `5f635cf`
 
 ---
 
@@ -110,9 +111,86 @@ The review resolution domain enforces three distinct outcomes, each with explici
 
 ---
 
-## 5. Artifacts Created & Verification Proof
+## 5. Backend Infrastructure & Functions Inventory
 
-The following files were authored and validated:
+Inspection of current `functions/src/index.ts` and backend components confirms:
+
+### 5.1 Existing Functions Exports
+- **Accounts:** `bootstrapResident`, `getResidentProfile`, `saveResidentPreferences`, `registerResidentDevice`, `unregisterResidentDevice`
+- **Sessions:** `scanBinQr`, `confirmSession`, `reportFinishPressed`, `saveImageSelection`, `renewSession`, `cancelSession`, `recoverOperation`
+- **Inspections:** `submitInspection`
+- **Jobs & Gateway:** `workerGateway`, `dispatchPendingJobs`
+- **Rewards:** `redeemResidentReward`, `redeemReward`, `useResidentDemoVoucher`
+- **Notifications:** `dispatchPendingNotifications`
+- **Schedules:** `reconcileBackendState`, `runDailyMaintenance`
+- **Admin Exports:** Currently **ZERO** admin endpoints exist in `functions/src/index.ts`. All admin callables in §2 will be introduced in Phases AB-02 through AB-09 under `functions/src/transport/admin_*.ts`.
+
+### 5.2 Database & Environment Baseline
+- **Firebase Project ID:** `ecoloop-thesmartrecycling`
+- **Named Firestore Database:** `ecoloop-db` (used across Functions, tools, and web adapters; default `(default)` database is strictly prohibited).
+- **Storage Bucket:** `ecoloop-thesmartrecycling.firebasestorage.app`
+- **Functions Execution Region:** `us-central1` (for callable transports, matching resident endpoints).
+- **Vision Worker Region:** `asia-southeast1` (Cloud Tasks pipeline).
+
+---
+
+## 6. Resident Refactor A2 Invariant & Shared Interfaces Handoff
+
+The admin backend coordinates with the resident refactor (`docs/ECOLOOP_DEMO_REFACTOR_PLAN.md` Phase A2) to prevent duplicate or conflicting domain models:
+
+1. **Per-Resident Reward Counter Path:**
+   - A2 establishes transactional per-resident limits under `residents/{uid}/rewardCounters/{rewardId}` (with fields `redemptionCount`, `lastRedeemedAt`).
+   - Admin catalog management (Phase AB-08) configures `maxRedemptionsPerResident` on `rewards/{rewardId}`. Admin queries read aggregated catalog redemption totals from `rewards/{rewardId}.totalRedemptions`, never scanning across private resident subcollections.
+2. **Review Resolution Authority (`settlement_store.ts`):**
+   - Both automatic settlement and operator review use the shared `settlement_store.ts` transaction pipeline.
+   - Admin command `adminResolveReview` acts as a trusted client gateway to `resolveReview`, ensuring identical accounting for wallet entries, statistics, and bin capacity deltas.
+3. **Collection Cycle Authority (`maintenance_store.ts`):**
+   - Admin commands `adminRecordCollection` and `adminResolveCapacityAlert` invoke the authoritative cycle transition in `maintenance_store.ts`.
+   - Cycle transition closes `binCycles/{cycleId}`, creates `collectionEvents/{eventId}`, resets `binOperations/{binId}.occupiedSpc` to `0`, and establishes a new empty cycle.
+
+---
+
+## 7. Preview-Only Inventory and Backfill Plan for Legacy Data
+
+When migrating live or existing emulator collections to the versioned admin schema:
+
+1. **Date Representations:**
+   - Historical documents containing ISO strings or client numbers are normalized to Firestore `Timestamp` records via preview scripts.
+   - Missing review resolution timestamps are preserved as `null`, never backfilled with artificial current dates.
+2. **Legacy Review Tickets:**
+   - Existing tickets lacking per-object finding bounding boxes are marked with `confidence: null` and `boundingBox: null`.
+   - Unreadable/failed inference jobs retain `totalCount: null`, preserving unknown status without inventing zero counts or fake model confidence scores.
+3. **Query Projections Backfill:**
+   - Projections (`adminBinViews`, `adminAlertViews`, `adminReviewViews`, `adminRewardViews`) are rebuildable read-only artifacts.
+   - An idempotent offline rebuild tool (`tools/rebuild-admin-projections.ts`, introduced in AB-03) will generate projections directly from canonical records (`bins`, `capacityAlerts`, `reviewTickets`, `rewards`).
+
+---
+
+## 8. Database Migration Strategy & Change Manifest
+
+To guarantee safety in `ecoloop-db`:
+1. **Target Verification:** All migration scripts require explicit parameters: `--project=ecoloop-thesmartrecycling --database=ecoloop-db`. Defaulting to any unverified database aborts execution.
+2. **Change Manifest & Dry-Run:** Every migration step runs in `--mode=preview` first, generating a scoped JSON change manifest specifying document paths, before-state hashes, and proposed after-states.
+3. **Rollback Safeguards:** Direct manual edits in the Firebase Console are forbidden. Applied changes are recorded in `adminAuditEvents` with trace identifiers.
+
+---
+
+## 9. Operational Inputs & Pending Console Work with Owners
+
+Per §1.2, the following operational tasks are recorded with assigned owners:
+
+| Task / Input | Detail | Assigned Owner | Target Gate |
+| --- | --- | --- | --- |
+| Admin User Provisioning | Create admin user in Firebase Auth; assign Custom Claim `role: "admin"`; create `adminAccounts/{uid}` | Backend Specialist / Moderator (Alex) | Phase AB-02 |
+| App Check reCAPTCHA Enterprise | Register admin web app domain; generate public site key; configure enforcement | Project Admin / Moderator (Alex) | Phase AB-02 |
+| Hosting Target Configuration | Define separate `admin` hosting target in Firebase project console (`firebase target:apply hosting admin <site-name>`) | DevOps / Moderator (Alex) | Phase AB-10 |
+| Seeded Reference Verification | Verify `bin-demo-main` and QR `ecoloop://bin/qr-demo-main` accessibility | Completed & Confirmed | Pre-requisite |
+
+---
+
+## 10. Artifacts Created & Verification Proof
+
+The following files were authored, verified, and committed:
 
 1. [`contracts/admin/v1/commands.schema.json`](file:///c:/Users/muabi/EcoLoop-theSmartRecycling/contracts/admin/v1/commands.schema.json)
    - 13 admin command schemas: `recoverAdminOperation`, `adminCreateBin`, `adminUpdateBin`, `adminDeleteUnusedBin`, `adminScheduleCollection`, `adminRecordCollection`, `adminResolveCapacityAlert`, `previewAdminReviewResolution`, `adminResolveReview`, `adminCreateReward`, `adminUpdateReward`, `adminDeleteUnusedReward`, `adminPublishSettings`.
@@ -125,13 +203,15 @@ The following files were authored and validated:
    - Covers negative capacity, zero capacity, invalid threshold, missing review explanation, inconsistent empty inventory with objects, client points injection attempt, client space injection attempt, free fill percentage editing, negative reward cost, and unsupported schema version.
 5. [`docs/admin_backend/EXECUTION_TRACKER.md`](file:///c:/Users/muabi/EcoLoop-theSmartRecycling/docs/admin_backend/EXECUTION_TRACKER.md)
    - Master tracking table for AB-01 through AB-10.
+6. [`docs/dev_logs/2026-10-21_AdminBackend_PhaseAB01_IntegrationContractsAndHandoff.md`](file:///c:/Users/muabi/EcoLoop-theSmartRecycling/docs/dev_logs/2026-10-21_AdminBackend_PhaseAB01_IntegrationContractsAndHandoff.md)
+   - Formal dev log tracking Phase AB-01 execution.
 
 ---
 
-## 6. Exit Gate Verification
+## 11. Exit Gate Verification Checklist
 
-- [x] Each existing UI function maps to a planned backend operation/source and acceptance case (§2).
-- [x] The UI corrections in §2.3 and shared ownership/dependencies are documented; no unresolved business-rule contradiction is hidden in an adapter (§3, §4).
-- [x] Schemas and representative valid/invalid examples are reviewed, including unreadable technical review and mixed-batch resolution (`golden_cases.json`, `invalid_cases.json`).
-- [x] Execution tracker established with AB-01–10 ledger and input registers.
-- [ ] Git commit after AB-01: `docs: define admin backend integration contracts and handoff`.
+- [x] **UI Mapping:** Each existing UI function maps to a planned backend operation/source and acceptance case (§2).
+- [x] **Assumptions Corrected:** The UI corrections in §2.3 and shared ownership/dependencies are documented; no unresolved business-rule contradiction is hidden in an adapter (§3, §4, §6).
+- [x] **Schema & Case Validation:** Schemas and representative valid/invalid examples are reviewed, including unreadable technical review and mixed-batch resolution (`golden_cases.json`, `invalid_cases.json`). Validated with Node.js parser.
+- [x] **Execution Tracker:** Established with AB-01–10 ledger, input registers, and verified commit SHAs (`EXECUTION_TRACKER.md`).
+- [x] **Git Commit:** Completed with exact message `docs: define admin backend integration contracts and handoff` (SHA: `7dda851`).
