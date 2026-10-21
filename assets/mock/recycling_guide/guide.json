@@ -30,7 +30,7 @@
     {"id": "scan", "order": 1, "instruction": "Scan the bin QR code"},
     {"id": "insert", "order": 2, "instruction": "Insert recyclable materials"},
     {"id": "finish", "order": 3, "instruction": "Press the red finish button"},
-    {"id": "verify", "order": 4, "instruction": "Wait for verification"},
+    {"id": "verify", "order": 4, "instruction": "Wait a minute for the image verification."},
     {"id": "points", "order": 5, "instruction": "Receive EcoPoints"}
   ],
   "rates": [
