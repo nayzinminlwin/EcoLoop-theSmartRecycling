@@ -1,3 +1,5 @@
+import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/models/simulation_asset.dart';
@@ -23,36 +25,40 @@ class SimulationAssetPicker extends StatelessWidget {
     return Semantics(
       container: true,
       label: 'Choose one simulation image',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
         children: [
           for (final asset in available)
             Semantics(
-              button: true,
               selected: asset.id == selectedAssetId,
-              label: '${asset.displayName ?? asset.id}'
-                  '${asset.id == selectedAssetId ? ', selected' : ''}',
-              child: InkWell(
-                onTap: () => onAssetSelected(asset),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(
-                        asset.id == selectedAssetId
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        semanticLabel: asset.id == selectedAssetId
-                            ? 'Selected'
-                            : 'Not selected',
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(asset.displayName ?? asset.id),
-                      ),
-                      Text(asset.version),
-                    ],
+              child: OutlinedButton(
+                onPressed: () => onAssetSelected(asset),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
+                  backgroundColor: asset.id == selectedAssetId
+                      ? AppColors.primary
+                      : AppColors.surface,
+                  foregroundColor: asset.id == selectedAssetId
+                      ? Colors.white
+                      : AppColors.text,
+                  side: BorderSide(
+                    color: asset.id == selectedAssetId
+                        ? AppColors.primary
+                        : AppColors.border,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadii.button),
+                  ),
+                ),
+                child: Text(
+                  asset.displayName ?? asset.id,
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
