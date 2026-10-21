@@ -12,8 +12,23 @@ class MaterialGuideCard extends StatelessWidget {
 
   static const _allowedIcons = {'recycle', 'book'};
 
+  String? get _imageAsset => switch (material.id) {
+    'plastic' => 'assets/icons/plastic-bottle.png',
+    'glass' => 'assets/icons/milk-bottle.png',
+    'aluminium' => 'assets/icons/open-can.png',
+    'paper' => 'assets/icons/paper-recycle.png',
+    _ => switch (material.type.wireValue) {
+      'plastic' => 'assets/icons/plastic-bottle.png',
+      'glass' => 'assets/icons/milk-bottle.png',
+      'aluminium' => 'assets/icons/open-can.png',
+      'paper' => 'assets/icons/paper-recycle.png',
+      _ => null,
+    },
+  };
+
   @override
   Widget build(BuildContext context) {
+    final imageAsset = _imageAsset;
     final icon = _allowedIcons.contains(material.iconKey)
         ? material.iconKey
         : 'recycle';
@@ -30,7 +45,14 @@ class MaterialGuideCard extends StatelessWidget {
               color: AppColors.mint,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: AppIcon(icon, color: AppColors.primary, size: 22),
+            child: imageAsset != null
+                ? Image.asset(
+                    imageAsset,
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
+                  )
+                : AppIcon(icon, color: AppColors.primary, size: 22),
           ),
           const SizedBox(height: 10),
           Text(material.title, style: Theme.of(context).textTheme.titleSmall),

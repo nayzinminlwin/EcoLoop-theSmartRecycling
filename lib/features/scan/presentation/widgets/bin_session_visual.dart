@@ -48,7 +48,7 @@ class ScanStageVisual extends StatelessWidget {
       ),
       ScanStage.processing => ScannerStage(
         child: SpinningIcon(
-          child: const AppIcon('recycle', size: 48, color: Color(0xFF80D1A5)),
+          child: Image.asset('assets/icons/recycle.png', width: 48, height: 48),
         ),
       ),
       ScanStage.completed => ScannerStage(

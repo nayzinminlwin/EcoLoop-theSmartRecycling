@@ -60,10 +60,10 @@ class _GuideContent extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const AppIcon(
-                'recycle',
-                size: 42,
-                color: Color(0xFF176B45),
+              child: Image.asset(
+                'assets/icons/recycle-symbol.png',
+                width: 42,
+                height: 42,
               ),
             ),
             const SizedBox(height: 12),
