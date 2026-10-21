@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-02 — COMPLETE
-- **Next phase:** AB-03 — Real read layer, query projections and indexes
+- **Current phase:** AB-03 — COMPLETE
+- **Next phase:** AB-04 — Bin management and usable registered QR codes
 
 ---
 
@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | **AB-01** | Freeze the integration contract and handoff | Agent | COMPLETE | [AB-01_freeze_contract_and_handoff.md](evidence/AB-01_freeze_contract_and_handoff.md) | `docs: define admin backend integration contracts and handoff` | `7dda851` |
 | **AB-02** | Real admin identity, service composition and command recovery | Agent | COMPLETE | [AB-02_auth_and_recovery.md](evidence/AB-02_auth_and_recovery.md) | `feat: connect admin authentication and trusted command transport` | `cfda97c` / `a4dfcde` |
-| **AB-03** | Real read layer, query projections and indexes | Agent | NOT_STARTED | `evidence/AB-03_read_projections.md` | `feat: establish admin query projections and composite indexes` | — |
+| **AB-03** | Real read layer, query projections and indexes | Agent | COMPLETE | [AB-03_read_projections.md](evidence/AB-03_read_projections.md) | `feat: add admin query adapters and rebuildable read models` | — |
 | **AB-04** | Bin management and usable registered QR codes | Agent | NOT_STARTED | `evidence/AB-04_bin_fleet_management.md` | `feat: implement admin smart bin lifecycle and qr generation` | — |
 | **AB-05** | Immutable program settings and policy publication | Agent | NOT_STARTED | `evidence/AB-05_program_settings_policy.md` | `feat: implement admin program policy publication` | — |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | NOT_STARTED | `evidence/AB-06_capacity_alerts_collection.md` | `feat: integrate capacity alert lifecycle and collection cycles` | — |
@@ -31,56 +31,45 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 09:45 UTC+8
+Updated: 2026-10-21 10:15 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-02 complete; ready for commit and Phase AB-03 startup
-Source SHA: c7bb66a (branch: dev1)
+Phase and substep: AB-03 complete; ready for commit and Phase AB-04 startup
+Source SHA: dev1 branch
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
   - Storage Bucket: ecoloop-thesmartrecycling.firebasestorage.app
   - Functions Region: us-central1 (admin callables & resident gateway)
   - Vision Worker Region: asia-southeast1
-Exact target files created/staged for AB-02:
-  - apps/admin-web/package.json
-  - apps/admin-web/src/vite-env.d.ts
-  - apps/admin-web/src/core/firebase/config.ts
-  - apps/admin-web/src/core/firebase/app.ts
-  - apps/admin-web/src/core/firebase/appCheck.ts
-  - apps/admin-web/src/core/firebase/commandClient.ts
-  - apps/admin-web/src/data/firebase/firebaseAuthRepository.ts
-  - apps/admin-web/src/app/services.ts
-  - apps/admin-web/src/app/LoginPage.tsx
-  - apps/admin-web/src/ui/primitives.tsx
-  - apps/admin-web/tests/admin_auth_ab02.test.ts
-  - functions/src/domain/admin_crypto.ts
-  - functions/src/infrastructure/firestore/admin_accounts_store.ts
-  - functions/src/infrastructure/firestore/admin_operations_store.ts
+Exact target files created/staged for AB-03:
+  - functions/src/domain/admin_search.ts
+  - functions/src/infrastructure/firestore/admin_read_versions_store.ts
+  - functions/src/infrastructure/firestore/admin_projections_store.ts
+  - functions/src/infrastructure/firestore/admin_queries_store.ts
+  - functions/src/infrastructure/firestore/codecs.ts
   - functions/src/composition.ts
   - functions/src/index.ts
-  - functions/src/transport/admin_guard.ts
-  - functions/src/transport/admin_context.ts
-  - functions/tools/admin_provision.ts
-  - functions/tools/copy-contracts.mjs
+  - functions/src/transport/admin_queries.ts
+  - functions/tools/admin_rebuild_projections.ts
+  - functions/tests/unit/admin_projections.test.ts
+  - apps/admin-web/src/contracts/adminViewCodecs.ts
+  - apps/admin-web/src/data/firebase/firebaseBinRepository.ts
+  - apps/admin-web/src/data/firebase/firebaseRewardRepository.ts
+  - apps/admin-web/src/app/services.ts
+  - apps/admin-web/package.json
+  - apps/admin-web/tests/admin_queries_ab03.test.ts
   - firestore.rules
-  - storage.rules
+  - firestore.indexes.json
   - docs/admin_backend/EXECUTION_TRACKER.md
-  - docs/admin_backend/evidence/AB-02_auth_and_recovery.md
-  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB02_AdminIdentityAndCommandRecovery.md
-  - contracts/admin/v1/commands.schema.json
-  - contracts/admin/v1/dtos.schema.json
-  - contracts/admin/v1/golden_cases.json
-  - contracts/admin/v1/invalid_cases.json
-  - docs/admin_backend/EXECUTION_TRACKER.md
-  - docs/admin_backend/evidence/AB-01_freeze_contract_and_handoff.md
-  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB01_IntegrationContractsAndHandoff.md
+  - docs/admin_backend/evidence/AB-03_read_projections.md
+  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB03_RealReadLayerAndQueryProjections.md
 Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Commit Phase AB-02 hardening: `feat: connect admin authentication and trusted command transport`
-  - Begin Phase AB-03: Real read layer, query projections, bounded cursor pagination, token prefix search, and composite indexes
+  - Commit Phase AB-03: `feat: add admin query adapters and rebuildable read models`
+  - Begin Phase AB-04: Bin management and usable registered QR codes
 ```
 
 ---

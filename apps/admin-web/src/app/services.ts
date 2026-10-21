@@ -11,6 +11,8 @@ import { getFirebaseServices } from "../core/firebase/app.ts";
 import { initAppCheck } from "../core/firebase/appCheck.ts";
 import { FirebaseCommandClient } from "../core/firebase/commandClient.ts";
 import { FirebaseAuthRepository } from "../data/firebase/firebaseAuthRepository.ts";
+import { FirebaseBinRepository } from "../data/firebase/firebaseBinRepository.ts";
+import { FirebaseRewardRepository } from "../data/firebase/firebaseRewardRepository.ts";
 
 export interface AdminServiceBundle {
   readonly repositories: AdminRepositories;
@@ -52,15 +54,27 @@ function createAdminServiceBundle(): AdminServiceBundle {
   }
 
   // Live or emulator mode
-  const { app, auth, functions } = getFirebaseServices(firebaseConfig);
+  const { app, auth, functions, firestore } = getFirebaseServices(firebaseConfig);
   initAppCheck(app);
 
   const commandClient = new FirebaseCommandClient(functions);
   const authRepo = new FirebaseAuthRepository(auth, functions);
 
-  // For domain repositories not yet activated (bins, alerts, rewards, settings),
-  // retain baseline mock repositories until their respective phases (AB-03 to AB-08)
+  // For domain repositories not yet activated (alerts, verification, settings),
+  // retain baseline mock repositories until their respective phases (AB-05 to AB-08)
   const fallbackMock = createMockRepositories();
+  const binsRepo = new FirebaseBinRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.bins
+  );
+  const rewardsRepo = new FirebaseRewardRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.rewards
+  );
 
   let revision = 1;
   let authGeneration = 1;
@@ -93,6 +107,8 @@ function createAdminServiceBundle(): AdminServiceBundle {
   const repositories: AdminRepositories = {
     ...fallbackMock.repositories,
     auth: authRepo,
+    bins: binsRepo,
+    rewards: rewardsRepo,
   };
 
   return {

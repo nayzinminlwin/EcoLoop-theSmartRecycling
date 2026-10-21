@@ -153,6 +153,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /adminRewardCategoryViews/{categoryId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminReadVersions/{topic} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /adminDashboard/{dashboardId} {
       allow read: if isAdmin();
       allow write: if false;

@@ -15,6 +15,9 @@ import { DurableNotificationDispatcher } from "./application/notifications.js";
 import { FirestoreMaintenanceStore } from "./infrastructure/firestore/maintenance_store.js";
 import { FirestoreAdminAccountsStore } from "./infrastructure/firestore/admin_accounts_store.js";
 import { FirestoreAdminOperationsStore } from "./infrastructure/firestore/admin_operations_store.js";
+import { FirestoreAdminReadVersionsStore } from "./infrastructure/firestore/admin_read_versions_store.js";
+import { FirestoreAdminProjectionsStore } from "./infrastructure/firestore/admin_projections_store.js";
+import { FirestoreAdminQueriesStore } from "./infrastructure/firestore/admin_queries_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -32,6 +35,9 @@ export function createComposition() {
     accounts: new FirestoreAccountsStore(firestore, auth),
     adminAccounts: new FirestoreAdminAccountsStore(firestore, auth),
     adminOperations: new FirestoreAdminOperationsStore(firestore),
+    adminReadVersions: new FirestoreAdminReadVersionsStore(firestore),
+    adminProjections: new FirestoreAdminProjectionsStore(firestore),
+    adminQueries: new FirestoreAdminQueriesStore(firestore),
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     jobs: new FirestoreJobsStore(firestore),

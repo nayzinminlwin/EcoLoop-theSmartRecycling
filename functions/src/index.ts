@@ -28,3 +28,10 @@ export {
   getAdminContext,
   recoverAdminOperation,
 } from "./transport/admin_context.js";
+export {
+  listAdminBins,
+  getAdminBin,
+  listAdminRewards,
+  getAdminReward,
+  getAdminRewardCategories,
+} from "./transport/admin_queries.js";
