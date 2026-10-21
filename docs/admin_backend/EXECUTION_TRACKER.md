@@ -22,7 +22,7 @@
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | COMPLETE | [AB-07_review_and_settlement.md](evidence/AB-07_review_and_settlement.md) | `feat: resolve admin reviews through shared pinned-policy settlement` | `393605f` |
 | **AB-08** | Versioned reward-offer catalog management | Agent | COMPLETE | [AB-08_rewards_catalog.md](evidence/AB-08_rewards_catalog.md) | `feat: activate versioned admin rewards catalog management` | `1f1b5b5` |
 | **AB-09** | Dashboard accounting and cross-client realtime convergence | Agent | COMPLETE | [AB-09_dashboard_convergence.md](evidence/AB-09_dashboard_convergence.md) | `feat: connect admin analytics and cross-client realtime projections` | `1b29ac2` / `d90ce0e` |
-| **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | COMPLETE | [AB-10_acceptance_and_deployment.md](evidence/AB-10_acceptance_and_deployment.md) | `feat: verify and deploy the integrated admin website` | Pending commit |
+| **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | COMPLETE | [AB-10_acceptance_and_deployment.md](evidence/AB-10_acceptance_and_deployment.md) | `feat: verify and deploy the integrated admin website` | `24595b2` |
 
 *Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCKED, FAILED.*
 
@@ -35,7 +35,7 @@ Updated: 2026-10-21 14:35 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
 Phase and substep: AB-10 verified & documented; all 10 phases COMPLETE
-Source SHA: Pending commit (branch dev1)
+Source SHA: 24595b2 (branch dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
