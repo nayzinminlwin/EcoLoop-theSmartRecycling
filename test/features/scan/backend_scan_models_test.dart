@@ -1,5 +1,6 @@
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
+import 'package:eco_loop/features/scan/domain/models/deposit_result.dart';
 import 'package:eco_loop/features/scan/domain/models/simulation_asset.dart';
 import 'package:eco_loop/features/scan/domain/models/smart_bin.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,6 +79,23 @@ void main() {
 
     expect(asset.contentSha256, 'a' * 64);
     expect(asset.width, 1200);
+  });
+
+  test('parses a processing result without final-only fields', () {
+    final result = DepositResult.fromBackendJson({
+      'id': 'result-1',
+      'sessionId': 'session-1',
+      'batchId': 'deposit-1',
+      'outcome': 'processing',
+      'pointsAwarded': null,
+      'explanation': 'Your image is being checked.',
+      'createdAt': '2026-10-21T03:00:00Z',
+    });
+
+    expect(result.outcome, DepositOutcome.processing);
+    expect(result.pointsAwarded, isNull);
+    expect(result.policyVersion, isNull);
+    expect(result.traceId, isNull);
   });
 
   test('unsupported backend snapshots fail safely', () {

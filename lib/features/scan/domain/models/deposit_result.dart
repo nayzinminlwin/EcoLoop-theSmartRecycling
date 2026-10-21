@@ -66,16 +66,23 @@ class DepositResult {
     pointsAwarded: json['pointsAwarded'] == null
         ? null
         : JsonReaders.integer(json, 'pointsAwarded'),
-    classifiedAt: JsonReaders.dateTime(json, 'classifiedAt'),
+    classifiedAt: JsonReaders.dateTime(<String, Object?>{
+      ...json,
+      'classifiedAt':
+          json['classifiedAt'] ?? json['updatedAt'] ?? json['createdAt'],
+    }, 'classifiedAt'),
     explanation: JsonReaders.string(json, 'explanation'),
     totalDetectedObjectCount: JsonReaders.integer(json, 'itemCount'),
   );
 
   factory DepositResult.fromBackendJson(JsonMap json) {
-    final lines = JsonReaders.maps(
-      json,
-      'lines',
-    ).map(DepositLineItem.fromJson).toList(growable: false);
+    final rawLines = json['lines'];
+    final lines = rawLines == null
+        ? const <DepositLineItem>[]
+        : JsonReaders.maps(
+            json,
+            'lines',
+          ).map(DepositLineItem.fromJson).toList(growable: false);
     return DepositResult(
       id: JsonReaders.string(json, 'id'),
       sessionId: JsonReaders.string(json, 'sessionId'),
@@ -87,16 +94,20 @@ class DepositResult {
       materialLabel: lines.isEmpty ? 'No material' : lines.first.label,
       itemCount: _legacyCount(lines, json),
       pointsAwarded: _nullableInteger(json, 'pointsAwarded'),
-      classifiedAt: JsonReaders.dateTime(json, 'updatedAt'),
+      classifiedAt: JsonReaders.dateTime(<String, Object?>{
+        ...json,
+        'classifiedAt':
+            json['classifiedAt'] ?? json['updatedAt'] ?? json['createdAt'],
+      }, 'classifiedAt'),
       explanation: JsonReaders.string(json, 'explanation'),
       totalDetectedObjectCount: _nullableInteger(
         json,
         'totalDetectedObjectCount',
       ),
       lines: lines,
-      policyVersion: JsonReaders.string(json, 'policyVersion'),
-      decisionVersion: JsonReaders.integer(json, 'decisionVersion'),
-      traceId: JsonReaders.string(json, 'traceId'),
+      policyVersion: _nullableString(json, 'policyVersion'),
+      decisionVersion: _nullableInteger(json, 'decisionVersion'),
+      traceId: _nullableString(json, 'traceId'),
     );
   }
 
@@ -128,6 +139,13 @@ class DepositResult {
     if (value == null) return null;
     if (value is int) return value;
     if (value is num && value == value.roundToDouble()) return value.toInt();
+    throw JsonReaders.invalid(field);
+  }
+
+  static String? _nullableString(JsonMap json, String field) {
+    final value = json[field];
+    if (value == null) return null;
+    if (value is String && value.isNotEmpty) return value;
     throw JsonReaders.invalid(field);
   }
 }

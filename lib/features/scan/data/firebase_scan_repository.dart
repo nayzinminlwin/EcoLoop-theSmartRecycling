@@ -41,10 +41,7 @@ class FirestoreScanReadTransport implements ScanReadTransport {
       });
 
   @override
-  Stream<Map<String, Object?>> watchOwner(
-    String collection,
-    String ownerId,
-  ) =>
+  Stream<Map<String, Object?>> watchOwner(String collection, String ownerId) =>
       _firestore
           .collection(collection)
           .where('ownerId', isEqualTo: ownerId)
@@ -57,11 +54,14 @@ class FirestoreScanReadTransport implements ScanReadTransport {
 
   @override
   Stream<List<Map<String, Object?>>> watchCollection(String collection) =>
-      _firestore.collection(collection).snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((document) => Map<String, Object?>.from(document.data()))
-            .toList(growable: false),
-      );
+      _firestore
+          .collection(collection)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((document) => Map<String, Object?>.from(document.data()))
+                .toList(growable: false),
+          );
 }
 
 class FirebaseScanRepository implements ScanRepository {
@@ -82,8 +82,11 @@ class FirebaseScanRepository implements ScanRepository {
   bool _disposed = false;
 
   @override
-  Future<ScanInstructions> getInstructions() =>
-      throw StateError('Scan instructions are not wired for Firebase yet');
+  Future<ScanInstructions> getInstructions() async {
+    _ensureActive();
+    final json = await _requiredRead('scanContent', 'default');
+    return ScanInstructions.fromJson(json);
+  }
 
   @override
   Future<String> getDemoQrPayload() =>
@@ -108,11 +111,9 @@ class FirebaseScanRepository implements ScanRepository {
     String requestId,
   ) async {
     _ensureActive();
-    final envelope = await commandClient.execute(
-      'scanBinQr',
-      {'qrPayload': qrPayload},
-      requestId: requestId,
-    );
+    final envelope = await commandClient.execute('scanBinQr', {
+      'qrPayload': qrPayload,
+    }, requestId: requestId);
     final session = BackendScanMapper.sessionFromEnvelope(envelope);
     final bin = BackendScanMapper.binFromEnvelope(envelope);
     _observe(session);
@@ -223,18 +224,18 @@ class FirebaseScanRepository implements ScanRepository {
 
   @override
   Future<InspectionSubmission> submitInspection({
-      required String sessionId,
-      required String assetId,
-      required String assetVersion,
-      required int expectedVersion,
-    }) async {
-      _ensureActive();
-      final envelope = await commandClient.execute('submitInspection', {
-        'sessionId': sessionId,
-        'assetId': assetId,
-        'assetVersion': assetVersion,
-        'expectedVersion': expectedVersion,
-      });
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  }) async {
+    _ensureActive();
+    final envelope = await commandClient.execute('submitInspection', {
+      'sessionId': sessionId,
+      'assetId': assetId,
+      'assetVersion': assetVersion,
+      'expectedVersion': expectedVersion,
+    });
     final data = envelope.data;
     if (data == null ||
         data['batchId'] is! String ||
@@ -263,12 +264,17 @@ class FirebaseScanRepository implements ScanRepository {
   Stream<DepositSession?> watchSession(String sessionId) async* {
     _ensureActive();
     final initial = await _readOptional('depositSessions', sessionId);
-    if (initial != null) yield _observe(BackendScanMapper.sessionFromJson(initial));
-    yield* _reads.watch('depositSessions', sessionId).map((json) {
-      _assertJsonOwner(json);
-      final session = BackendScanMapper.sessionFromJson(json);
-      return _observe(session);
-    }).where((session) => session != null);
+    if (initial != null) {
+      yield _observe(BackendScanMapper.sessionFromJson(initial));
+    }
+    yield* _reads
+        .watch('depositSessions', sessionId)
+        .map((json) {
+          _assertJsonOwner(json);
+          final session = BackendScanMapper.sessionFromJson(json);
+          return _observe(session);
+        })
+        .where((session) => session != null);
   }
 
   @override
@@ -360,7 +366,10 @@ class FirebaseScanRepository implements ScanRepository {
     String id,
   ) async {
     final json = await _reads.read(collection, id);
-    if (json != null && collection != 'bins' && collection != 'simulationAssets') {
+    if (json != null &&
+        collection != 'bins' &&
+        collection != 'simulationAssets' &&
+        collection != 'scanContent') {
       final owner = json['ownerId'];
       if (owner is! String || owner != uid) throw _permissionDenied();
     }

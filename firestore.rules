@@ -68,6 +68,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /scanContent/{contentId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
     match /residents/{uid} {
       allow read: if isOwner(uid) || isAdmin();
       allow create, update, delete: if false;

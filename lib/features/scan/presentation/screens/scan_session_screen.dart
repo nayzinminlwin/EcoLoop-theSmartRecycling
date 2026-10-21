@@ -343,7 +343,10 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       Align(child: _badge(session, result)),
       const SizedBox(height: 9),
       if (session.stage == ScanStage.completed && result != null)
-        DepositResultCard(result: result, instructions: instructions!)
+        DepositResultCard(
+          result: result,
+          instructions: instructions ?? _fallbackInstructions,
+        )
       else ...[
         Text(
           _stageTitle(instructions, session, result),
@@ -392,6 +395,25 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         ),
       ],
     ],
+  );
+
+  static const _fallbackInstructions = ScanInstructions(
+    id: 'fallback',
+    scannerTitle: 'Scan a smart bin',
+    scannerDescription:
+        'Position the registered EcoLoop QR code inside the camera frame.',
+    binFoundTitle: 'Smart bin found',
+    readyTitle: 'Ready to recycle?',
+    readyDescription:
+        'Deposit your items, then report that you pressed Finish.',
+    itemDetectedTitle: 'Choose your batch image',
+    itemDetectedDescription: 'Choose exactly one prepared image.',
+    processingTitle: 'Identifying your items',
+    processingDescription: 'The backend is analysing the selected image.',
+    verifiedTitle: 'Deposit verified',
+    reviewTitle: 'Deposit sent for review',
+    rejectedTitle: 'Deposit not eligible',
+    pointsTimingNotice: 'Verified points are added after classification.',
   );
 
   Widget _badge(DepositSession session, DepositResult? result) {
@@ -626,9 +648,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         case ScanStage.itemDetected:
           final assetId = _selectedAssetId ?? session.draftAssetId;
           final matchingAssets = assets.where((item) => item.id == assetId);
-          final asset = matchingAssets.isNotEmpty
-              ? matchingAssets.first
-              : null;
+          final asset = matchingAssets.isNotEmpty ? matchingAssets.first : null;
           if (asset == null) {
             throw const AppFailure(
               code: AppFailureCodes.validation,

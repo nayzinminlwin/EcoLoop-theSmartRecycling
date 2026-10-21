@@ -56,6 +56,10 @@ beforeAll(async () => {
       enabled: true,
       capacitySpc: 2000,
     });
+    await firestore.doc('scanContent/default').set({
+      id: 'default',
+      scannerTitle: 'Scan a smart bin',
+    });
     await context
       .storage()
       .ref('inspection-evidence/resident-owner/deposit-1/run-1/crop.png')
@@ -81,6 +85,8 @@ describe('Firestore access boundaries', () => {
 
   it('allows authenticated catalog reads but denies forged direct mutations', async () => {
     await assertSucceeds(ownerFirestore.doc('bins/bin-1').get());
+    await assertSucceeds(ownerFirestore.doc('scanContent/default').get());
+    await assertFails(unauthenticatedFirestore.doc('scanContent/default').get());
     await assertFails(
       ownerFirestore.doc(`residents/${ownerId}`).set({
         displayName: 'Forged',
