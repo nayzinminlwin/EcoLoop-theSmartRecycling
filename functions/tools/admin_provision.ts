@@ -113,6 +113,19 @@ async function run() {
       { merge: true }
     );
     console.log(`Successfully re-enabled admin account ${uid}`);
+  } else if (action === "revoke") {
+    const claims = { ...(userRecord.customClaims ?? {}) };
+    delete claims.role;
+    delete claims.admin;
+    await auth.setCustomUserClaims(uid, claims);
+    await adminDocRef.set(
+      {
+        enabled: false,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    console.log(`Successfully revoked admin privileges from ${uid}`);
   } else if (action === "check") {
     const docSnap = await adminDocRef.get();
     console.log(`Admin account diagnostic:`);

@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-01 — COMPLETE (pending Git commit)
-- **Next phase:** AB-02 — Real admin identity, service composition and command recovery
+- **Current phase:** AB-02 — COMPLETE
+- **Next phase:** AB-03 — Real read layer, query projections and indexes
 
 ---
 
@@ -79,9 +79,8 @@ Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Stage reviewed AB-01 deliverables
-  - Commit: `docs: define admin backend integration contracts and handoff`
-  - Begin Phase AB-02: Add Firebase SDK to apps/admin-web, wire real Auth and transport
+  - Commit Phase AB-02 hardening: `feat: connect admin authentication and trusted command transport`
+  - Begin Phase AB-03: Real read layer, query projections, bounded cursor pagination, token prefix search, and composite indexes
 ```
 
 ---

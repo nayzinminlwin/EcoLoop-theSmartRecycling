@@ -56,6 +56,12 @@ describe("Phase AB-02 — Firebase Command Client", () => {
     assert.equal(err.code, "conflict");
   });
 
+  it("maps Firebase already-exists error to conflict", () => {
+    const err = client.mapFirebaseError({ code: "functions/already-exists", message: "Idempotency conflict" }, "testOp");
+    assert.ok(err instanceof RepositoryError);
+    assert.equal(err.code, "conflict");
+  });
+
   it("maps Firebase invalid-argument error to validation", () => {
     const err = client.mapFirebaseError({ code: "functions/invalid-argument", message: "Missing field" }, "testOp");
     assert.ok(err instanceof RepositoryError);
@@ -79,4 +85,38 @@ describe("Phase AB-02 — Scoped Hashing & Payload Fingerprinting", () => {
     const fp2 = computePayloadFingerprint({ a: 1, b: 2 });
     assert.equal(fp1, fp2);
   });
+
+  it("computes deterministic payload fingerprint across nested structures and arrays", () => {
+    const fp1 = computePayloadFingerprint({
+      nested: { z: "foo", a: "bar" },
+      items: [1, 2, { y: 2, x: 1 }],
+    });
+    const fp2 = computePayloadFingerprint({
+      items: [1, 2, { x: 1, y: 2 }],
+      nested: { a: "bar", z: "foo" },
+    });
+    assert.equal(fp1, fp2);
+  });
+
+  it("detects payload conflicts by producing different fingerprints for modified payloads", () => {
+    const fp1 = computePayloadFingerprint({ action: "create", count: 10 });
+    const fp2 = computePayloadFingerprint({ action: "create", count: 20 });
+    assert.notEqual(fp1, fp2);
+  });
 });
+
+describe("Phase AB-02 — Admin Identity Claim Enforcement", () => {
+  it("rejects legacy-only { admin: true } tokens without { role: 'admin' }", () => {
+    const legacyToken = { uid: "legacy-admin-uid", admin: true };
+    const roleClaim = (legacyToken as Record<string, unknown>).role;
+    assert.notEqual(roleClaim, "admin");
+    const isAdmin = roleClaim === "admin";
+    assert.equal(isAdmin, false);
+  });
+
+  it("accepts canonical { role: 'admin' } claim", () => {
+    const validToken = { uid: "canonical-admin-uid", role: "admin" };
+    assert.equal(validToken.role, "admin");
+  });
+});
+

@@ -59,7 +59,7 @@ export class FirebaseAuthRepository implements AuthRepository {
     }
 
     const tokenResult = await user.getIdTokenResult();
-    const roleClaim = tokenResult.claims.role ?? (tokenResult.claims.admin === true ? "admin" : null);
+    const roleClaim = tokenResult.claims.role;
     const role = roleClaim === "admin" ? "admin" : "user";
 
     return {
@@ -87,9 +87,7 @@ export class FirebaseAuthRepository implements AuthRepository {
 
             try {
               const tokenResult = await user.getIdTokenResult();
-              const roleClaim =
-                tokenResult.claims.role ??
-                (tokenResult.claims.admin === true ? "admin" : null);
+              const roleClaim = tokenResult.claims.role;
               const role = roleClaim === "admin" ? "admin" : "user";
 
               if (role === "admin") {
@@ -143,7 +141,7 @@ export class FirebaseAuthRepository implements AuthRepository {
     }
 
     const tokenResult = await user.getIdTokenResult();
-    if (tokenResult.claims.role !== "admin" && tokenResult.claims.admin !== true) {
+    if (tokenResult.claims.role !== "admin") {
       throw new RepositoryError({
         code: "permissionDenied",
         message: "Active account lacks administrator role",
@@ -278,9 +276,7 @@ export class FirebaseAuthRepository implements AuthRepository {
 
       // Verify custom claims
       const tokenResult = await cred.user.getIdTokenResult(true);
-      const roleClaim =
-        tokenResult.claims.role ??
-        (tokenResult.claims.admin === true ? "admin" : null);
+      const roleClaim = tokenResult.claims.role;
 
       if (roleClaim !== "admin") {
         await signOut(this.auth);

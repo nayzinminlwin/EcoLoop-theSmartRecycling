@@ -67,25 +67,34 @@ Key outcomes achieved:
 
 ### 3.1 Unit & Contract Tests
 - Executed full test suite (`npm test` in `apps/admin-web/`):
-  - **137 tests passing across 44 suites (0 failures).**
-  - Includes 128 tests from `tests/contracts.test.ts` and 9 tests from `tests/admin_auth_ab02.test.ts`.
+  - **142 tests passing across 45 suites (0 failures).**
+  - Includes 128 tests from `tests/contracts.test.ts` and 14 tests from `tests/admin_auth_ab02.test.ts`.
+- Executed unit tests in `functions/` (`npm run test:unit`):
+  - **31 unit tests passing across 11 test files (0 failures).**
+  - Includes 11 comprehensive tests in `tests/unit/admin_auth.test.ts` covering:
+    - Pure crypto: Deterministic scoped hashing and recursive canonical payload fingerprinting.
+    - Caller verification: Accepting valid `role: "admin"` with enabled document, strictly rejecting legacy-only `{ admin: true }` tokens, rejecting ordinary residents, rejecting disabled admins, rejecting unprovisioned accounts.
+    - Command recovery & idempotency: Applied state on first mutation, replayed state on identical retries, and throwing `already-exists` idempotency conflicts when differing payloads reuse the same `requestId`.
 - Specific Phase AB-02 assertions verified:
   - Configuration correctly defaults to `ecoloop-db`, `ecoloop-thesmartrecycling`, and `us-central1`.
   - Request IDs match schema pattern `^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`.
-  - Firebase errors (`unauthenticated`, `permission-denied`, `not-found`, `failed-precondition`, `invalid-argument`) map cleanly to typed `FailureCode`s (`unauthenticated`, `permissionDenied`, `notFound`, `conflict`, `validation`).
-  - Scoped hash and payload fingerprinting are deterministic.
+  - Firebase errors (`unauthenticated`, `permission-denied`, `not-found`, `already-exists`, `failed-precondition`, `invalid-argument`) map cleanly to typed `FailureCode`s (`unauthenticated`, `permissionDenied`, `notFound`, `conflict`, `validation`).
+  - Account switching isolates data by incrementing `authGeneration` in `services.ts` and instantly wiping previous user query data.
 
 ### 3.2 Compilation & Production Build
-- `npm run check:tests`: 0 TypeScript errors.
-- `npm run lint`: 0 TypeScript errors.
-- `npm run build`: Production Vite bundle generated in 1.98s (`dist/index.html`, `dist/assets/`).
+- `apps/admin-web`:
+  - `npm run check:tests`: 0 TypeScript errors.
+  - `npm run lint`: 0 TypeScript errors.
+  - `npm run build`: Production Vite bundle generated in ~460ms (`dist/index.html`, `dist/assets/`).
+- `functions`:
+  - `npm run build`: Compiles `tsconfig.json` and `tsconfig.tools.json`, and copies schemas to `lib/contracts/admin/v1`.
 
 ---
 
-## 4. Exit Gate Checklist
+## 4. Exit Gate Checklist (§7)
 
-- [x] **Authentication & Role Guards:** Valid admin login/logout works; non-admin accounts and disabled admin accounts fail access and trigger immediate sign-out.
-- [x] **Error States:** Wrong password (`validation`), unauthenticated (`unauthenticated`), missing claims (`permissionDenied`), and transport failures produce distinct recoverable states.
-- [x] **Command Recovery:** `FirebaseCommandClient.recover()` and `recoverAdminOperation` callable re-deliver original committed command receipts using stable intent IDs.
-- [x] **Rules Hardened:** Direct client writes to attempts, business records, and operation receipts are denied; admin evidence reads routed behind server guard.
-- [ ] **Git Commit:** Target message `feat: connect admin authentication and trusted command transport`.
+- [x] **Authentication & Role Guards:** Valid admin login/restored session/refresh/logout work; ordinary residents, forged profile roles, legacy-only `admin: true` tokens without `role: "admin"`, and disabled admins fail administrative access.
+- [x] **Distinct Error States:** Wrong password (`validation`), unauthenticated (`unauthenticated`), missing/invalid claims (`permissionDenied`), and transport failures produce distinct recoverable states.
+- [x] **Command Recovery & Idempotency Conflict:** `FirebaseCommandClient.recover()` and `recoverAdminOperation` callable re-deliver original committed command receipts using stable intent IDs; payload-key conflict fails with `conflict` (`already-exists`); account switching wipes previous user state immediately without cache bleed.
+- [x] **Rules Hardened:** Direct client writes to attempts, business records, and operation receipts are denied; admin raw evidence reads are routed behind server guard.
+- [x] **Git Commit:** Target message `feat: connect admin authentication and trusted command transport`.

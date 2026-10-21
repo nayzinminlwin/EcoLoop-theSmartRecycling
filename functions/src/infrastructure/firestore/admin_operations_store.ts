@@ -1,5 +1,6 @@
 import type { Firestore, Timestamp } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
 import type { Instant } from "../../domain/types.js";
 import { timestampToInstant } from "./codecs.js";
 import { computeScopedHash, computePayloadFingerprint } from "../../domain/admin_crypto.js";
@@ -72,35 +73,49 @@ export class FirestoreAdminOperationsStore {
     const docRef = this.firestore.doc(`adminOperations/${hash}`);
     const nowInstant = new Date().toISOString();
 
-    const record: StoredAdminOperation = {
-      scopedHash: hash,
-      actorUid,
-      operation,
-      requestId,
-      payloadFingerprint,
-      traceId,
-      status: "committed",
-      data: {
-        ...data,
-        operationState: "applied",
-        committedAt: nowInstant,
-      },
-      createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
-    };
+    return await this.firestore.runTransaction(async (transaction) => {
+      const snap = await transaction.get(docRef);
+      if (snap.exists) {
+        const existing = snap.data() as StoredAdminOperation;
+        if (existing.payloadFingerprint !== payloadFingerprint) {
+          throw new HttpsError(
+            "already-exists",
+            `Idempotency payload conflict: requestId "${requestId}" was already used with a different payload.`
+          );
+        }
+        return this.mapDocToReceipt(existing as unknown as Record<string, unknown>);
+      }
 
-    await docRef.set(record);
-    return {
-      schemaVersion: "admin.v1",
-      operation,
-      requestId,
-      traceId,
-      status: "committed",
-      data: {
-        ...data,
-        operationState: "applied",
-        committedAt: nowInstant,
-      },
-    };
+      const record: StoredAdminOperation = {
+        scopedHash: hash,
+        actorUid,
+        operation,
+        requestId,
+        payloadFingerprint,
+        traceId,
+        status: "committed",
+        data: {
+          ...data,
+          operationState: "applied",
+          committedAt: nowInstant,
+        },
+        createdAt: FieldValue.serverTimestamp() as unknown as Timestamp,
+      };
+
+      transaction.set(docRef, record);
+      return {
+        schemaVersion: "admin.v1",
+        operation,
+        requestId,
+        traceId,
+        status: "committed",
+        data: {
+          ...data,
+          operationState: "applied",
+          committedAt: nowInstant,
+        },
+      };
+    });
   }
 
   private mapDocToReceipt(data: Record<string, unknown>): AdminReceipt {
@@ -112,11 +127,11 @@ export class FirestoreAdminOperationsStore {
       traceId: String(data.traceId ?? ""),
       status: "committed",
       data: {
+        ...opData,
         resourceId: String(opData.resourceId ?? ""),
         version: Number(opData.version ?? 0),
-        operationState: "replayed",
         committedAt: String(opData.committedAt ?? timestampToInstant(data.createdAt as Timestamp | undefined) ?? new Date().toISOString()),
-        ...opData,
+        operationState: "replayed",
       },
     };
   }

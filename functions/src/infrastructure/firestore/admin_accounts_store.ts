@@ -46,7 +46,7 @@ export class FirestoreAdminAccountsStore {
   }
 
   async verifyCaller(caller: { uid: string; token: Record<string, unknown> }): Promise<AdminVerificationResult> {
-    const roleClaim = caller.token.role ?? (caller.token.admin === true ? "admin" : undefined);
+    const roleClaim = caller.token.role;
     if (roleClaim !== "admin") {
       const err = new Error("Caller lacks required administrator role.");
       (err as unknown as { code: string }).code = "permission-denied";

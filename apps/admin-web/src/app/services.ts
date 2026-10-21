@@ -19,17 +19,35 @@ export interface AdminServiceBundle {
   readonly commandClient?: FirebaseCommandClient;
   subscribe(listener: () => void): () => void;
   getRevision(): number;
+  getAuthGeneration(): number;
 }
 
 function createAdminServiceBundle(): AdminServiceBundle {
   if (firebaseConfig.mode === "mock") {
     const mock = createMockRepositories();
+    let authGen = 1;
+    let lastUid: string | null = null;
+    mock.repositories.auth.watchAuthState().subscribe({
+      next: (st) => {
+        if (st.uid !== lastUid) {
+          lastUid = st.uid;
+          authGen += 1;
+        }
+      },
+      error: () => {
+        if (lastUid !== null) {
+          lastUid = null;
+          authGen += 1;
+        }
+      },
+    });
     return {
       repositories: mock.repositories,
       controls: mock.controls,
       mode: "mock",
       subscribe: mock.subscribe,
       getRevision: mock.getRevision,
+      getAuthGeneration: () => authGen,
     };
   }
 
@@ -45,6 +63,8 @@ function createAdminServiceBundle(): AdminServiceBundle {
   const fallbackMock = createMockRepositories();
 
   let revision = 1;
+  let authGeneration = 1;
+  let currentUid: string | null = null;
   const listeners = new Set<() => void>();
 
   function notify() {
@@ -52,10 +72,22 @@ function createAdminServiceBundle(): AdminServiceBundle {
     listeners.forEach((l) => l());
   }
 
-  // When auth changes, notify subscribers to refresh views
+  // When auth changes, track authGeneration and notify subscribers to refresh views
   authRepo.watchAuthState().subscribe({
-    next: () => notify(),
-    error: () => notify(),
+    next: (state) => {
+      if (state.uid !== currentUid) {
+        currentUid = state.uid;
+        authGeneration += 1;
+      }
+      notify();
+    },
+    error: () => {
+      if (currentUid !== null) {
+        currentUid = null;
+        authGeneration += 1;
+      }
+      notify();
+    },
   });
 
   const repositories: AdminRepositories = {
@@ -72,6 +104,7 @@ function createAdminServiceBundle(): AdminServiceBundle {
       return () => listeners.delete(listener);
     },
     getRevision: () => revision,
+    getAuthGeneration: () => authGeneration,
   };
 }
 
@@ -100,8 +133,17 @@ export function useRepositoryRevision(): number {
   );
 }
 
+export function useAuthGeneration(): number {
+  return useSyncExternalStore(
+    services.subscribe,
+    services.getAuthGeneration,
+    services.getAuthGeneration
+  );
+}
+
 export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T> {
   const revision = useRepositoryRevision();
+  const authGeneration = useAuthGeneration();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -114,6 +156,8 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
   const currentKeyRef = useRef(key);
   currentKeyRef.current = key;
 
+  const authGenRef = useRef(authGeneration);
+
   const reload = useCallback(() => {
     setRetryCount((c) => c + 1);
   }, []);
@@ -122,7 +166,13 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
     let isCurrent = true;
     const activeKey = key;
 
-    if (data === null) {
+    // Reset data immediately on account switch/generation change
+    if (authGenRef.current !== authGeneration) {
+      authGenRef.current = authGeneration;
+      setData(null);
+      setLoading(true);
+      setRefreshing(false);
+    } else if (data === null) {
       setLoading(true);
       setRefreshing(false);
     } else {
@@ -156,12 +206,14 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
     return () => {
       isCurrent = false;
     };
-  }, [key, revision, retryCount]);
+  }, [key, revision, retryCount, authGeneration]);
 
   return { data, loading, refreshing, error, reload };
 }
 
 export function useObservableQuery<T>(key: string, source: () => Observable<T>): QueryState<T> {
+  const revision = useRepositoryRevision();
+  const authGeneration = useAuthGeneration();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -174,6 +226,8 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
   const currentKeyRef = useRef(key);
   currentKeyRef.current = key;
 
+  const authGenRef = useRef(authGeneration);
+
   const reload = useCallback(() => {
     setRetryCount((c) => c + 1);
   }, []);
@@ -182,7 +236,13 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
     let isCurrent = true;
     const activeKey = key;
 
-    if (data === null) {
+    // Reset data immediately on account switch/generation change
+    if (authGenRef.current !== authGeneration) {
+      authGenRef.current = authGeneration;
+      setData(null);
+      setLoading(true);
+      setRefreshing(false);
+    } else if (data === null) {
       setLoading(true);
       setRefreshing(false);
     } else {
@@ -214,7 +274,7 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
       isCurrent = false;
       unsubscribe();
     };
-  }, [key, retryCount]);
+  }, [key, retryCount, revision, authGeneration]);
 
   return { data, loading, refreshing, error, reload };
 }

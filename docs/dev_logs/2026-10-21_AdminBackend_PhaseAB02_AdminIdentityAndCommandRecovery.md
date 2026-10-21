@@ -62,7 +62,7 @@ Implement Phase AB-02 of the Admin Backend Activation Plan (`docs/ECOLOOP_ADMIN_
 | Command Client & Recovery (`commandClient.ts`, `admin_context.ts`) | ✅ | Stable intent IDs, error mapping, and `recoverAdminOperation` |
 | Security Rules (`firestore.rules`, `storage.rules`) | ✅ | Denies direct writes; routes evidence behind server guard |
 | Admin Provisioning Tool (`tools/admin_provision.ts`) | ✅ | Controlled CLI tool for admin user provisioning |
-| Unit Tests (`tests/admin_auth_ab02.test.ts`) | ✅ | All 9 tests passing (137 total in test suite) |
+| Unit Tests (`tests/admin_auth_ab02.test.ts`, `functions/tests/unit/admin_auth.test.ts`) | ✅ | All 14 tests passing in web (142 total) and 11 tests in functions (31 total) |
 | Evidence & Dev Log | ✅ | `AB-02_auth_and_recovery.md` and this dev log created |
 
 ## 6. Next Steps / Known Issues

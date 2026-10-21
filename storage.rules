@@ -12,8 +12,7 @@ service firebase.storage {
 
     function isAdmin() {
       return signedIn() &&
-        (('role' in request.auth.token && request.auth.token.role == 'admin') ||
-         ('admin' in request.auth.token && request.auth.token.admin == true));
+        ('role' in request.auth.token && request.auth.token.role == 'admin');
     }
 
     match /simulation-assets/{assetId}/{assetVersion}/{fileName=**} {
