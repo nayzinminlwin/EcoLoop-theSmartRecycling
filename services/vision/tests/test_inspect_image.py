@@ -190,6 +190,35 @@ def test_low_confidence_eligible_candidate_keeps_specialist_evidence_and_needs_g
     assert item.confidence == pytest.approx(0.68)
 
 
+def test_worker_findings_map_internal_specialist_reason_to_contract_reason():
+    image = image_input()
+    result = inspect_image(
+        image,
+        detector_provider=lambda _model_id, _image: {
+            "image": {"width": 100, "height": 80},
+            "predictions": [{
+                "x": 50, "y": 40, "width": 20, "height": 30,
+                "class": "Pet_Bottle",
+                "confidence": 0.68,
+            }],
+        },
+        specialist_provider=lambda _image, _object_id: {
+            "predictions": {"Plastic Bottle": {"confidence": 0.942}},
+            "predicted_classes": ["Plastic Bottle"],
+        },
+    )
+    findings = _findings(
+        type("Claim", (), {
+            "job_id": "job-001", "attempt_id": "attempt-001",
+            "asset_id": "asset-001", "asset_version": "v1",
+        })(),
+        image,
+        result,
+    )
+    assert result.objects[0].reason_code == "specialist_evidence"
+    assert findings["findings"][0]["reasonCode"] == "matched"
+
+
 def test_result_to_dict_replaces_non_finite_values():
     result = inspect_image(
         image_input(),

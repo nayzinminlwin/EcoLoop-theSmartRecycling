@@ -162,7 +162,7 @@ def _findings(claim: JobClaim, image: ProcessingInput, result: InspectionResult)
             "box": {"x1": item.normalized_box[0], "y1": item.normalized_box[1], "x2": item.normalized_box[2], "y2": item.normalized_box[3]},
             "evidence": {"modelIds": list(item.model_ids), "rawLabel": ",".join(item.raw_labels)},
             "confidence": item.confidence,
-            "reasonCode": item.reason_code,
+            "reasonCode": _contract_reason_code(item.reason_code),
         })
     return {
         "schemaVersion": "backend.v1",
@@ -179,6 +179,14 @@ def _findings(claim: JobClaim, image: ProcessingInput, result: InspectionResult)
         "findings": findings,
         "inventoryState": result.inventory_state,
     }
+
+
+def _contract_reason_code(reason_code: str) -> str:
+    if reason_code in {"matched", "fallback", "unsupported_label", "ambiguous", "false_detection"}:
+        return reason_code
+    if reason_code == "specialist_evidence":
+        return "matched"
+    return "ambiguous"
 
 
 def _remaining_ms(deadline_at: str, current: datetime) -> int:
