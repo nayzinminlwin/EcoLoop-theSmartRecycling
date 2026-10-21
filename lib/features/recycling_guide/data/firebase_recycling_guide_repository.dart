@@ -245,7 +245,9 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
         .where(
           (material) =>
               material.canonicalClass == 'paper_item' ||
-              material.canonicalClass == 'paper_bag',
+              material.canonicalClass == 'paper_bag' ||
+              material.id == 'paper-items' ||
+              material.id == 'paper-bags',
         )
         .toList();
     if (paperMaterials.length < 2) return List.unmodifiable(materials);
