@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -72,16 +73,37 @@ def run_job(
         )
         if remaining_ms <= 0:
             raise TimeoutError("The committed processing deadline has passed")
+        source_started_at = time.perf_counter()
         image = source_loader(claim)
         if image.sha256 != claim.content_sha256:
             raise RuntimeError("Loaded source digest does not match the claimed source")
+        emit_structured(level=20, event="vision.stage_completed", fields={
+            "stage": "source_load",
+            "durationMs": round((time.perf_counter() - source_started_at) * 1000, 2),
+            "bytes": len(image.content),
+            "width": image.width,
+            "height": image.height,
+        })
         config = InspectionConfig(
             config_id=claim.configuration_version,
             total_budget_ms=max(1_000, min(30_000, remaining_ms - 1_000)),
             call_timeout_ms=max(500, min(15_000, remaining_ms - 1_000)),
         )
+        inspection_started_at = time.perf_counter()
         result = (inspection_runner or _default_runner)(image, config)
+        emit_structured(level=20, event="vision.stage_completed", fields={
+            "stage": "inspection",
+            "durationMs": round((time.perf_counter() - inspection_started_at) * 1000, 2),
+            "inventoryState": result.inventory_state,
+            "objectCount": len(result.objects),
+        })
+        artifact_started_at = time.perf_counter()
         references = artifacts.write(prefix=claim.artifact_prefix, image=image.content, result=result)
+        emit_structured(level=20, event="vision.stage_completed", fields={
+            "stage": "artifacts",
+            "durationMs": round((time.perf_counter() - artifact_started_at) * 1000, 2),
+            "referenceCount": len(references),
+        })
         gateway.checkpoint(claim, "artifacts_written", references[0])
         findings = _findings(claim, image, result)
         try:

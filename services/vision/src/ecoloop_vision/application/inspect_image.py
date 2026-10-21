@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import time
+from contextvars import copy_context
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
@@ -48,6 +49,7 @@ class ProviderAttempt:
     attempt: int
     status: str
     error_type: str | None = None
+    latency_ms: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -110,10 +112,20 @@ def inspect_image(
         except Exception as error:
             return role, model_id, None, error
 
+    detector_started_at = time.perf_counter()
     detector_runs: list[tuple[str, str, Any, Exception | None]] = []
     if detector_specs:
         with ThreadPoolExecutor(max_workers=min(2, len(detector_specs))) as executor:
-            detector_runs = list(executor.map(lambda spec: run_detector(*spec), detector_specs))
+            futures = [
+                executor.submit(copy_context().run, run_detector, *spec)
+                for spec in detector_specs
+            ]
+            detector_runs = [future.result() for future in futures]
+    emit_structured(level=20, event="vision.stage_completed", fields={
+        "stage": "detectors",
+        "durationMs": round((time.perf_counter() - detector_started_at) * 1000, 2),
+        "roles": [role for role, _model_id in detector_specs],
+    })
     for role, model_id, raw, provider_error in detector_runs:
         if provider_error is not None:
             outcomes.append(_provider_outcome("detector", provider_error))
@@ -152,6 +164,7 @@ def inspect_image(
     specialist_results: list[NormalizedResult] = []
     specialist_by_group: dict[str, NormalizedResult] = {}
     if specialist_provider is not None:
+        specialist_started_at = time.perf_counter()
         for group in groups[:config.max_specialist_crops]:
             if not _needs_specialist(group, objects):
                 continue
@@ -173,10 +186,16 @@ def inspect_image(
                 specialist_by_group[group.group_id] = normalized_specialist
             except (TypeError, ValueError) as error:
                 outcomes.append(StageOutcome("specialist", "invalid_response", "normalization_failed", type(error).__name__))
+        emit_structured(level=20, event="vision.stage_completed", fields={
+            "stage": "specialist",
+            "durationMs": round((time.perf_counter() - specialist_started_at) * 1000, 2),
+            "candidateCount": len(specialist_by_group),
+        })
         objects = _apply_specialist_evidence(objects, specialist_by_group)
 
     fallbacks: list[FallbackEvidence] = []
     if gemini_provider is not None:
+        gemini_started_at = time.perf_counter()
         uncertain_groups = [
             (group, item)
             for group, item in zip(groups, objects)
@@ -257,6 +276,11 @@ def inspect_image(
                 outcomes.append(StageOutcome("gemini_full_image", "review_required", evidence.result.reason_code))
             if evidence.result.status == "resolved":
                 objects = _materialize_full_image(evidence.result, image.width, image.height)
+        emit_structured(level=20, event="vision.stage_completed", fields={
+                "stage": "gemini",
+                "durationMs": round((time.perf_counter() - gemini_started_at) * 1000, 2),
+                "fallbackCount": len(fallbacks),
+        })
     return InspectionResult(
         input_sha256=image.sha256,
         config_id=config.config_id,
@@ -432,6 +456,7 @@ def _invoke_provider(
 ) -> Any:
     last_error: Exception | None = None
     for attempt in range(config.max_retries + 1):
+        attempt_started = time.monotonic()
         remaining_ms = min(
             config.call_timeout_ms,
             max(0, config.total_budget_ms - int((time.monotonic() - started_at) * 1000)),
@@ -442,16 +467,25 @@ def _invoke_provider(
         future = executor.submit(provider, *args)
         try:
             result = future.result(timeout=remaining_ms / 1000)
-            attempts.append(ProviderAttempt(stage, attempt + 1, "success"))
+            attempts.append(ProviderAttempt(
+                stage, attempt + 1, "success",
+                latency_ms=round((time.monotonic() - attempt_started) * 1000, 2),
+            ))
             return result
         except FutureTimeoutError as error:
             last_error = error
-            attempts.append(ProviderAttempt(stage, attempt + 1, "timeout", type(error).__name__))
+            attempts.append(ProviderAttempt(
+                stage, attempt + 1, "timeout", type(error).__name__,
+                round((time.monotonic() - attempt_started) * 1000, 2),
+            ))
             if attempt >= config.max_retries:
                 raise RuntimeError("budget_exhausted") from error
         except Exception as error:
             last_error = error
-            attempts.append(ProviderAttempt(stage, attempt + 1, "error", type(error).__name__))
+            attempts.append(ProviderAttempt(
+                stage, attempt + 1, "error", type(error).__name__,
+                round((time.monotonic() - attempt_started) * 1000, 2),
+            ))
             if not _is_transient(error) or attempt >= config.max_retries:
                 raise
         finally:
