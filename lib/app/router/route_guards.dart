@@ -25,6 +25,9 @@ class RouteGuards extends ChangeNotifier {
   void _subscribe() {
     _subscription = _repository.watchAuthState().listen(
       (value) {
+        final signedOutAfterResidentSession =
+            _authState?.isSignedIn == true && !value.isSignedIn;
+        if (signedOutAfterResidentSession) _pendingLocation = null;
         _authState = value;
         _error = null;
         notifyListeners();

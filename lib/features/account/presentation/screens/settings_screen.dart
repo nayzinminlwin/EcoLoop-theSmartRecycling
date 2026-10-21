@@ -1,4 +1,5 @@
 import 'package:eco_loop/app/router/app_routes.dart';
+import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/shared/widgets/app_avatar.dart';
 import 'package:eco_loop/shared/widgets/app_confirmation_dialog.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
@@ -9,7 +10,8 @@ import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:eco_loop/core/theme/app_spacing.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
-import 'package:eco_loop/features/account/presentation/controllers/demo_session_controller.dart';
+import 'package:eco_loop/features/account/data/mock_account_repository.dart';
+import 'package:eco_loop/features/account/presentation/controllers/sign_out_controller.dart';
 import 'package:eco_loop/features/account/presentation/controllers/settings_controller.dart';
 import 'package:eco_loop/features/account/presentation/widgets/settings_list_tile.dart';
 import 'package:eco_loop/features/account/domain/models/resident_profile.dart';
@@ -23,7 +25,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(settingsProfileProvider);
-    final session = ref.watch(demoSessionControllerProvider);
+    final signOut = ref.watch(signOutControllerProvider);
     return AppPage(
       header: const AppPageHeader(title: 'Settings', eyebrow: 'ACCOUNT'),
       child: profile.when(
@@ -77,16 +79,16 @@ class SettingsScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: TextButton.icon(
-                  onPressed: session.isLoading
+                  onPressed: signOut.isLoading
                       ? null
                       : () => _signOut(context, ref),
                   icon: const Icon(Icons.logout, size: 18),
-                  label: session.isLoading
+                  label: signOut.isLoading
                       ? const Text('Signing out...')
                       : const Text('Sign out'),
                 ),
               ),
-              if (session.hasError)
+              if (signOut.hasError)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
@@ -102,15 +104,17 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final isDemo = ref.read(accountRepositoryProvider) is MockAccountRepository;
     final confirmed = await AppConfirmationDialog.show(
       context,
-      title: 'Sign out of the demo?',
-      body: 'Your saved demo data will remain available when you continue.',
+      title: isDemo ? 'Sign out of the demo?' : 'Sign out?',
+      body: isDemo
+          ? 'Your saved demo data will remain available when you continue.'
+          : 'You can sign in again at any time.',
       confirmLabel: 'Sign out',
     );
     if (confirmed != true || !context.mounted) return;
-    await ref.read(demoSessionControllerProvider.notifier).signOut();
-    if (context.mounted) context.go(AppRoutes.signedOut);
+    await ref.read(signOutControllerProvider.notifier).signOut();
   }
 }
 
