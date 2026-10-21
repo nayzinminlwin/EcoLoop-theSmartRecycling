@@ -39,6 +39,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
   late final MobileScannerController _controller =
       widget.controller ??
       MobileScannerController(
+        autoStart: false,
         detectionSpeed: DetectionSpeed.normal,
         detectionTimeoutMs: 500,
       );
