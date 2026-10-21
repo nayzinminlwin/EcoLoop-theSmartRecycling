@@ -93,10 +93,27 @@ export class FirestoreSettlementStore implements SettlementStore {
 
       const decisionVersion = input.expectedDecisionVersion + 1;
       const outcome = plan.status;
+      const wallet = walletSnapshot.data();
+      const stats = statsSnapshot.data();
+      const committedWalletVersion = plan.status === "verified"
+        ? Number(wallet?.version ?? 0) + 1
+        : Number(wallet?.version ?? 0);
+      const committedWalletBalance = plan.status === "verified"
+        ? Number(wallet?.balance ?? 0) + Number(plan.pointsAwarded ?? 0)
+        : Number(wallet?.balance ?? 0);
+      const committedVerifiedBatchCount = plan.status === "verified"
+        ? Number(stats?.verifiedBatchCount ?? 0) + 1
+        : Number(stats?.verifiedBatchCount ?? 0);
       const resultData = {
         id: resultRef.id, ownerId: String(job.ownerId), sessionId: String(job.sessionId),
         batchId, outcome, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc,
-        decisionVersion, explanation: plan.reasonCodes.join(",") || "Inspection completed.",
+        decisionVersion, policyVersion: policy.id,
+        totalDetectedObjectCount: plan.totalDetectedObjectCount,
+        acceptedItemCount: plan.acceptedCount,
+        committedWalletVersion,
+        committedWalletBalance,
+        committedVerifiedBatchCount,
+        explanation: plan.reasonCodes.join(",") || "Inspection completed.",
         lines: plan.lines, reasonCodes: plan.reasonCodes, traceId: String(job.traceId),
         createdAt: input.now, updatedAt: input.now,
       };
@@ -190,11 +207,31 @@ export class FirestoreSettlementStore implements SettlementStore {
       const cycleSnapshot = await transaction.get(cycleRef);
       const walletRef = this.firestore.doc(`residents/${String(batch.ownerId)}/wallet/current`);
       const walletSnapshot = await transaction.get(walletRef);
+      const statsRef = this.firestore.doc(`residents/${String(batch.ownerId)}/stats/current`);
+      const statsSnapshot = await transaction.get(statsRef);
       const bin = requireData(binSnapshot.data(), "The recycling bin does not exist");
       const delta = plan.spaceContributionSpc - oldSpace;
       const capacityRef = this.firestore.doc(`capacityEntries/${input.batchId}-review-${nextVersion}`);
       transaction.update(batchRef, { status: plan.status, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc, lines: plan.lines, decisionVersion: nextVersion, updatedAt: input.now });
-      transaction.update(resultRef, { outcome: plan.status, pointsAwarded: plan.pointsAwarded, spaceContributionSpc: plan.spaceContributionSpc, decisionVersion: nextVersion, lines: plan.lines, updatedAt: input.now });
+      const wallet = walletSnapshot.data();
+      const stats = statsSnapshot.data();
+      transaction.update(resultRef, {
+        outcome: plan.status, pointsAwarded: plan.pointsAwarded,
+        spaceContributionSpc: plan.spaceContributionSpc, decisionVersion: nextVersion,
+        policyVersion: String(batch.policyVersion),
+        totalDetectedObjectCount: plan.totalDetectedObjectCount,
+        acceptedItemCount: plan.acceptedCount,
+        committedWalletVersion: plan.status === "verified"
+          ? Number(wallet?.version ?? 0) + 1
+          : Number(wallet?.version ?? 0),
+        committedWalletBalance: plan.status === "verified"
+          ? Number(wallet?.balance ?? 0) + Number(plan.pointsAwarded ?? 0)
+          : Number(wallet?.balance ?? 0),
+        committedVerifiedBatchCount: plan.status === "verified"
+          ? Number(stats?.verifiedBatchCount ?? 0) + 1
+          : Number(stats?.verifiedBatchCount ?? 0),
+        lines: plan.lines, updatedAt: input.now,
+      });
       transaction.update(ticketRef, { state: "resolved", decisionVersion: nextVersion, resolvedBy: input.actorId, resolvedAt: input.now });
       transaction.create(capacityRef, { id: capacityRef.id, binId: String(batch.binId), cycleId: String(batch.cycleId), batchId: input.batchId, deltaSpc: delta, kind: "review_correction", decisionVersion: nextVersion, createdAt: input.now, historical: String(batch.cycleId) !== String(bin.cycleId) });
       applyCapacity(transaction, binRef, cycleRef, binSnapshot.data(), cycleSnapshot.data(), String(batch.cycleId), delta, input.now);
@@ -203,6 +240,11 @@ export class FirestoreSettlementStore implements SettlementStore {
         const nextWalletVersion = Number(wallet.version ?? 0) + 1;
         transaction.update(walletRef, { balance: Number(wallet.balance ?? 0) + plan.pointsAwarded, version: nextWalletVersion, updatedAt: input.now });
         transaction.create(this.firestore.doc(`walletEntries/${input.batchId}-review`), { residentId: batch.ownerId, type: "deposit_credit", pointsDelta: plan.pointsAwarded, sourceType: "deposit_review", sourceId: input.batchId, balanceAfter: Number(wallet.balance ?? 0) + plan.pointsAwarded, walletVersion: nextWalletVersion, createdAt: input.now });
+        transaction.update(statsRef, {
+          verifiedBatchCount: Number(statsSnapshot.data()?.verifiedBatchCount ?? 0) + 1,
+          acceptedItemCount: Number(statsSnapshot.data()?.acceptedItemCount ?? 0) + Number(plan.acceptedCount ?? 0),
+          updatedAt: input.now,
+        });
       }
       transaction.set(this.firestore.doc(`notificationEvents/${input.batchId}-${nextVersion}`), {
         id: `${input.batchId}-${nextVersion}`, recipientUid: String(batch.ownerId), batchId: input.batchId,
@@ -256,6 +298,7 @@ export class FirestoreSettlementStore implements SettlementStore {
       transaction.set(resultRef, {
         id: resultRef.id, ownerId: String(job.ownerId), sessionId: String(job.sessionId), batchId,
         outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion,
+        policyVersion: String(job.policyVersion), totalDetectedObjectCount: null, acceptedItemCount: null,
         explanation: input.reason, reasonCodes: [input.reason], traceId: String(job.traceId),
         createdAt: input.now, updatedAt: input.now,
       });

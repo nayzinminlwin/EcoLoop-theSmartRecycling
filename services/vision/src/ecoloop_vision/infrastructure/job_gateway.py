@@ -34,6 +34,7 @@ class JobClaim:
     batch_id: str
     attempt_id: str
     deadline_at: str
+    lease_expires_at: str
     asset_id: str
     asset_version: str
     content_sha256: str
@@ -70,6 +71,7 @@ class JobGateway:
             batch_id=_string(claim, "batchId"),
             attempt_id=_string(claim, "attemptId"),
             deadline_at=_string(claim, "deadlineAt"),
+            lease_expires_at=_string(claim, "leaseExpiresAt"),
             asset_id=_string(_mapping(claim["source"]), "assetId"),
             asset_version=_string(_mapping(claim["source"]), "assetVersion"),
             content_sha256=_string(_mapping(claim["source"]), "contentSha256"),

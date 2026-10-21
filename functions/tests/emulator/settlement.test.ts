@@ -89,6 +89,14 @@ describe("atomic inspection settlement", () => {
     expect((await firestore.collection("capacityEntries").get()).size).toBe(1);
     expect((await firestore.doc(`residents/${uid}/wallet/current`).get()).data()).toMatchObject({ balance: 47, version: 1 });
     expect((await firestore.doc(`residents/${uid}/stats/current`).get()).data()).toMatchObject({ verifiedBatchCount: 1, acceptedItemCount: 2 });
+    expect((await firestore.doc(`depositResults/result-${hash(batchId)}`).get()).data()).toMatchObject({
+      policyVersion: "policy-v1",
+      totalDetectedObjectCount: 2,
+      acceptedItemCount: 2,
+      committedWalletVersion: 1,
+      committedWalletBalance: 47,
+      committedVerifiedBatchCount: 1,
+    });
     expect((await firestore.doc(`bins/${binId}`).get()).data()).toMatchObject({ occupiedSpc: 30 });
     expect((await firestore.doc("binCycles/cycle-1").get()).data()).toMatchObject({ contributionTotalSpc: 20 });
     expect((await firestore.doc(`binOperations/${binId}`).get()).data()).toMatchObject({ phase: "available", ownerId: null, sessionId: null });

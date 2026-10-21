@@ -63,16 +63,18 @@ def run_job(
 ) -> Mapping[str, Any]:
     claim = gateway.claim(job_id)
     if claim.state == "already_finalized":
-        return gateway.read_current_result(job_id)
+        return _require_terminal_result(gateway.read_current_result(job_id))
     set_context(jobId=claim.job_id, attemptId=claim.attempt_id, traceId=claim.trace_id)
     try:
-        remaining_ms = _remaining_ms(claim.deadline_at, now())
+        remaining_ms = min(
+            _remaining_ms(claim.deadline_at, now()),
+            _remaining_ms(claim.lease_expires_at, now()),
+        )
         if remaining_ms <= 0:
             raise TimeoutError("The committed processing deadline has passed")
         image = source_loader(claim)
         if image.sha256 != claim.content_sha256:
             raise RuntimeError("Loaded source digest does not match the claimed source")
-        gateway.checkpoint(claim, "source_loaded", f"{claim.artifact_prefix}source.json")
         config = InspectionConfig(
             config_id=claim.configuration_version,
             total_budget_ms=max(1_000, min(30_000, remaining_ms - 1_000)),
@@ -86,7 +88,7 @@ def run_job(
             return gateway.complete(claim, findings, references)
         except Exception as error:
             recovered = gateway.read_current_result(job_id)
-            if recovered.get("result") is not None:
+            if _is_terminal_result(recovered):
                 return recovered
             raise error
     except Exception as error:
@@ -160,6 +162,20 @@ def _findings(claim: JobClaim, image: ProcessingInput, result: InspectionResult)
 def _remaining_ms(deadline_at: str, current: datetime) -> int:
     deadline = datetime.fromisoformat(deadline_at.replace("Z", "+00:00"))
     return round((deadline - current.astimezone(timezone.utc)).total_seconds() * 1000)
+
+
+def _is_terminal_result(response: Mapping[str, Any]) -> bool:
+    result = response.get("result")
+    if not isinstance(result, Mapping):
+        return False
+    outcome = result.get("outcome")
+    return isinstance(outcome, str) and outcome not in {"processing", "pending"}
+
+
+def _require_terminal_result(response: Mapping[str, Any]) -> Mapping[str, Any]:
+    if not _is_terminal_result(response):
+        raise RuntimeError("Worker gateway returned a non-terminal result for a finalized job")
+    return response
 
 
 def _write_temp_image(image: ProcessingInput):

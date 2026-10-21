@@ -46,7 +46,7 @@ class FakeGateway:
 def claim_for(image):
     return JobClaim(
         job_id="job-1", batch_id="batch-1", attempt_id="attempt-1",
-        deadline_at="2030-01-01T00:05:00.000Z", asset_id="asset-1",
+        deadline_at="2030-01-01T00:05:00.000Z", lease_expires_at="2030-01-01T00:04:00.000Z", asset_id="asset-1",
         asset_version="v1", content_sha256=image.sha256,
         configuration_version="inspection-v1",
         artifact_prefix="vision-artifacts/job-1/attempt-1/",
@@ -83,9 +83,7 @@ def test_run_job_claims_writes_scoped_artifacts_and_completes(tmp_path: Path):
 
     assert result["outcome"] == "verified"
     assert gateway.calls[0] == ("claim", "job-1")
-    assert [call[1] for call in gateway.calls if call[0] == "checkpoint"] == [
-        "source_loaded", "artifacts_written"
-    ]
+    assert [call[1] for call in gateway.calls if call[0] == "checkpoint"] == ["artifacts_written"]
     complete = next(call for call in gateway.calls if call[0] == "complete")
     assert complete[1]["image"]["contentSha256"] == image.sha256
     assert (tmp_path / "vision-artifacts" / "job-1" / "attempt-1" / "findings.json").exists()
@@ -113,3 +111,24 @@ def test_run_job_recovers_terminal_result_after_ambiguous_completion(tmp_path: P
 
     assert result["result"]["outcome"] == "verified"
     assert not any(call[0] == "fail" for call in gateway.calls)
+
+
+def test_processing_projection_is_not_accepted_after_ambiguous_completion(tmp_path: Path):
+    image = image_input()
+    gateway = FakeGateway(claim_for(image))
+    gateway.complete = lambda *_args: (_ for _ in ()).throw(RuntimeError("connection reset"))
+    gateway.read_current_result = lambda _job_id: {"result": {"outcome": "processing"}, "state": "running"}
+
+    try:
+        run_job(
+            "job-1",
+            gateway=gateway,
+            artifacts=LocalArtifactWriter(tmp_path),
+            source_loader=lambda _claim: image,
+            inspection_runner=runner,
+            now=lambda: datetime(2029, 12, 31, 23, 59, tzinfo=timezone.utc),
+        )
+    except RuntimeError as error:
+        assert str(error) == "connection reset"
+    else:
+        raise AssertionError("A processing projection must not acknowledge completion")
