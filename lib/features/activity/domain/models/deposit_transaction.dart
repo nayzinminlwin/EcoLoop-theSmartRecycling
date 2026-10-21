@@ -57,26 +57,41 @@ class DepositTransaction {
   final DateTime occurredAt;
   final DateTime? verifiedAt;
 
-  factory DepositTransaction.fromJson(JsonMap json) => DepositTransaction(
-    id: JsonReaders.string(json, 'id'),
-    residentId: JsonReaders.string(json, 'residentId'),
-    sessionId: JsonReaders.nullableString(json, 'sessionId'),
-    binId: JsonReaders.string(json, 'binId'),
-    binLocation: JsonReaders.string(json, 'binLocation'),
-    materialType: MaterialType.fromWire(
-      JsonReaders.string(json, 'materialType'),
-    ),
-    materialLabel: JsonReaders.string(json, 'materialLabel'),
-    itemCount: _nullableInteger(json, 'itemCount'),
-    pointsAwarded: json['pointsAwarded'] == null
-        ? null
-        : JsonReaders.integer(json, 'pointsAwarded'),
-    status: DepositStatus.fromWire(_statusValue(json)),
-    occurredAt: JsonReaders.dateTime(json, 'occurredAt'),
-    verifiedAt: json['verifiedAt'] == null
-        ? null
-        : JsonReaders.dateTime(json, 'verifiedAt'),
-  );
+  factory DepositTransaction.fromJson(JsonMap json) {
+    final lines = json['lines'] == null
+        ? const <DepositLineItem>[]
+        : JsonReaders.maps(
+            json,
+            'lines',
+          ).map(DepositLineItem.fromJson).toList(growable: false);
+    return DepositTransaction(
+      id: JsonReaders.string(json, 'id'),
+      residentId: JsonReaders.string(json, 'residentId'),
+      sessionId: JsonReaders.nullableString(json, 'sessionId'),
+      binId: JsonReaders.string(json, 'binId'),
+      binLocation: JsonReaders.string(json, 'binLocation'),
+      materialType: MaterialType.fromWire(
+        JsonReaders.string(json, 'materialType'),
+      ),
+      materialLabel: JsonReaders.string(json, 'materialLabel'),
+      itemCount: _nullableInteger(json, 'itemCount'),
+      pointsAwarded: json['pointsAwarded'] == null
+          ? null
+          : JsonReaders.integer(json, 'pointsAwarded'),
+      status: DepositStatus.fromWire(_statusValue(json)),
+      occurredAt: JsonReaders.dateTime(json, 'occurredAt'),
+      verifiedAt: json['verifiedAt'] == null
+          ? null
+          : JsonReaders.dateTime(json, 'verifiedAt'),
+      lines: lines,
+      totalDetectedObjectCount: _nullableInteger(
+        json,
+        'totalDetectedObjectCount',
+      ),
+      traceId: JsonReaders.nullableString(json, 'traceId'),
+      decisionVersion: _nullableInteger(json, 'decisionVersion') ?? 0,
+    );
+  }
 
   factory DepositTransaction.fromBackendJson(JsonMap json) {
     final lines = JsonReaders.maps(

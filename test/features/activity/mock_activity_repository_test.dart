@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:eco_loop/core/mock/mock_api.dart';
+import 'package:eco_loop/core/mock/mock_data_store.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:eco_loop/features/activity/data/mock_activity_repository.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
+import 'package:eco_loop/core/domain/material_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<MockActivityRepository> createRepository({MockApi? api}) async {
@@ -90,5 +94,85 @@ void main() {
     );
     final summary = await repository.getSummary();
     expect(summary.verifiedDepositCount, 0);
+  });
+
+  test('restores lines and derives mixed-material weight per line', () async {
+    final transaction = DepositTransaction.fromJson({
+      'id': 'mixed-1',
+      'residentId': 'RES-000842',
+      'sessionId': null,
+      'binId': 'BIN-001',
+      'binLocation': 'Test bin',
+      'materialType': 'plastic',
+      'materialLabel': 'Mixed',
+      'itemCount': 6,
+      'pointsAwarded': 0,
+      'status': 'verified',
+      'occurredAt': '2024-05-01T00:00:00Z',
+      'verifiedAt': '2024-05-01T00:00:00Z',
+      'lines': [
+        {'lineId': 'plastic', 'class': 'plastic_bottle', 'eligible': true, 'count': 2, 'points': 0, 'spaceSpc': 0},
+        {'lineId': 'aluminium', 'class': 'aluminium_can', 'eligible': true, 'count': 2, 'points': 0, 'spaceSpc': 0},
+        {'lineId': 'paper', 'class': 'paper_item', 'eligible': true, 'count': 1, 'points': 0, 'spaceSpc': 0},
+        {'lineId': 'glass', 'class': 'glass_bottle', 'eligible': true, 'count': 1, 'points': 0, 'spaceSpc': 0},
+      ],
+    });
+    final repository = MockActivityRepository(
+      deposits: [transaction],
+      residentId: 'RES-000842',
+    );
+
+    expect(transaction.lines, hasLength(4));
+    final summary = await repository.getSummary();
+    expect(summary.acceptedItemCounts[MaterialType.plastic], 2);
+    expect(summary.acceptedItemCounts[MaterialType.aluminium], 2);
+    expect(summary.acceptedItemCounts[MaterialType.paper], 1);
+    expect(summary.acceptedItemCounts[MaterialType.glass], 1);
+    expect(summary.verifiedWeightKg, closeTo(0.33, 0.0001));
+  });
+
+  test('streams updated lifetime totals without a refresh', () async {
+    final first = DepositTransaction.fromJson({
+      'id': 'stream-1',
+      'residentId': 'RES-000842',
+      'sessionId': null,
+      'binId': 'BIN-001',
+      'binLocation': 'Test bin',
+      'materialType': 'glass',
+      'materialLabel': 'Glass',
+      'itemCount': 1,
+      'pointsAwarded': 10,
+      'status': 'verified',
+      'occurredAt': '2024-05-01T00:00:00Z',
+      'verifiedAt': '2024-05-01T00:00:00Z',
+    });
+    final second = first.toJson()
+      ..['id'] = 'stream-2'
+      ..['occurredAt'] = '2024-05-02T00:00:00Z';
+    final store = MockDataStore(
+      profile: const {},
+      wallet: const {},
+      deposits: [first.toJson()],
+    );
+    final repository = MockActivityRepository(
+      deposits: [first],
+      residentId: 'RES-000842',
+      store: store,
+    );
+    final summaries = <double>[];
+    final initial = Completer<void>();
+    final changed = Completer<void>();
+    final subscription = repository.watchSummary().listen((summary) {
+      summaries.add(summary.verifiedWeightKg);
+      if (summaries.length == 1) initial.complete();
+      if (summaries.length == 2) changed.complete();
+    });
+    await initial.future.timeout(const Duration(seconds: 1));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    store.replaceDeposits([first.toJson(), second]);
+    await changed.future.timeout(const Duration(seconds: 1));
+    await subscription.cancel();
+    expect(summaries.first, closeTo(0.2, 0.0001));
+    expect(summaries.last, closeTo(0.4, 0.0001));
   });
 }
