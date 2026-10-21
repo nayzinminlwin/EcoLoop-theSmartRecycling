@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
@@ -63,6 +64,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   DepositSession? _confirmedSession;
   DepositSession? _draftAcknowledgement;
   Future<DepositSession>? _draftSaveFuture;
+  Stopwatch? _continueStopwatch;
+  String? _measuredResultId;
   bool _isForeground = true;
   bool _isOwnedBySignedInResident = true;
 
@@ -239,6 +242,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         ? null
         : ref.watch(scanResultWatchProvider(session.resultId!));
     final result = resultAsync?.valueOrNull;
+    _recordReceiptTiming(session, result);
     final instructions = instructionsAsync.valueOrNull;
     final bin = binAsync.valueOrNull;
     final assets = ref.watch(scanAssetsProvider).valueOrNull ?? const [];
@@ -264,6 +268,22 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           ..._actions(context, session, completion, assets),
         ],
       ),
+    );
+  }
+
+  void _recordReceiptTiming(DepositSession session, DepositResult? result) {
+    if (result == null ||
+        result.outcome != DepositOutcome.verified ||
+        session.resultId == null ||
+        _measuredResultId == session.resultId) {
+      return;
+    }
+    _measuredResultId = session.resultId;
+    final stopwatch = _continueStopwatch;
+    developer.log(
+      'event=scan.credited_receipt_ready resultId=${session.resultId} '
+      'elapsedMs=${stopwatch?.elapsedMilliseconds}',
+      name: 'ecoloop.flutter',
     );
   }
 
@@ -719,6 +739,12 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
             ),
           );
         case ScanStage.itemDetected:
+          _continueStopwatch = Stopwatch()..start();
+          developer.log(
+            'event=scan.continue_tapped sessionId=${session.id} '
+            'assetId=${_selectedAssetId ?? session.draftAssetId}',
+            name: 'ecoloop.flutter',
+          );
           final assetId = _selectedAssetId ?? session.draftAssetId;
           final matchingAssets = assets.where((item) => item.id == assetId);
           final asset = matchingAssets.isNotEmpty ? matchingAssets.first : null;
@@ -754,6 +780,12 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
             assetId: asset.id,
             assetVersion: asset.version,
             expectedVersion: selectedSession.sessionVersion,
+          );
+          developer.log(
+            'event=scan.submission_acknowledged jobId=${submission.jobId} '
+            'resultId=${submission.resultId} '
+            'elapsedMs=${_continueStopwatch?.elapsedMilliseconds}',
+            name: 'ecoloop.flutter',
           );
           _applyConfirmedSession(
             selectedSession.copyWith(
