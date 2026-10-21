@@ -23,6 +23,9 @@ class RewardCard extends StatelessWidget {
     final atLimit =
         reward.residentRedemptionCount >= reward.maxRedemptionsPerResident;
     final canRedeem = balance >= reward.pointsCost && !atLimit;
+    final detailsHeight = MediaQuery.textScalerOf(context).scale(1) >= 1.35
+        ? 120.0
+        : 80.0;
     final art = switch (reward.artKey) {
       'cafe' => (AppColors.amberBackground, AppColors.amberText),
       'meal' => (const Color(0xFFF1E8DD), const Color(0xFF8A6044)),
@@ -77,7 +80,7 @@ class RewardCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 120,
+              height: detailsHeight,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
