@@ -74,7 +74,7 @@ class _HomeContent extends StatelessWidget {
         wallet: data.wallet,
         progress: data.rewardProgress,
         progressState: data.rewardProgressState,
-        onBrowseRewards: () => context.go(AppRoutes.rewards),
+        onBrowseRewards: () => context.push(AppRoutes.rewards),
       ),
       const SizedBox(height: AppSpacing.section),
       ScanCallToAction(onPressed: () => context.go(AppRoutes.scan)),
@@ -82,15 +82,15 @@ class _HomeContent extends StatelessWidget {
       ImpactSummaryCard(summary: data.summary),
       const SizedBox(height: AppSpacing.section),
       HomeQuickActions(
-        onGuide: () => context.go(AppRoutes.guide),
-        onHistory: () => context.go(AppRoutes.history),
+        onGuide: () => context.push(AppRoutes.guide),
+        onHistory: () => context.push(AppRoutes.history),
       ),
       const SizedBox(height: AppSpacing.section),
       AppSectionHeader(
         title: 'Recent recycling',
         eyebrow: 'ACTIVITY',
         actionLabel: 'View all',
-        onAction: () => context.go(AppRoutes.history),
+        onAction: () => context.push(AppRoutes.history),
       ),
       const SizedBox(height: AppSpacing.md),
       if (data.recentDeposits.isEmpty)
