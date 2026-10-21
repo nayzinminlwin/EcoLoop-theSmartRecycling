@@ -18,7 +18,7 @@ Existing authenticated resident
   → Home with database balance, correct reward progress and verified count
   → Browse rewards with real catalog and existing vouchers
   → Scan registered QR → Bin Found → Confirm → Ready → Finish
-  → explicitly select Prepared image 10 (trash9.jpg) → Continue
+  → explicitly select Prepared image 9 (trash8.jpg) → Continue
   → genuine hosted verification → verified receipt with earned points
   → Home already showing the new balance and verified count
   → Browse rewards → redeem an eligible offer
@@ -31,7 +31,7 @@ The user confirmed:
 | --- | --- |
 | Platform | Android screen recording; use the real connected app while recording |
 | Account | Existing account; preserve its balance, activity and vouchers |
-| Verification image | **Always `assets/trash_images/trash9.jpg` for the happy-path acceptance and recording** |
+| Verification image | **Always `assets/trash_images/trash8.jpg` for the happy-path acceptance and recording** |
 | Reward progress | Next eligible offer strictly above the current balance; skip offers at the resident redemption limit |
 | Example progress | Balance 12; eligible costs 10/25/50/75 → target 25, 48%, 13 points remaining |
 | Interaction speed | Approximately 100 ms visual response for local navigation/feedback; separately measure actual server acknowledgment |
@@ -49,20 +49,20 @@ The image mapping was checked against the seed manifest and the live public refe
 
 | Field | Value |
 | --- | --- |
-| Local image | `assets/trash_images/trash9.jpg` |
-| Asset document | `simulationAssets/asset-demo-0010` |
-| Picker label | `Prepared image 10` |
-| Version | `sha256-4a5e8b49da2c64c3` |
-| SHA-256 | `4a5e8b49da2c64c31d61ecf7b695db63054c0bb19ac7eb72020356279fb25661` |
-| Storage path | `simulation-assets/asset-demo-0010/sha256-4a5e8b49da2c64c3/source.jpg` |
-| Storage generation | `1792435379722099` |
-| Image | JPEG, 715 × 429, 42,148 bytes |
+| Local image | `assets/trash_images/trash8.jpg` |
+| Asset document | `simulationAssets/asset-demo-0009` |
+| Picker label | `Prepared image 9` |
+| Version | `sha256-d60c8101b0795e01` |
+| SHA-256 | `d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6` |
+| Storage path | `simulation-assets/asset-demo-0009/sha256-d60c8101b0795e01/source.jpg` |
+| Storage generation | `user-provided; verify before submission` |
+| Image | JPEG, local reference 22,699 bytes |
 | Main bin | `bin-demo-main`, `EcoLoop Demo Bin`, `Demonstration Booth` |
 | Registered QR | **`ecoloop://bin/qr-demo-main`** |
 | QR PNG | `functions/.seed-output/demo-v1/qr/qr-demo-main.png` |
 | Printable sheet | `functions/.seed-output/demo-v1/PRINT_QR_CODES.html` |
 
-`trash9.jpg` is not `trash8.jpg`, `trash909.png`, or `asset-demo-0009`. Keep all other existing assets available. Help the operator locate Prepared image 10 without silently choosing or submitting it.
+`trash8.jpg` is the corrected live acceptance image. It is not `trash9.jpg`, `trash909.png`, or `asset-demo-0010`. Keep all other existing assets available. Help the operator locate Prepared image 9 without silently choosing or submitting it.
 
 The image contains overlapping objects. Its actual automatic outcome, count and latency have **not** been proven by this planning review. Test this exact image early. If its findings exceed current bounds or remain ambiguous, discuss that concrete result with the user; do not switch images or force a verified outcome.
 
@@ -128,7 +128,7 @@ These demonstrate a coverage gap, not a requirement to discard the working trans
 Using explicit project `ecoloop-thesmartrecycling` and database `ecoloop-db`:
 
 - All four rewards exist: snack **10**, cafe **25**, meal **50**, shopping **75**; catalog expiry is stored as Timestamp.
-- `scanContent/default` and enabled asset `asset-demo-0010` exist.
+- `scanContent/default` and enabled asset `asset-demo-0009` exist.
 - Main bin is enabled, opening occupancy remains 0, cycle is `bin-demo-main-cycle-001`; its reservation is currently available.
 - QR mapping `qr-demo-main` is enabled and points to `bin-demo-main`.
 - **Processing is currently enabled/ready.** Old seed evidence saying “paused” is no longer current. Do not blindly change this flag based on historical prose.
@@ -255,16 +255,16 @@ Use the S01–S15 order in the prompt file, bringing the minimum real scan/credi
 
 | Phase | Execution priority | Deliverable |
 | --- | --- | --- |
-| **HP0 — Reuse baseline and trash9 findings** | Already recorded; refresh only repair-relevant facts | Known account/cloud/seed state and genuine fallback timeout |
+| **HP0 — Reuse baseline and trash8 findings** | Already recorded; refresh only repair-relevant facts | Known account/cloud/seed state and genuine provider evidence |
 | **HP1 — Correct Home, catalog and redemption** | S08–S10; earlier if an independent repair is appropriate | Working database-backed reward journey and Home progress |
 | **HP2 — Repair forward scan presentation** | S04/S06, then S07 app check | Correct content, selected draft, processing/result observation and fast UI response |
-| **HP3 — Real immediate inference and credit** | S02/S03/S05, then S07 | First real trash9 automatic credited result through Tasks and Flutter |
+| **HP3 — Real immediate inference and credit** | S02/S03/S05, then S07 | First real trash8 automatic credited result through Tasks and Flutter |
 | **HP4 — Meet latency and seamless refresh** | S09/S11–S13 as measured | Fast pipeline and coherent Home/Rewards after both mutations |
 | **HP5 — Rehearse, freeze and record** | S14/S15 after the core journey works | Identified APK/backend and concise final app rehearsal |
 
 Prioritize the first real credited result, then rewards correctness and measured speed. When a check fails, diagnose/fix its actual boundary without asking the user to repeat administrative validation. Reuse passing evidence, keep reports brief and leave the user ready to record. Missing real feature proof remains explicit; missing project-time bookkeeping is irrelevant.
 
-### HP0 — Freeze baseline and expose trash9 risks
+### HP0 — Freeze baseline and expose trash8 risks
 
 **Objective:** establish the actual recording state and identify image/provider blockers before hours of UI work.
 
@@ -274,11 +274,11 @@ Prioritize the first real credited result, then rewards correctness and measured
 - [ ] Use the recorded resident UID and read its wallet, stats, session and issuance data through existing authorized CLI/REST tooling. Apply §4.5's session lookup; do not ask the user to locate hidden state. Ask only if the intended visible account is genuinely ambiguous. No wallet reset.
 - [ ] Reuse the completed five-bin/cycle, six-QR, four-offer and exact asset verification. Refresh only data needed for the current operation, such as the main bin reservation. Check actual stored values yourself and preserve deliberate full/offline/disabled scenarios. Create only a specifically missing reference after a scoped preview.
 - [ ] Read deployed config selectively: resident/gateway region, named database, Vision URL/audience, gateway URL/audience, runtime subject, buckets, queue settings, secret **version references**, scaling and traffic. Preserve correct current identity settings.
-- [ ] Reuse the captured Processing regression and genuine trash9 timeout. Obtain further IDs/logs through tools when a repair requires them. Do not request an app survey before implementing these already-reproduced defects.
-- [ ] Reuse the completed genuine **trash9** diagnostic; do not rerun it merely to complete baseline paperwork. Run another bounded composition only when changed code or a specific unresolved inference question justifies it. Use existing managed access and inspect the actual result yourself.
+- [ ] Reuse the captured Processing regression and genuine trash8 provider evidence. Obtain further IDs/logs through tools when a repair requires them. Do not request an app survey before implementing these already-reproduced defects.
+- [ ] Reuse the completed genuine **trash8** diagnostic; do not rerun it merely to complete baseline paperwork. Run another bounded composition only when changed code or a specific unresolved inference question justifies it. Use existing managed access and inspect the actual result yourself.
 - [ ] An initial diagnostic may use no retries, A/B once each, and at most four specialist plus four crop-fallback calls (or the bounded full-image branch). Keep the total explicit; stop on credentials/model/schema failures rather than retrying them blindly.
 - [ ] If private workstation access is blocked, use an existing approved same-project diagnostic context if available. Otherwise record the provider diagnostic as pending and use the first real HP3 submission for that proof. Do not spend this phase building a separate diagnostic service or waiting on Tasks-account impersonation; the actual submission already uses the existing Tasks integration.
-- [ ] Record whether trash9 can plausibly take the supported automatic branch. The image outcome remains unproven until HP3 settles it. If real findings expose a policy/object-limit obstacle, bring it to the user now.
+- [ ] Record whether trash8 can plausibly take the supported automatic branch. The image outcome remains unproven until HP3 settles it. If real findings expose a policy/object-limit obstacle, bring it to the user now.
 
 **Exit:** the recorded baseline and first failures identify the next code repair. S01 already provides this; proceed to S02. Device observation and full Tasks proof belong to the later working-candidate checks. Use CLI/approval tooling yourself for access problems and continue independent code work if a genuinely human-only action remains.
 
@@ -356,7 +356,7 @@ test/features/scan/{firebase_scan_repository,backend_scan_models,scan_flow}_test
 - [ ] Complete the writer/reader contract for final result policy, count, trace, lines, explanation and decision time. Preserve pinned source/policy identities rather than mapper-generated stand-ins.
 - [ ] Use the session returned by successful QR/transition commands immediately in local observable state. Subscribe directly to snapshots rather than waiting on redundant `get()` then a fresh listener before showing the same confirmed state.
 - [ ] Keep the working QR camera and cached bin behavior; change them only if a newly captured error is specifically there.
-- [ ] Show an immediate selected-state highlight for Prepared image 10. Keep explicit selection; do not trigger inference until Continue.
+- [ ] Show an immediate selected-state highlight for Prepared image 9. Keep explicit selection; do not trigger inference until Continue.
 - [ ] Persist the selected draft while the user is on the selection screen, retain its save Future/acknowledged session version, and let Continue await that save if necessary. Skip a second identical save on Continue. Ensure a heartbeat cannot race this write or submit a stale version.
 - [ ] Retain the IDs returned by submission immediately and attach the result listener once. Show truthful submitting/processing state without waiting for the session stream to echo it merely to navigate.
 - [ ] Make buttons acknowledge taps around 100 ms. A pending stage shell can respond immediately while its server transition finishes; dependent commands remain gated by the confirmed version.
@@ -366,7 +366,7 @@ test/features/scan/{firebase_scan_repository,backend_scan_models,scan_flow}_test
 
 ### HP3 — Real immediate inference and credit
 
-**Objective:** the selected pixels produce the first real automatically verified, credited trash9 receipt.
+**Objective:** the selected pixels produce the first real automatically verified, credited trash8 receipt.
 
 **Primary files:**
 
@@ -396,7 +396,7 @@ services/vision/tests/test_run_job.py
 - [ ] Serialize normalized geometry in `_findings`; retain pixel coordinates only for internal crops/overlays. Use null only where geometry is honestly unavailable.
 - [ ] Give provider model references an appropriate bounded schema instead of document-ID grammar. Preserve native IDs, including version separators, and validate the actual serialized output in both Python and the backend HTTP boundary. Do not weaken all document-ID validation.
 - [ ] Compute inventory/eligibility from required provider outcomes and unresolved objects. Detector failure or required fallback failure cannot become empty or confidently eligible. Preserve no-credit review for genuine uncertainty.
-- [ ] Fix the branch actually exercised by trash9. Preserve A/B reconciliation and required low-confidence → Gemini behavior. If the selected branch needs full-image fallback, provide the genuine consistency check or keep it unverified; do not silently accept the currently missing check.
+- [ ] Fix the branch actually exercised by trash8. Preserve A/B reconciliation and required low-confidence → Gemini behavior. If the selected branch needs full-image fallback, provide the genuine consistency check or keep it unverified; do not silently accept the currently missing check.
 - [ ] Keep model IDs, thresholds and policy semantics unless the user approves a concrete measured change. No training, labeling project, hidden-object guessing, hard-coded expected count, image substitution or result reuse across new deposits.
 - [ ] Make checkpoints refer to artifacts actually written. Keep the existing working evidence prefix shared by claim/writer/settlement for this release; do not introduce an unrelated namespace migration.
 - [ ] Treat only a terminal durably completed result as recovery from an ambiguous completion; the existing processing projection is not success.
@@ -428,7 +428,7 @@ If this does not work by the allocated checkpoint, show the user the exact faile
 
 - [ ] Instrument compact timings for tap, draft-ready, submit commit/enqueue, task start, claim/source read, A/B, fallback, artifact write, completion commit and rendered receipt. Carry request/session/job/attempt/trace IDs; do not dump private payloads.
 - [ ] Measure sequential provider contribution, gateway round-trip/transaction time, cold starts and listener delivery independently. Do not attribute every 2-second pause to Flutter animations.
-- [ ] Inspect actual trash9 candidate and fallback counts. One logical provider stage may make several calls/retries; count physical calls.
+- [ ] Inspect actual trash8 candidate and fallback counts. One logical provider stage may make several calls/retries; count physical calls.
 
 #### HP4.2 Apply targeted optimizations
 
@@ -510,7 +510,7 @@ No new general recovery framework or giant cross-project acceptance runner is ne
 3. Start recording. Show Home balance/progress/count and retained Recent Activity.
 4. Optionally open Browse rewards first to show the catalog and current vouchers; use normal Home navigation to start the deposit sequence.
 5. Scan the main printed/displayed QR. Confirm the bin, then press **Confirm session** and **I pressed the finish button**.
-6. Explicitly select **Prepared image 10** (`trash9.jpg`, `asset-demo-0010`); press Continue once.
+6. Explicitly select **Prepared image 9** (`trash8.jpg`, `asset-demo-0009`); press Continue once.
 7. Show the real processing screen and verified receipt. Use **Back to home**; show that points and verified count are already updated.
 8. Press **Browse rewards**, choose the still-eligible rehearsed offer, confirm redemption, and show the new database-backed My vouchers entry and decreased balance.
 9. Open the issued voucher if desired. Copy/use actions are preserved; simulated use is optional for this recording.
@@ -587,7 +587,7 @@ The following original row includes administrative missing items from the previo
 | S08 | HP1 seeded rewards and owner voucher reads | CHECKED | Reproduced against the current live seed with `npm.cmd run seed:verify:live`: project `ecoloop-thesmartrecycling`, database `ecoloop-db`, `writes: []`, `conflicts: []`, and preserved `rewardCategories/food`, `rewardCategories/shopping`, `rewards/reward-snack`, `rewards/reward-cafe`, `rewards/reward-meal`, and `rewards/reward-shopping`. The manifest confirms seed-shaped `displayName` categories and `merchant` offer fields. Repaired SDK `Timestamp` conversion, category `displayName` to `label`, persisted voucher `merchant` to `merchantName`, and owner-scoped voucher reads/listeners; catalog issuance counts reuse one owner voucher read for the catalog. Added seed-shaped adapter coverage and an emulator resident-client query boundary with another owner's voucher. Checks: `flutter test test/features/rewards` — 15 passed; `flutter analyze` on affected files — no issues; `npm.cmd run test:rules` — 6 passed, including owner query success and cross-owner query/document denial; debug APK built and installed successfully (`build/app/outputs/flutter-apk/app-debug.apk`, package `sd.idk.ecoLoop`, device `qgfy7xz9eaci4tvs`). User device acceptance: Yes — existing account launched the candidate, opened Home → Browse rewards, and confirmed all four actual offers and categories rendered correctly; no voucher was added, redeemed or spent. Next action: S09 shared wallet, verified count and correct Home reward progress. |
 | S09 | HP1/HP4 reactive wallet and Home progress | CHECKED | Repaired Home and Rewards to consume the same ready-UID reactive wallet stream, normalized SDK wallet timestamps through the existing JSON adapter, and ignored wallet snapshots whose version is not newer than the latest committed value. Reward progress now derives the next strictly-higher active/unexpired catalog offer while applying all owner issuance counts, including used/expired vouchers, and distinguishes loading, error, all-higher-levels-unlocked and no-eligible-offer states without blocking other Home sections. Preserved compatible mock wallet reward-cost fallback and existing Recent Activity presentation. Checks: `flutter analyze` on affected files — no issues; `flutter test test/features/wallet test/features/home test/features/rewards` — 21 passed, including stale-version and SDK Timestamp adapter coverage. Read-only production accounting probe was attempted with the confirmed resident UID but failed because this shell lacked ADC; no mutation was performed. User device acceptance on the installed debug candidate: Home loaded; balance `40`; reward progress `80%`; verified count `2`; weight `0 kg`; Browse rewards opened; Rewards showed the same balance and all four actual offers (10/25/50/75); returning Home remained usable with unchanged values; no loading error, stale value, missing offer or wrong progress observed. Deployed/device evidence remains limited to this user-observed candidate run; no additional deposit or redemption was performed. Next action: S10 real redemption and persisted voucher. |
 | S10 | HP1 real redeem and persisted voucher | CHECKED | Reproduced the production-seed expiry boundary in the named `demo-ecoloop/ecoloop-db` emulator with a nonzero wallet and seed-shaped reward: Firestore `Timestamp` expiry now parses correctly; 37 points debited to 25 exactly once, one redemption and one voucher committed, and replay returned the same receipt without a second debit. Removed the redundant client catalog read when the displayed offer version/cost are already available, while retaining backend offer/version/cost, active, expiry, balance and issuance-limit validation. Receipt mapping preserves committed title, merchant, terms, code, dates, wallet balance/version and voucher identity without fabricated fields. Live read via gcloud REST confirmed project `ecoloop-thesmartrecycling`, database `ecoloop-db`, resident `zyb5KdlNqVZ1kKWudR57RKb2zti1`, balance `40`, no owner vouchers before redemption, and Vending snack at 10 points as the eligible offer; the 50-point offer was not selected. After the deployed Timestamp fix, the user redeemed the real Vending snack offer: the balance was debited and the voucher appeared after relaunch, proving persistence. The first post-confirmation candidate exposed a black screen because the UI popped the Rewards route instead of the dialog; fixed by popping the dialog navigator only. Focused Flutter rewards/redemption/voucher tests passed (3), affected-file analysis passed, Functions rewards emulator tests passed (3), Functions build/deployment passed, and the corrected debug APK was rebuilt/installed for the accepted run. User final device acceptance: Yes — redemption screen now remains usable and the committed receipt/voucher renders correctly immediately; no restart is required. Exact tap-to-commit/render timing was not instrumented in this slice. Commits: `520c4c5 fix: render redemption receipt after confirmation` (includes the S10 backend/client/test repair) and this ledger update. No voucher was spent or reused. Next action: S11 measured provider critical path. |
-| S11 | HP4 provider critical-path latency | PARTIAL | Implemented and committed `00376a1`: bounded specialist and Gemini crop calls now run concurrently, results are reconciled in deterministic input order, provider attempt evidence remains ordered by logical item, and suitable Roboflow/Gemini clients are reused for a job. The existing A/B detector concurrency, required fallback, thresholds, findings schema and durable settlement path are unchanged; the UI timer was not shortened and cancellation does not abandon executor threads. Focused concurrency/decision checks passed 18; full Vision suite passed 48. Before evidence from the first real trash9 receipt remains: submit-to-result 53.429s, inspection 35.427s, source 2.152s, A/B detectors 1.384s, specialist 12.592s, Gemini fallback 21.444s, artifacts 2.548s; physical calls were A/B plus three specialist and three Gemini crop calls. Candidate deployed through the existing script as revision `ecoloop-vision-00014-7n6`, image digest `sha256:9b0de6273bfe000c9e12c1e330f3faeb640f69b25ae9e8dc1b721537914812a6`, but the private mapped and regional URLs returned HTTP 404 for `/healthz` and `/operator/probe`, so no after provider call/timing or new accounting trace can honestly be claimed. Remaining bottleneck for conditional S12: Cloud Run private ingress/route reachability (the deployed service is not accepting the expected HTTP paths); resolve that transport path before another genuine trash9 run. |
+| S11 | HP4 provider critical-path latency | PARTIAL | Implemented and committed `00376a1`: bounded specialist and Gemini crop calls now run concurrently, results are reconciled in deterministic input order, provider attempt evidence remains ordered by logical item, and suitable Roboflow/Gemini clients are reused for a job. The existing A/B detector concurrency, required fallback, thresholds, findings schema and durable settlement path are unchanged; the UI timer was not shortened and cancellation does not abandon executor threads. Focused concurrency/decision checks passed 18; full Vision suite passed 48. The earlier timing evidence was from the prior asset reference and is retained as historical baseline only. The corrected S11 acceptance trace must use `trash8.jpg` / `asset-demo-0009` from `gs://ecoloop-thesmartrecycling.firebasestorage.app/simulation-assets/asset-demo-0009/sha256-d60c8101b0795e01/source.jpg`. Candidate deployed through the existing script as revision `ecoloop-vision-00014-7n6`, image digest `sha256:9b0de6273bfe000c9e12c1e330f3faeb640f69b25ae9e8dc1b721537914812a6`, but the private mapped and regional URLs returned HTTP 404 for `/healthz` and `/operator/probe`, so no corrected after provider call/timing or new accounting trace can honestly be claimed. Remaining bottleneck for conditional S12: Cloud Run private ingress/route reachability (the deployed service is not accepting the expected HTTP paths); resolve that transport path before the genuine trash8 run. |
 | S12 | HP4 measured cloud/region latency, if necessary | NOT_STARTED | — |
 | S13 | HP4 final forward feedback and seamless refresh | NOT_STARTED | — |
 | S14 | HP5 exact candidate and independent gap review | NOT_STARTED | — |
@@ -643,7 +643,7 @@ The user has replaced the old broad demo-refactor execution scope.
 Do not ask for start/current/cutoff times or repeat known CLI confirmations.
 Run technical diagnostics, IAM/configuration commands, builds and deployment yourself,
 using exact tool command approvals where required. User app checks are short Yes/No workflows.
-Use the existing Android account and trash9.jpg / asset-demo-0010 only for live happy-path acceptance.
+Use the existing Android account and trash8.jpg / asset-demo-0009 only for live happy-path acceptance.
 Preserve working features and current correct cloud identities.
 Fix real catalog/voucher/date, scan-result and worker/dispatch boundaries first.
 Make every new deposit run genuine inference and add points atomically to the old DB balance.

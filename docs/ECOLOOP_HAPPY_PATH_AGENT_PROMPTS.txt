@@ -41,7 +41,7 @@ BEGIN PROMPT
 Read the latest section 4.5 of docs/ECOLOOP_HAPPY_PATH_DEMO_PLAN.md and the updated
 instructions in docs/ECOLOOP_HAPPY_PATH_AGENT_PROMPTS.txt. These override the old
 clock/configuration/device questionnaires. S01 technical baseline is sufficient.
-Reuse its verified CLI/seed/QR/account values and genuine trash9 timeout; execute
+Reuse its verified CLI/seed/QR/account values and genuine trash8 timeout; execute
 S02 now. Do not ask me for start/current times, repeat configuration confirmation,
 or have me search the UI/QR codes for a hidden session.
 
@@ -66,7 +66,7 @@ S03  HP3      Immediate durable task dispatch.
 S04  HP2      Instructions and processing/final result rendering.
 S05  HP3      Additive settlement and correct verified statistics.
 S06  HP2      Forward transitions, selected draft and submit observation.
-S07  HP2/HP3  FIRST GENUINE ANDROID TRASH9 CREDIT + receipt + measured latency.
+S07  HP2/HP3  FIRST GENUINE ANDROID TRASH8 CREDIT + receipt + measured latency.
      CHECK    Agent verifies the first-credit proof; separate REVIEW is optional.
 S08  HP1      Real seeded catalog, categories and owner vouchers.
 S09  HP1/HP4  Shared wallet, verified count and correct Home reward progress.
@@ -102,7 +102,7 @@ checkpoint. Then execute only the slice I assign. Do not implement the old
 demo-refactor checklist or automatically continue to other slices.
 
 Our demo is a real Android screen recording on the existing account. The exact
-live acceptance image is trash9.jpg = asset-demo-0010 = Prepared image 10.
+live acceptance image is trash8.jpg = asset-demo-0009 = Prepared image 9.
 The main QR is ecoloop://bin/qr-demo-main. Keep the project
 ecoloop-thesmartrecycling and named database ecoloop-db. Preserve existing
 balances, history, vouchers, working camera/auth/activity and other features.
@@ -169,7 +169,7 @@ BEGIN PROMPT
 Reuse the completed S01 technical baseline in plan section 8. The agent already
 read the account wallet/stats and null active-session reference, verified live
 seed/QR/configuration, reproduced a Processing regression and obtained a genuine
-trash9 run with a roughly 30-second fallback timeout. No real credit is claimed.
+trash8 run with a roughly 30-second fallback timeout. No real credit is claimed.
 
 This is enough to start S02. Do not reopen S01 for clock metadata, account/config
 reconfirmation or an unattached phone. Do not rerun the inventory/provider calls
@@ -194,7 +194,7 @@ honest null geometry, appropriate bounded provider-model reference grammar,
 and matching validation in Python and the actual backend boundary. Keep pixel
 boxes for crops/overlays. A required provider/fallback failure must not become
 empty or eligible merely because the output contains some recognized objects.
-Do not relax confidence, object bounds or recognition policy to force trash9.
+Do not relax confidence, object bounds or recognition policy to force trash8.
 
 Acceptance: actual serialized production findings pass the shared contract and
 backend validation; malformed geometry/identity is rejected; required-provider
@@ -272,7 +272,7 @@ authorized weight-display choice to S09. No historical live stats repair here.
 Acceptance: independently assert an opening balance of 37 becomes 47 for a
 controlled two-bottle 10-point software fixture, with verified count +1 and one
 ledger; replay does not repost. Review changes neither balance nor verified count.
-Confirm occupancy and session release. This fixture is not a trash9 answer.
+Confirm occupancy and session release. This fixture is not a trash8 answer.
 Use actual production stores, explicit demo-ecoloop/ecoloop-db and safe emulator
 configuration. Record checks, update the ledger and stop.
 Do not forget to commit the code you just updated.
@@ -288,7 +288,7 @@ remaining path from acknowledged QR/session transitions through explicit image
 selection and submission observation. Use returned confirmed sessions/versions
 immediately rather than waiting for redundant reads or stream echoes to navigate.
 
-Prepared image 10 must highlight immediately, save its draft once, and submit
+Prepared image 9 must highlight immediately, save its draft once, and submit
 exactly that acknowledged asset/version on Continue. If the draft save is still
 running, Continue awaits it; a heartbeat cannot race it or consume a stale version.
 Publish returned submission/result IDs and subscribe once. Give truthful immediate
@@ -320,14 +320,14 @@ state; do not ask me to search for a session or its ID. Check ADB/build/install
 yourself; request phone connection or native consent only when actually needed.
 
 Give me this short workflow: scan the main QR; Confirm session and finish; select
-Prepared image 10 and Continue; see the credited receipt; return Home. Ask only
+Prepared image 9 and Continue; see the credited receipt; return Home. Ask only
 whether it worked (Yes/No). Capture job/attempt/result IDs, device latency and
 backend values yourself through logs/instrumentation/queries. Correlate the job through
 immediate Tasks delivery, private source read, providers, durable artifacts,
 settlement and Flutter rendering. Verify old DB balance B becomes B+P, one credit,
 verified count +1, coherent bin/cycle and released reservation. Check Home return.
 
-Acceptance: a genuine automatically verified trash9 receipt is visible on Android
+Acceptance: a genuine automatically verified trash8 receipt is visible on Android
 and agrees with the committed database effects. Record actual latency, including
 if it exceeds the later target. Do not mark final timing or all HP2/HP3 requirements
 passed from this one run. A review/provider-only/mock result cannot close this
@@ -402,7 +402,7 @@ then reconcile through the shared owner streams. Do not fabricate missing fields
 First prove exact debit/one voucher/replay in the named emulator with a nonzero
 wallet and seed-shaped reward. Then query actual balance and offer eligibility
 yourself, and retain an unused offer for recording. Do not ask me to confirm DB values.
-If needed, earn through genuine trash9 deposits; never top up the wallet. Ask
+If needed, earn through genuine trash8 deposits; never top up the wallet. Ask
 before changing account strategy or exhausted limits.
 
 User workflow: Home -> Browse rewards -> the agent-specified eligible offer ->
@@ -422,7 +422,7 @@ S11 — HP4: MEASURE AND SHORTEN THE PROVIDER CRITICAL PATH
 =====================================================================
 BEGIN PROMPT
 
-Execute S11 only using the first real trash9 trace and current candidate.
+Execute S11 only using the first real trash8 trace and current candidate.
 Measure local spans for submission/enqueue, queue start, claim/source, A/B,
 required fallback, artifacts/settlement and visible receipt. Use one monotonic
 device clock for end-to-end time and correlate server spans by safe IDs.
@@ -435,7 +435,7 @@ Keep required fallback, thresholds, findings and durable settlement intact.
 Do not replace HTTP cancellation with abandoned threads or shorten a UI timer.
 
 Acceptance: focused concurrency/decision regressions pass and a genuine deployed
-trash9 run shows the before/after provider and total timings, actual calls and
+trash8 run shows the before/after provider and total timings, actual calls and
 unchanged accounting/decision semantics. If the total was already fast enough,
 retain the working implementation and record proof instead of rewriting it.
 Name any remaining cloud/network bottleneck for conditional S12. Update and stop.
@@ -464,7 +464,7 @@ required. Do not ask me to copy configuration values or follow Console instructi
 when an available authorized CLI command can do the work.
 
 Acceptance: exact old/new settings and artifact identities are recorded, login
-and affected happy-path calls still work, and a real post-change trash9 trace
+and affected happy-path calls still work, and a real post-change trash8 trace
 shows the measured improvement and correct credit. Target <7s total, maximum 10s.
 Record restoration commands for paid warm capacity after recording. If genuine
 provider time still prevents the goal, ask me with measurements; do not change
@@ -530,14 +530,14 @@ S15 — HP5: FINAL REPEATED REHEARSAL AND RECORDING
 BEGIN PROMPT
 
 Execute S15 only against the exact S14 candidate/device/network. Coordinate with
-me to perform three consecutive new genuine trash9 deposits, with immediate
+me to perform three consecutive new genuine trash8 deposits, with immediate
 forward stage feedback and Continue-to-visible-credited-receipt timings. Each
 must verify and credit once; aim <7s, every run <=10s. Record all runs and actual
 median/max, safe IDs, additive balance, verified count +1, ledger/result identity,
 bin-cycle contribution and reservation release. Do not replace a slow/failed run
 with an undisclosed selected success.
 
-Observe the full Home -> QR/scan -> Prepared image 10 -> verified receipt ->
+Observe the full Home -> QR/scan -> Prepared image 9 -> verified receipt ->
 Home with updated values -> Browse rewards -> real redeem -> persisted My
 vouchers journey. Preserve existing vouchers and Recent Activity. Plan offer
 usage before spending: do not exhaust the last eligible offer before recording.
