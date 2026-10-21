@@ -122,10 +122,12 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
     final accepted = policyData.acceptedClasses;
     final rates = policyData.rates;
     final guideContent = RecyclingGuideContent.fromJson(content);
-    final parsedMaterials = materials
-        .map(RecyclingMaterial.fromJson)
-        .where((material) => _isAcceptedMaterial(material, accepted))
-        .toList(growable: false);
+    final parsedMaterials =
+        materials
+            .map(RecyclingMaterial.fromJson)
+            .where((material) => _isAcceptedMaterial(material, accepted))
+            .toList()
+          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
     return RecyclingGuide.compose(
       content: RecyclingGuideContent(
         heroTitle: guideContent.heroTitle,

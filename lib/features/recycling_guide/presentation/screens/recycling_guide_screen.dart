@@ -89,18 +89,30 @@ class _GuideContent extends StatelessWidget {
                   MediaQuery.textScalerOf(context).scale(1) < 1.35
               ? 2
               : 1;
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: data.materials.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              mainAxisExtent: columns == 2 ? 132 : 105,
-            ),
-            itemBuilder: (context, index) =>
-                MaterialGuideCard(material: data.materials[index]),
+          final cardWidth = columns == 2
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: data.materials.isEmpty
+                ? [
+                    const SizedBox(
+                      width: double.infinity,
+                      child: AppCard(
+                        child: Text(
+                          'No supported materials are currently configured.',
+                        ),
+                      ),
+                    ),
+                  ]
+                : [
+                    for (final material in data.materials)
+                      SizedBox(
+                        width: cardWidth,
+                        child: MaterialGuideCard(material: material),
+                      ),
+                  ],
           );
         },
       ),
