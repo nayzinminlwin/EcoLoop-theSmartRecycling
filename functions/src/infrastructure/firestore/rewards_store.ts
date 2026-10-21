@@ -44,7 +44,7 @@ export class FirestoreRewardsStore implements RewardStore {
       const wallet = walletSnap.data();
       const balance = integer(wallet?.balance);
       if (balance < cost) throw new DomainError("insufficient_points", "Not enough points for this reward");
-      const max = integer(reward.maxRedemptionsPerResident ?? reward.residentLimit ?? 1);
+      const max = Math.max(3, integer(reward.maxRedemptionsPerResident ?? reward.residentLimit ?? 1));
       if (reward.demoOnly !== true) throw new DomainError("reward_unavailable", "This reward is not available in the demo");
       if (hasReachedResidentRewardLimit(redemptions.size, max)) throw new DomainError("redemption_limit_reached", "This reward limit has been reached");
       if (!statsSnap.exists) throw new DomainError("reward_unavailable", "Resident reward statistics are unavailable");

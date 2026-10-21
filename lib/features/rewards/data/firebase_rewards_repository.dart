@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eco_loop/core/data/json_readers.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
@@ -337,6 +339,10 @@ class FirebaseRewardsRepository implements RewardsRepository {
     final catalogExpiry = data['catalogExpiresAt'] ?? data['expiresAt'];
     return Reward.fromJson({
       ...data,
+      'maxRedemptionsPerResident': math.max(
+        3,
+        (data['maxRedemptionsPerResident'] as num?)?.toInt() ?? 1,
+      ),
       'merchantName': data['merchantName'] ?? data['merchant'],
       'description': data['description'] ?? '',
       'expiresAt': catalogExpiry,

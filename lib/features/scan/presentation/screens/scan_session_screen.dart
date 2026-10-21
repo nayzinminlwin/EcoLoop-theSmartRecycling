@@ -62,7 +62,6 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   bool _busy = false;
   String? _actionError;
   String? _selectedAssetId;
-  SimulationAsset? _pendingAsset;
   DepositSession? _confirmedSession;
   DepositSession? _draftAcknowledgement;
   Future<DepositSession>? _draftSaveFuture;
@@ -486,13 +485,11 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         return [
           AppButton(
             label: _actionLabel(session.stage),
-            pendingLabel: _draftSaveFuture != null
-                ? 'Saving selection...'
-                : _pendingLabel(session.stage),
-            onPressed: _busy || _draftSaveFuture != null || !hasSelection
+            pendingLabel: _pendingLabel(session.stage),
+            onPressed: _busy || !hasSelection
                 ? null
                 : () => unawaited(_advance(session, assets)),
-            isLoading: _busy || _draftSaveFuture != null,
+            isLoading: _busy,
             expand: true,
           ),
         ];
@@ -656,7 +653,6 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       _selectedAssetId = asset.id;
       _actionError = null;
     });
-    _pendingAsset = asset;
     _startDraftSave(session, asset);
   }
 
@@ -688,11 +684,6 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       _draftAcknowledgement = acknowledged;
       _draftSaveFuture = null;
       _applyConfirmedSession(acknowledged);
-      final pendingAsset = _pendingAsset;
-      if (pendingAsset != null &&
-          pendingAsset.id != acknowledged.draftAssetId) {
-        _startDraftSave(acknowledged, pendingAsset);
-      }
     } catch (error) {
       if (!mounted || _draftSaveFuture != future) return;
       _draftSaveFuture = null;
