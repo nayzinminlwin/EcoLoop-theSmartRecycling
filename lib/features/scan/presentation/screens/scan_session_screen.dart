@@ -60,6 +60,9 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   bool _busy = false;
   String? _actionError;
   String? _selectedAssetId;
+  DepositSession? _confirmedSession;
+  DepositSession? _draftAcknowledgement;
+  Future<DepositSession>? _draftSaveFuture;
   bool _isForeground = true;
   bool _isOwnedBySignedInResident = true;
 
@@ -125,6 +128,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     if (!_isForeground ||
         !_isOwnedBySignedInResident ||
         session == null ||
+        _draftSaveFuture != null ||
         !_isPreProcessing(session.stage) ||
         !_isVisible(session)) {
       _stopRenewal();
@@ -218,6 +222,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   );
 
   Widget _sessionPage(BuildContext context, DepositSession session) {
+    session = _preferredSession(session);
     _latestSession = session;
     if (_isForeground &&
         _isOwnedBySignedInResident &&
@@ -376,8 +381,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           child: SimulationAssetPicker(
             assets: assets,
             selectedAssetId: _selectedAssetId ?? session.draftAssetId,
-            onAssetSelected: (asset) =>
-                setState(() => _selectedAssetId = asset.id),
+            onAssetSelected: (asset) => _selectAsset(session, asset),
           ),
         ),
       if (session.stage == ScanStage.processing ||
@@ -586,6 +590,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       } else {
         tracker.track(session);
       }
+
       if (!visible) return;
       if (session.stage != widget.expectedStage) {
         context.go(_pathForStage(session));
@@ -601,6 +606,70 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         );
       }
     });
+  }
+
+  DepositSession _preferredSession(DepositSession streamed) {
+    final local = _confirmedSession;
+    if (local == null ||
+        local.id != streamed.id ||
+        streamed.sessionVersion > local.sessionVersion) {
+      _confirmedSession = streamed;
+      return streamed;
+    }
+    return local;
+  }
+
+  void _selectAsset(DepositSession session, SimulationAsset asset) {
+    setState(() {
+      _selectedAssetId = asset.id;
+      _actionError = null;
+    });
+    _startDraftSave(session, asset);
+  }
+
+  void _startDraftSave(DepositSession session, SimulationAsset asset) {
+    final acknowledged = _draftAcknowledgement;
+    if (acknowledged != null &&
+        acknowledged.id == session.id &&
+        acknowledged.draftAssetId == asset.id &&
+        acknowledged.draftAssetVersion == asset.version) {
+      return;
+    }
+    if (_draftSaveFuture != null) return;
+    final future = ref
+        .read(scanRepositoryProvider)
+        .saveImageSelection(
+          sessionId: session.id,
+          assetId: asset.id,
+          assetVersion: asset.version,
+          expectedVersion: session.sessionVersion,
+        );
+    _draftSaveFuture = future;
+    unawaited(_finishDraftSave(future));
+  }
+
+  Future<void> _finishDraftSave(Future<DepositSession> future) async {
+    try {
+      final acknowledged = await future;
+      if (!mounted || _draftSaveFuture != future) return;
+      _draftAcknowledgement = acknowledged;
+      _draftSaveFuture = null;
+      _applyConfirmedSession(acknowledged);
+    } catch (error) {
+      if (!mounted || _draftSaveFuture != future) return;
+      _draftSaveFuture = null;
+      setState(() => _actionError = scanFailureCopy(error));
+    }
+  }
+
+  void _applyConfirmedSession(DepositSession session) {
+    _confirmedSession = session;
+    _latestSession = session;
+    if (!mounted) return;
+    setState(() {});
+    if (_isVisible(session) && session.stage != widget.expectedStage) {
+      context.go(_pathForStage(session));
+    }
   }
 
   /// The screen instance is visible when the router URI still points at the
@@ -639,11 +708,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       final repository = ref.read(scanRepositoryProvider);
       switch (session.stage) {
         case ScanStage.binFound:
-          await repository.confirmSession(session.id, session.sessionVersion);
+          _applyConfirmedSession(
+            await repository.confirmSession(session.id, session.sessionVersion),
+          );
         case ScanStage.ready:
-          await repository.reportFinishPressed(
-            session.id,
-            session.sessionVersion,
+          _applyConfirmedSession(
+            await repository.reportFinishPressed(
+              session.id,
+              session.sessionVersion,
+            ),
           );
         case ScanStage.itemDetected:
           final assetId = _selectedAssetId ?? session.draftAssetId;
@@ -656,17 +729,40 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
               retryable: false,
             );
           }
-          final selectedSession = await repository.saveImageSelection(
-            sessionId: session.id,
-            assetId: asset.id,
-            assetVersion: asset.version,
-            expectedVersion: session.sessionVersion,
-          );
-          await repository.submitInspection(
+          DepositSession selectedSession;
+          final acknowledged = _draftAcknowledgement;
+          if (acknowledged != null &&
+              acknowledged.id == session.id &&
+              acknowledged.draftAssetId == asset.id &&
+              acknowledged.draftAssetVersion == asset.version) {
+            selectedSession = acknowledged;
+          } else {
+            final draftSave = _draftSaveFuture;
+            selectedSession = draftSave == null
+                ? await repository.saveImageSelection(
+                    sessionId: session.id,
+                    assetId: asset.id,
+                    assetVersion: asset.version,
+                    expectedVersion: session.sessionVersion,
+                  )
+                : await draftSave;
+            _draftAcknowledgement = selectedSession;
+            _draftSaveFuture = null;
+          }
+          final submission = await repository.submitInspection(
             sessionId: session.id,
             assetId: asset.id,
             assetVersion: asset.version,
             expectedVersion: selectedSession.sessionVersion,
+          );
+          _applyConfirmedSession(
+            selectedSession.copyWith(
+              stage: ScanStage.processing,
+              resultId: submission.resultId,
+              batchId: submission.batchId,
+              jobId: submission.jobId,
+              deadlineAt: submission.deadlineAt,
+            ),
           );
         default:
           break;
