@@ -1,4 +1,6 @@
 import 'package:eco_loop/app/router/app_routes.dart';
+import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -51,7 +53,8 @@ class _VouchersScreenState extends ConsumerState<VouchersScreen> {
           ),
           const SizedBox(height: 16),
           Wrap(
-            spacing: 8,
+            spacing: 16,
+            runSpacing: 12,
             children: [
               _tab('Available', VoucherStatus.available),
               _tab('Used', VoucherStatus.used),
@@ -85,12 +88,24 @@ class _VouchersScreenState extends ConsumerState<VouchersScreen> {
     );
   }
 
-  Widget _tab(String label, VoucherStatus status) => ChoiceChip(
-    label: Text(label),
-    selected: _status == status,
-    onSelected: (_) {
-      setState(() => _status = status);
-      context.go('${AppRoutes.vouchers}?status=${status.wireValue}');
-    },
-  );
+  Widget _tab(String label, VoucherStatus status) {
+    final selected = _status == status;
+    return ChoiceChip(
+      label: Text(label),
+      labelStyle: AppTypography.textTheme.labelMedium!.copyWith(
+        color: selected ? AppColors.primaryDark : AppColors.text,
+      ),
+      selected: selected,
+      selectedColor: AppColors.sage,
+      backgroundColor: AppColors.mint,
+      checkmarkColor: AppColors.primaryDark,
+      side: selected
+          ? const BorderSide(color: AppColors.primaryDark)
+          : BorderSide.none,
+      onSelected: (_) {
+        setState(() => _status = status);
+        context.go('${AppRoutes.vouchers}?status=${status.wireValue}');
+      },
+    );
+  }
 }
