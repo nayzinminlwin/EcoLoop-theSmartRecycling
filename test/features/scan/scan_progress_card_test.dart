@@ -24,6 +24,32 @@ void main() {
     expect(progress.detailMessage, 'Some items need an additional check.');
   });
 
+  test('uses timed estimated segments only without backend substage', () {
+    final startedAt = DateTime(2026, 10, 22, 6);
+
+    expect(
+      ScanProgress.fromSession(
+        _session(updatedAt: startedAt),
+        now: startedAt.add(const Duration(seconds: 19)),
+      ).step,
+      2,
+    );
+    expect(
+      ScanProgress.fromSession(
+        _session(updatedAt: startedAt),
+        now: startedAt.add(const Duration(seconds: 20)),
+      ).step,
+      3,
+    );
+    expect(
+      ScanProgress.fromSession(
+        _session(updatedAt: startedAt),
+        now: startedAt.add(const Duration(seconds: 45)),
+      ).step,
+      4,
+    );
+  });
+
   testWidgets('renders five segments and elapsed time accessibly', (
     tester,
   ) async {

@@ -46,7 +46,7 @@ class _ScanProgressCardState extends State<ScanProgressCard> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = ScanProgress.fromSession(widget.session);
+    final progress = ScanProgress.fromSession(widget.session, now: _now);
     final elapsed = _now.difference(widget.session.updatedAt);
     final elapsedText = _formatElapsed(
       elapsed.isNegative ? Duration.zero : elapsed,
@@ -63,7 +63,10 @@ class _ScanProgressCardState extends State<ScanProgressCard> {
           Text(
             'Processing',
             textAlign: TextAlign.center,
-            style: AppTypography.badge.copyWith(color: AppColors.primaryDark),
+            style: AppTypography.badge.copyWith(
+              color: AppColors.primaryDark,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -133,11 +136,6 @@ class _ProgressSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = switch (state) {
-      _SegmentState.complete => (AppColors.primaryDark, Icons.check),
-      _SegmentState.active => (AppColors.scannerCorner, Icons.circle),
-      _SegmentState.next => (AppColors.sage, Icons.circle_outlined),
-    };
     return Semantics(
       label:
           '$label: ${switch (state) {
@@ -145,18 +143,59 @@ class _ProgressSegment extends StatelessWidget {
             _SegmentState.active => 'in progress',
             _SegmentState.next => 'up next',
           }}',
-      child: Container(
-        height: 10,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: state == _SegmentState.active
-            ? Icon(icon, size: 6, color: AppColors.text)
-            : null,
-      ),
+      child: switch (state) {
+        _SegmentState.complete => _segment(color: AppColors.primaryDark),
+        _SegmentState.active => const _BreathingSegment(),
+        _SegmentState.next => _segment(color: AppColors.sage),
+      },
     );
   }
+
+  Widget _segment({required Color color}) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: const SizedBox(height: 10),
+  );
+}
+
+class _BreathingSegment extends StatefulWidget {
+  const _BreathingSegment();
+
+  @override
+  State<_BreathingSegment> createState() => _BreathingSegmentState();
+}
+
+class _BreathingSegmentState extends State<_BreathingSegment>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    builder: (context, child) => DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color.lerp(
+          AppColors.primary,
+          AppColors.scannerCorner,
+          _controller.value,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: child,
+    ),
+    child: const SizedBox(height: 10),
+  );
 }
 
 class ScanProgress {
@@ -170,8 +209,30 @@ class ScanProgress {
   final String activeMessage;
   final String? detailMessage;
 
-  factory ScanProgress.fromSession(DepositSession session) {
+  factory ScanProgress.fromSession(DepositSession session, {DateTime? now}) {
     final substage = session.jobSubstage?.toLowerCase();
+    if (substage == null) {
+      final elapsed = (now ?? DateTime.now()).difference(session.updatedAt);
+      if (elapsed >= const Duration(seconds: 45)) {
+        return const ScanProgress(
+          step: 4,
+          activeMessage: 'Confirming materials',
+          detailMessage: 'Estimated progress — waiting for verification.',
+        );
+      }
+      if (elapsed >= const Duration(seconds: 20)) {
+        return const ScanProgress(
+          step: 3,
+          activeMessage: 'Identifying recyclable items',
+          detailMessage: 'Estimated progress — waiting for verification.',
+        );
+      }
+      return const ScanProgress(
+        step: 2,
+        activeMessage: 'Validating the image',
+        detailMessage: 'Estimated progress — waiting for verification.',
+      );
+    }
     return switch (substage) {
       'queued' || 'pending' || 'waiting' => const ScanProgress(
         step: 1,
