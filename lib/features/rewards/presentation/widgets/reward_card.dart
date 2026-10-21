@@ -23,9 +23,6 @@ class RewardCard extends StatelessWidget {
     final atLimit =
         reward.residentRedemptionCount >= reward.maxRedemptionsPerResident;
     final canRedeem = balance >= reward.pointsCost && !atLimit;
-    final detailsHeight = MediaQuery.textScalerOf(context).scale(1) >= 1.35
-        ? 120.0
-        : 80.0;
     final art = switch (reward.artKey) {
       'cafe' => (AppColors.amberBackground, AppColors.amberText),
       'meal' => (const Color(0xFFF1E8DD), const Color(0xFF8A6044)),
@@ -35,7 +32,7 @@ class RewardCard extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(12),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 214),
+        constraints: const BoxConstraints(minHeight: 200),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -79,10 +76,10 @@ class RewardCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: detailsHeight,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -91,13 +88,14 @@ class RewardCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 6),
                   Text(
                     reward.merchantName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     '${reward.pointsCost} points',
                     style: const TextStyle(
@@ -108,7 +106,7 @@ class RewardCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             AppButton(
               label: atLimit
                   ? 'Redeemed'

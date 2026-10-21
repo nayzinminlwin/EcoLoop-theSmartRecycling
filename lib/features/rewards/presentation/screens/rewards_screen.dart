@@ -275,8 +275,8 @@ class _CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
+    spacing: 16,
+    runSpacing: 12,
     children: [
       _chip(
         label: 'All rewards',
