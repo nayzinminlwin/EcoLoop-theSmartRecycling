@@ -63,6 +63,22 @@ if ($LASTEXITCODE -ne 0) {
     throw "Could not grant the vision runtime artifact permission."
 }
 
+if ($SourceBucket -eq "" -or $SourceBucket -match '[^a-z0-9._-]') {
+    throw "SourceBucket must be an existing Cloud Storage bucket name."
+}
+gcloud storage buckets describe "gs://$SourceBucket" --project=$ProjectId *> $null
+if ($LASTEXITCODE -ne 0) {
+    throw "Source bucket '$SourceBucket' is missing in project '$ProjectId'."
+}
+gcloud storage buckets add-iam-policy-binding "gs://$SourceBucket" `
+    --member="serviceAccount:$RuntimeServiceAccount" `
+    --role=roles/storage.objectViewer `
+    --project=$ProjectId `
+    --quiet | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not grant the vision runtime source read permission."
+}
+
 $shortSha = (git rev-parse --short=12 HEAD).Trim()
 $image = "$Region-docker.pkg.dev/$ProjectId/ecoloop/vision:$shortSha"
 
