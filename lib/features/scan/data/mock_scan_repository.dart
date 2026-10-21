@@ -155,15 +155,13 @@ class MockScanRepository implements ScanRepository {
   Future<DepositSession> confirmSession(
     String sessionId, [
     int? expectedVersion,
-  ]) =>
-      _transition(sessionId, ScanStage.binFound, ScanStage.ready);
+  ]) => _transition(sessionId, ScanStage.binFound, ScanStage.ready);
 
   @override
   Future<DepositSession> reportFinishPressed(
     String sessionId, [
     int? expectedVersion,
-  ]) =>
-      _transition(sessionId, ScanStage.ready, ScanStage.itemDetected);
+  ]) => _transition(sessionId, ScanStage.ready, ScanStage.itemDetected);
 
   @override
   Future<DepositSession> startVerification(String sessionId) =>
@@ -188,21 +186,25 @@ class MockScanRepository implements ScanRepository {
 
   @override
   Stream<List<SimulationAsset>> watchAssets() async* {
-    final assets = _store.classifications.asMap().entries.map((entry) {
-      final id = entry.value['id']?.toString() ?? 'asset-${entry.key + 1}';
-      return SimulationAsset(
-        id: id,
-        enabled: true,
-        version: 'v1',
-        displayName: entry.value['materialLabel']?.toString() ?? id,
-        sortOrder: entry.key,
-        storageReference: null,
-        mimeType: 'image/png',
-        width: 1,
-        height: 1,
-        contentSha256: null,
-      );
-    }).toList(growable: false);
+    final assets = _store.classifications
+        .asMap()
+        .entries
+        .map((entry) {
+          final id = entry.value['id']?.toString() ?? 'asset-${entry.key + 1}';
+          return SimulationAsset(
+            id: id,
+            enabled: true,
+            version: 'v1',
+            displayName: entry.value['materialLabel']?.toString() ?? id,
+            sortOrder: entry.key,
+            storageReference: null,
+            mimeType: 'image/png',
+            width: 1,
+            height: 1,
+            contentSha256: null,
+          );
+        })
+        .toList(growable: false);
     yield assets;
   }
 
@@ -411,33 +413,32 @@ class MockScanRepository implements ScanRepository {
   Future<DepositSession> cancelSession(
     String sessionId, [
     int? expectedVersion,
-  ]) =>
-      _api.write('scan.cancelSession', () {
-        final current = _requireSession(sessionId);
-        if (current.stage == ScanStage.processing ||
-            current.stage == ScanStage.completed) {
-          throw const AppFailure(
-            code: AppFailureCodes.invalidTransition,
-            messageKey: 'scan.cannotCancel',
-            retryable: false,
-          );
-        }
-        final cancelled = current.copyWith(
-          stage: ScanStage.cancelled,
-          updatedAt: _clock.now,
-        );
-        _store.transactionScan<void>((_, _, _, sessions, _) {
-          final index = sessions.indexWhere((row) => row['id'] == current.id);
-          final row = cancelled.toJson();
-          if (index == -1) {
-            sessions.add(row);
-          } else {
-            sessions[index] = row;
-          }
-        });
-        _emit(current.id, cancelled);
-        return cancelled;
-      });
+  ]) => _api.write('scan.cancelSession', () {
+    final current = _requireSession(sessionId);
+    if (current.stage == ScanStage.processing ||
+        current.stage == ScanStage.completed) {
+      throw const AppFailure(
+        code: AppFailureCodes.invalidTransition,
+        messageKey: 'scan.cannotCancel',
+        retryable: false,
+      );
+    }
+    final cancelled = current.copyWith(
+      stage: ScanStage.cancelled,
+      updatedAt: _clock.now,
+    );
+    _store.transactionScan<void>((_, _, _, sessions, _) {
+      final index = sessions.indexWhere((row) => row['id'] == current.id);
+      final row = cancelled.toJson();
+      if (index == -1) {
+        sessions.add(row);
+      } else {
+        sessions[index] = row;
+      }
+    });
+    _emit(current.id, cancelled);
+    return cancelled;
+  });
 
   @override
   Future<DepositSession> renewSession(

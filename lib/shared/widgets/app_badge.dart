@@ -17,7 +17,9 @@ class AppBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eco = Theme.of(context).extension<EcoThemeExtension>()!;
+    final eco =
+        Theme.of(context).extension<EcoThemeExtension>() ??
+        const EcoThemeExtension();
     final (background, foreground) = switch (tone) {
       AppBadgeTone.green => (AppColors.mint, AppColors.primaryDark),
       AppBadgeTone.amber => (eco.amberBackground, eco.amberText),
