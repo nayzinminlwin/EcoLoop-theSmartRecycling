@@ -2,6 +2,7 @@ import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_spacing.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
+import 'package:eco_loop/shared/widgets/app_card.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -143,6 +144,15 @@ class _GuideContent extends StatelessWidget {
         _sectionTitle(context, 'EcoPoints per item'),
         const SizedBox(height: 12),
         MaterialRatesTable(rates: data.rates, examples: data.rateExamples),
+      ] else ...[
+        const SizedBox(height: 24),
+        _sectionTitle(context, 'EcoPoints per item'),
+        const SizedBox(height: 12),
+        const AppCard(
+          child: Text(
+            'EcoPoints rates are currently unavailable. Please try again later.',
+          ),
+        ),
       ],
       const SizedBox(height: 12),
       Text(data.pointsDisclaimer, style: Theme.of(context).textTheme.bodySmall),

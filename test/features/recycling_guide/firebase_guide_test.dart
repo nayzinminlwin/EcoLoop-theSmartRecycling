@@ -3,6 +3,93 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
+    'active policy derives deduplicated rates from canonical classes',
+    () async {
+      final repository = FirebaseRecyclingGuideRepository(
+        reads: _Reads({
+          'policyPointers/active': {'policyId': 'policy-modern'},
+          'policies/policy-modern': {
+            'acceptedObjectClasses': [
+              'plastic_bottle',
+              'aluminium_can',
+              'paper_item',
+              'paper_bag',
+              'glass_bottle',
+            ],
+            'rewardCategoryByClass': {
+              'plastic_bottle': 'plastic',
+              'aluminium_can': 'aluminium',
+              'paper_item': 'paper',
+              'paper_bag': 'paper',
+              'cardboard_item': 'paper',
+              'glass_bottle': 'glass',
+            },
+            'pointsPerItemByCategory': {
+              'plastic': 5,
+              'aluminium': 8,
+              'paper': 3,
+              'glass': 10,
+            },
+          },
+          'guideContent/policy-modern': {
+            'id': 'guide-policy-modern',
+            'heroTitle': 'Current policy',
+            'heroDescription': 'Current rates',
+            'toDo': [],
+            'toAvoid': [],
+            'pointsDisclaimer': 'Rates can change.',
+            'rateExamples': [
+              {'materialType': 'glass', 'itemCount': 2},
+            ],
+          },
+          'guideMaterials/policy-modern': {
+            'items': [
+              {
+                'id': 'glass',
+                'type': 'glass',
+                'canonicalClass': 'glass_bottle',
+                'title': 'Glass bottles',
+                'preparationTip': 'Rinse',
+                'iconKey': 'recycle',
+                'sortOrder': 1,
+              },
+              {
+                'id': 'cardboard',
+                'type': 'paper',
+                'canonicalClass': 'cardboard_item',
+                'title': 'Cardboard',
+                'preparationTip': 'Flatten',
+                'iconKey': 'book',
+                'sortOrder': 2,
+              },
+            ],
+          },
+          'guideSteps/policy-modern': {
+            'items': [
+              {'id': 'scan', 'order': 1, 'instruction': 'Scan the bin'},
+            ],
+          },
+        }),
+      );
+
+      final guide = await repository.getGuide();
+
+      expect(guide.rates.map((rate) => rate.displayName), [
+        'Plastic',
+        'Aluminium',
+        'Paper',
+        'Glass',
+      ]);
+      expect(guide.rates, hasLength(4));
+      expect(guide.rates.last.pointsFor(2), 20);
+      expect(guide.materials.map((material) => material.title), [
+        'Glass bottles',
+      ]);
+      expect(guide.materials.single.canonicalClass, 'glass_bottle');
+    },
+  );
+
+  test(
     'active policy keeps cardboard excluded from the current guide rates',
     () async {
       final repository = FirebaseRecyclingGuideRepository(
