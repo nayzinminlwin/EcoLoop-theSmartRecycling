@@ -1,5 +1,6 @@
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_spacing.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
@@ -132,8 +133,9 @@ class _GuideContent extends StatelessWidget {
         ),
       ],
       if (data.steps.isNotEmpty) ...[
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xxl),
         _sectionTitle(context, 'Using the smart bin'),
+        const SizedBox(height: AppSpacing.lg),
         RecyclingStepsList(steps: data.steps),
       ],
       if (data.rates.isNotEmpty) ...[
