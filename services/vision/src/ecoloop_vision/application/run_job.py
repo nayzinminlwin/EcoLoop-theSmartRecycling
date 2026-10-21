@@ -86,7 +86,7 @@ def run_job(
         })
         config = InspectionConfig(
             config_id=claim.configuration_version,
-            total_budget_ms=max(1_000, min(30_000, remaining_ms - 1_000)),
+            total_budget_ms=max(1_000, min(60_000, remaining_ms - 1_000)),
             call_timeout_ms=max(500, min(15_000, remaining_ms - 1_000)),
         )
         inspection_started_at = time.perf_counter()

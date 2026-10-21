@@ -29,7 +29,7 @@ class InspectionConfig:
     max_gemini_crops: int = 4
     max_full_image_objects: int = 12
     max_detector_calls: int = 2
-    total_budget_ms: int = 30_000
+    total_budget_ms: int = 60_000
     call_timeout_ms: int = 15_000
     max_retries: int = 1
     detector_models: tuple[str, str] = ("waste-detection-0momv/6", "yolo-waste-detection/1")
