@@ -276,20 +276,40 @@ class _CategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,
+    runSpacing: 8,
     children: [
-      ChoiceChip(
-        label: const Text('All rewards'),
+      _chip(
+        label: 'All rewards',
         selected: selected == null,
         onSelected: (_) => onSelected(null),
       ),
       ...categories.map(
-        (category) => ChoiceChip(
-          label: Text(category.label),
+        (category) => _chip(
+          label: category.label,
           selected: selected == category.id,
           onSelected: (_) => onSelected(category.id),
         ),
       ),
     ],
+  );
+
+  ChoiceChip _chip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) => ChoiceChip(
+    label: Text(label),
+    labelStyle: AppTypography.textTheme.labelMedium!.copyWith(
+      color: selected ? AppColors.primaryDark : AppColors.text,
+    ),
+    selected: selected,
+    selectedColor: AppColors.sage,
+    backgroundColor: AppColors.mint,
+    checkmarkColor: AppColors.primaryDark,
+    side: selected
+        ? const BorderSide(color: AppColors.primaryDark)
+        : BorderSide.none,
+    onSelected: onSelected,
   );
 }
 
