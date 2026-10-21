@@ -287,21 +287,32 @@ export function createMockRepositories(options?: {
     const totalWeightKg = computeDerivedWeight(state.deposits);
 
     const sevenDays: string[] = [
-      "2024-05-14",
-      "2024-05-15",
-      "2024-05-16",
-      "2024-05-17",
-      "2024-05-18",
-      "2024-05-19",
-      "2024-05-20"
+      "2024-05-13", // Monday
+      "2024-05-14", // Tuesday
+      "2024-05-15", // Wednesday
+      "2024-05-16", // Thursday
+      "2024-05-17", // Friday
+      "2024-05-18", // Saturday
+      "2024-05-19"  // Sunday
     ];
 
+    // Baseline daily activity creating a typical realistic up-and-down analytics trend
+    const baseDailyTrend: Record<string, number> = {
+      "2024-05-13": 8,  // Mon (baseline)
+      "2024-05-14": 15, // Tue (rise up)
+      "2024-05-15": 11, // Wed (dip down)
+      "2024-05-16": 19, // Thu (climb up)
+      "2024-05-17": 25, // Fri (weekday peak up)
+      "2024-05-18": 18, // Sat (weekend dip down)
+      "2024-05-19": 10  // Sun (evening low down)
+    };
+
     const activity: DailyActivity[] = sevenDays.map((date) => {
-      const count = verifiedDeposits.filter((d) => {
+      const sessionCount = verifiedDeposits.filter((d) => {
         if (!d.verifiedAt) return false;
         return getKualaLumpurCalendarDate(d.verifiedAt) === date;
       }).length;
-      return { date, verifiedDepositCount: count };
+      return { date, verifiedDepositCount: (baseDailyTrend[date] ?? 0) + sessionCount };
     });
 
     const matKeys: MaterialType[] = ["plastic", "aluminium", "paper", "glass"];
