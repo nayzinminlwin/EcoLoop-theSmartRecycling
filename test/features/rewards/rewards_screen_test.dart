@@ -116,6 +116,18 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('My vouchers'), findsOneWidget);
   });
+
+  testWidgets('opens the redemption confirmation dialog', (tester) async {
+    await pumpRewardsApp(tester, viewport: const Size(390, 844));
+
+    await tester.tap(find.text('Redeem'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Redeem reward?'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Confirm'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<GoRouter> pumpRewardsApp(
