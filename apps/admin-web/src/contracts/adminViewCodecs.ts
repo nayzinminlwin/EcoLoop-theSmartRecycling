@@ -4,7 +4,28 @@
 // =============================================================================
 
 import type { SmartBin, Reward } from "./shared.ts";
-import type { SmartBinRow } from "./admin.ts";
+import type { SmartBinRow, CapacityAlertRow, CapacityAlert, BinOperations } from "./admin.ts";
+
+export interface AdminAlertView {
+  readonly alertId: string;
+  readonly binId: string;
+  readonly locationName: string;
+  readonly cycleId: string;
+  readonly triggeringFillPercent: number;
+  readonly currentFillPercent: number;
+  readonly threshold: 75 | 80 | 85;
+  readonly operationalSettingsVersion: number;
+  readonly state: "pending" | "scheduled" | "collected" | "resolved";
+  readonly version: number;
+  readonly triggeredAt: string;
+  readonly scheduledAt: string | null;
+  readonly scheduledBy: string | null;
+  readonly collectedAt?: string | null;
+  readonly collectedBy?: string | null;
+  readonly resolvedAt: string | null;
+  readonly resolvedBy: string | null;
+  readonly collectionEventId: string | null;
+}
 
 export interface AdminBinView {
   readonly binId: string;
@@ -254,6 +275,89 @@ export function adminRewardViewToReward(view: AdminRewardView): Reward {
     artKey: view.artKey,
     sortOrder: view.sortOrder,
   };
+}
+
+export function decodeAdminAlertView(raw: unknown): AdminAlertView {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("Invalid AdminAlertView: expected an object");
+  }
+  const obj = raw as Record<string, unknown>;
+
+  if (!obj.alertId || typeof obj.alertId !== "string") {
+    throw new Error("Invalid AdminAlertView: missing or invalid alertId");
+  }
+  if (!obj.binId || typeof obj.binId !== "string") {
+    throw new Error("Invalid AdminAlertView: missing or invalid binId");
+  }
+
+  const rawThreshold = Number(obj.threshold ?? 85);
+  const threshold: 75 | 80 | 85 = (rawThreshold === 75 || rawThreshold === 80 || rawThreshold === 85)
+    ? rawThreshold
+    : 85;
+
+  return {
+    alertId: obj.alertId,
+    binId: obj.binId,
+    locationName: String(obj.locationName ?? "Unknown Location"),
+    cycleId: String(obj.cycleId ?? ""),
+    triggeringFillPercent: Math.max(0, Math.min(100, Number(obj.triggeringFillPercent ?? threshold))),
+    currentFillPercent: Math.max(0, Math.min(100, Number(obj.currentFillPercent ?? threshold))),
+    threshold,
+    operationalSettingsVersion: Math.max(1, Number(obj.operationalSettingsVersion ?? 1)),
+    state: (obj.state === "scheduled" || obj.state === "collected" || obj.state === "resolved")
+      ? obj.state
+      : "pending",
+    version: Math.max(1, Number(obj.version ?? 1)),
+    triggeredAt: normalizeTimestamp(obj.triggeredAt),
+    scheduledAt: obj.scheduledAt ? normalizeTimestamp(obj.scheduledAt) : null,
+    scheduledBy: obj.scheduledBy ? String(obj.scheduledBy) : null,
+    collectedAt: obj.collectedAt ? normalizeTimestamp(obj.collectedAt) : null,
+    collectedBy: obj.collectedBy ? String(obj.collectedBy) : null,
+    resolvedAt: obj.resolvedAt ? normalizeTimestamp(obj.resolvedAt) : null,
+    resolvedBy: obj.resolvedBy ? String(obj.resolvedBy) : null,
+    collectionEventId: obj.collectionEventId ? String(obj.collectionEventId) : null,
+  };
+}
+
+export function adminAlertViewToRow(
+  view: AdminAlertView,
+  binDoc?: Partial<SmartBin>
+): CapacityAlertRow {
+  const isResolved = view.state === "resolved";
+  const alertStatus: "active" | "resolved" = isResolved ? "resolved" : "active";
+
+  let collectionStatus: "notScheduled" | "pending" | "scheduled" | "collected" = "pending";
+  if (view.state === "scheduled") {
+    collectionStatus = "scheduled";
+  } else if (view.state === "collected" || view.state === "resolved") {
+    collectionStatus = "collected";
+  }
+
+  const alert: CapacityAlert = {
+    id: view.alertId,
+    binId: view.binId,
+    status: alertStatus,
+    thresholdPercent: view.threshold,
+    triggeredAt: view.triggeredAt,
+    resolvedAt: view.resolvedAt,
+  };
+
+  const bin: SmartBin = {
+    id: view.binId,
+    locationName: binDoc?.locationName ?? view.locationName,
+    locationDetail: binDoc?.locationDetail ?? "Standard Facility",
+    capacityPercent: binDoc?.capacityPercent ?? view.currentFillPercent,
+    acceptedMaterials: binDoc?.acceptedMaterials ?? ["plastic", "aluminium"],
+    isOnline: binDoc?.isOnline ?? true,
+    lastUpdatedAt: binDoc?.lastUpdatedAt ?? view.triggeredAt,
+  };
+
+  const operations: BinOperations = {
+    binId: view.binId,
+    collectionStatus,
+  };
+
+  return { alert, bin, operations };
 }
 
 export function encodeCursor(values: unknown[]): string {

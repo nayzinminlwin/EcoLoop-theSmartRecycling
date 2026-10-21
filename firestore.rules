@@ -156,6 +156,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /capacityAlerts/{alertId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /binCollectionState/{binId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /collectionEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /adminReviewViews/{reviewId} {
       allow read: if isAdmin();
       allow write: if false;

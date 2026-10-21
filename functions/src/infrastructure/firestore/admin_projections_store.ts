@@ -58,6 +58,30 @@ export interface AdminRewardCategoryViewRecord {
   readonly sortOrder: number;
 }
 
+export type AlertLifecycleStateRecord = "pending" | "scheduled" | "collected" | "resolved";
+
+export interface AdminAlertViewRecord {
+  readonly alertId: string;
+  readonly binId: string;
+  readonly locationName: string;
+  readonly cycleId: string;
+  readonly triggeringFillPercent: number;
+  readonly currentFillPercent: number;
+  readonly threshold: 75 | 80 | 85;
+  readonly operationalSettingsVersion: number;
+  readonly state: AlertLifecycleStateRecord;
+  readonly version: number;
+  readonly triggeredAt: Instant;
+  readonly scheduledAt: Instant | null;
+  readonly scheduledBy: string | null;
+  readonly collectedAt?: Instant | null;
+  readonly collectedBy?: string | null;
+  readonly resolvedAt: Instant | null;
+  readonly resolvedBy: string | null;
+  readonly collectionEventId: string | null;
+  readonly searchTokens?: string[];
+}
+
 export class FirestoreAdminProjectionsStore {
   private readonly firestore: Firestore;
 
@@ -204,4 +228,75 @@ export class FirestoreAdminProjectionsStore {
     const docRef = this.firestore.doc(`adminRewardCategoryViews/${view.categoryId}`);
     await docRef.set(view);
   }
+
+  projectAlert(
+    alertDoc: Record<string, unknown>,
+    currentBinOccupancy?: { occupiedSpc: number; capacitySpc: number }
+  ): AdminAlertViewRecord {
+    const alertId = String(alertDoc.id ?? alertDoc.alertId ?? "");
+    const binId = String(alertDoc.binId ?? "");
+    const locationName = String(alertDoc.locationName ?? "Unknown Location");
+    const cycleId = String(alertDoc.cycleId ?? "");
+    const threshold = Number(alertDoc.thresholdSnapshot ?? alertDoc.threshold ?? 85) as 75 | 80 | 85;
+    const operationalSettingsVersion = Number(alertDoc.operationalSettingsVersion ?? 1);
+    const triggeringFillPercent = Number(alertDoc.triggeringFillPercent ?? threshold);
+
+    let currentFillPercent = Number(alertDoc.currentFillPercent ?? triggeringFillPercent);
+    if (currentBinOccupancy && currentBinOccupancy.capacitySpc > 0) {
+      currentFillPercent = Math.min(
+        100,
+        Math.max(
+          0,
+          Math.round((currentBinOccupancy.occupiedSpc / currentBinOccupancy.capacitySpc) * 100)
+        )
+      );
+    }
+
+    const state = (alertDoc.state ?? "pending") as AlertLifecycleStateRecord;
+    const version = Number(alertDoc.version ?? 1);
+    const triggeredAt =
+      tryTimestampToInstant(alertDoc.triggeredAt) ?? new Date().toISOString();
+    const scheduledAt = tryTimestampToInstant(alertDoc.scheduledAt) ?? null;
+    const scheduledBy = alertDoc.scheduledBy ? String(alertDoc.scheduledBy) : null;
+    const collectedAt = tryTimestampToInstant(alertDoc.collectedAt) ?? null;
+    const collectedBy = alertDoc.collectedBy ? String(alertDoc.collectedBy) : null;
+    const resolvedAt = tryTimestampToInstant(alertDoc.resolvedAt) ?? null;
+    const resolvedBy = alertDoc.resolvedBy ? String(alertDoc.resolvedBy) : null;
+    const collectionEventId = alertDoc.collectionEventId
+      ? String(alertDoc.collectionEventId)
+      : null;
+
+    const searchTokens = generatePrefixTokens([alertId, binId, locationName]);
+
+    return {
+      alertId,
+      binId,
+      locationName,
+      cycleId,
+      triggeringFillPercent,
+      currentFillPercent,
+      threshold,
+      operationalSettingsVersion,
+      state,
+      version,
+      triggeredAt,
+      scheduledAt,
+      scheduledBy,
+      collectedAt,
+      collectedBy,
+      resolvedAt,
+      resolvedBy,
+      collectionEventId,
+      searchTokens,
+    };
+  }
+
+  async writeAlertView(view: AdminAlertViewRecord): Promise<void> {
+    const docRef = this.firestore.doc(`adminAlertViews/${view.alertId}`);
+    await docRef.set({
+      ...view,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
 }
+

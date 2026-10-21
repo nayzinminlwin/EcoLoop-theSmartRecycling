@@ -5,7 +5,12 @@
 
 import type { Firestore, Query, DocumentData } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
-import type { AdminBinViewRecord, AdminRewardViewRecord, AdminRewardCategoryViewRecord } from "./admin_projections_store.js";
+import type {
+  AdminBinViewRecord,
+  AdminRewardViewRecord,
+  AdminRewardCategoryViewRecord,
+  AdminAlertViewRecord,
+} from "./admin_projections_store.js";
 import { normalizeSearchString } from "../../domain/admin_search.js";
 
 export interface QueryPaginationInput {
@@ -40,6 +45,9 @@ const SUPPORTED_BIN_FILTERS = new Set(["collectionState", "enabled", "logicalOnl
 
 const SUPPORTED_REWARD_SORTS = new Set(["sortOrder", "pointsCost", "title", "updatedAt", "rewardId", "expiresAt"]);
 const SUPPORTED_REWARD_FILTERS = new Set(["categoryId", "isActive"]);
+
+const SUPPORTED_ALERT_SORTS = new Set(["triggeredAt", "currentFillPercent", "triggeringFillPercent", "alertId", "version"]);
+const SUPPORTED_ALERT_FILTERS = new Set(["state", "status", "binId", "threshold"]);
 
 export function encodeCursor(values: unknown[]): string {
   return Buffer.from(JSON.stringify(values), "utf8").toString("base64url");
@@ -262,4 +270,106 @@ export class FirestoreAdminQueriesStore {
 
     return snap.docs.map((doc) => doc.data() as AdminRewardCategoryViewRecord);
   }
+
+  async listAlerts(
+    input: QueryPaginationInput,
+    readVersion = "1"
+  ): Promise<AdminPaginatedResponse<AdminAlertViewRecord>> {
+    const sortField = input.sortKey ?? "triggeredAt";
+    if (!SUPPORTED_ALERT_SORTS.has(sortField)) {
+      throw new HttpsError("invalid-argument", `Unsupported alert sort key: ${sortField}`);
+    }
+
+    if (input.filters) {
+      for (const key of Object.keys(input.filters)) {
+        if (!SUPPORTED_ALERT_FILTERS.has(key)) {
+          throw new HttpsError("invalid-argument", `Unsupported alert filter: ${key}`);
+        }
+      }
+    }
+
+    const direction = input.sortDirection === "asc" ? "asc" : "desc";
+    const pageSize = Math.max(1, Math.min(100, Number(input.pageSize ?? 10)));
+
+    let query: Query<DocumentData> = this.firestore.collection("adminAlertViews");
+
+    // Apply filters
+    if (input.filters) {
+      for (const [key, val] of Object.entries(input.filters)) {
+        if (val !== undefined && val !== null && val !== "") {
+          if (key === "status") {
+            if (val === "active") {
+              query = query.where("state", "in", ["pending", "scheduled", "collected"]);
+            } else if (val === "resolved") {
+              query = query.where("state", "==", "resolved");
+            }
+          } else {
+            query = query.where(key, "==", val);
+          }
+        }
+      }
+    }
+
+    // Apply token prefix search
+    if (input.search) {
+      const searchPrefix = normalizeSearchString(input.search);
+      if (searchPrefix.length >= 2) {
+        query = query.where("searchTokens", "array-contains", searchPrefix);
+      }
+    }
+
+    // Total count matching filters
+    const countSnap = await query.count().get();
+    const total = countSnap.data().count;
+
+    // Apply order and tiebreaker
+    query = query.orderBy(sortField, direction).orderBy("__name__", direction);
+
+    // Apply cursor
+    if (input.cursor) {
+      const cursorValues = decodeCursor(input.cursor);
+      query = query.startAfter(...cursorValues);
+    }
+
+    // Query pageSize + 1
+    query = query.limit(pageSize + 1);
+    const snap = await query.get();
+
+    const hasMore = snap.docs.length > pageSize;
+    const pageDocs = hasMore ? snap.docs.slice(0, pageSize) : snap.docs;
+
+    const items: AdminAlertViewRecord[] = pageDocs.map((doc) => {
+      const data = doc.data();
+      const { searchTokens: _, ...clean } = data;
+      return clean as AdminAlertViewRecord;
+    });
+
+    let nextCursor: string | null = null;
+    const lastDoc = pageDocs[pageDocs.length - 1];
+    if (hasMore && lastDoc) {
+      const lastVal = lastDoc.get(sortField);
+      nextCursor = encodeCursor([lastVal, lastDoc.id]);
+    }
+
+    return {
+      schemaVersion: "admin.v1",
+      items,
+      total,
+      hasMore,
+      nextCursor,
+      readVersion,
+      freshness: new Date().toISOString(),
+    };
+  }
+
+  async getAlert(alertId: string): Promise<AdminAlertViewRecord | null> {
+    const docRef = this.firestore.doc(`adminAlertViews/${alertId}`);
+    const snap = await docRef.get();
+    if (!snap.exists) return null;
+
+    const data = snap.data()!;
+    const { searchTokens: _, ...clean } = data;
+    return clean as AdminAlertViewRecord;
+  }
 }
+

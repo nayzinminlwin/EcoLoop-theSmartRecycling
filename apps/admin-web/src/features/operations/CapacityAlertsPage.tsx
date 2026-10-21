@@ -159,7 +159,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       services.repositories.alerts.schedule(alert.id)
     );
     if (result) {
-      setLocalFeedback(`Collection dispatched for bin ${bin.id}.`);
+      setLocalFeedback(`Collection scheduled for bin ${bin.id}.`);
     }
   };
 
@@ -174,7 +174,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
     );
     if (result) {
       setShowCollectConfirm(false);
-      setLocalFeedback(`Bin ${bin.id} marked as collected and capacity reset to 10%.`);
+      setLocalFeedback(`Bin ${bin.id} marked as collected and reset to 0% occupancy.`);
     }
   };
 
@@ -331,7 +331,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
         <div className="resolution" role="status">
           <Icon name="check" size={20} />
           <span>
-            Collection completed, capacity reset to 10%, and alert resolved at{" "}
+            Collection completed, cycle closed, and alert resolved at{" "}
             {formatDateTime(alert.resolvedAt)}.
           </span>
         </div>
@@ -341,7 +341,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       <ConfirmDialog
         open={showCollectConfirm}
         title="Confirm Bin Collection"
-        description="Confirm collection for this smart bin? Marking this bin as collected will reset its current capacity to 10% and update township operations."
+        description="Confirm collection for this smart bin? Marking this bin as collected will close the current cycle, reset occupancy to 0%, and open a new empty collection cycle."
         confirmLabel="Mark collected & reset bin"
         variant="primary"
         busy={actionMutation.pending}

@@ -14,6 +14,7 @@ import { FirebaseAuthRepository } from "../data/firebase/firebaseAuthRepository.
 import { FirebaseBinRepository } from "../data/firebase/firebaseBinRepository.ts";
 import { FirebaseRewardRepository } from "../data/firebase/firebaseRewardRepository.ts";
 import { FirebaseSettingsRepository } from "../data/firebase/firebaseSettingsRepository.ts";
+import { FirebaseAlertsRepository } from "../data/firebase/firebaseAlertsRepository.ts";
 
 export interface AdminServiceBundle {
   readonly repositories: AdminRepositories;
@@ -82,6 +83,12 @@ function createAdminServiceBundle(): AdminServiceBundle {
     commandClient,
     fallbackMock.repositories.settings
   );
+  const alertsRepo = new FirebaseAlertsRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.alerts
+  );
 
   let revision = 1;
   let authGeneration = 1;
@@ -115,6 +122,7 @@ function createAdminServiceBundle(): AdminServiceBundle {
     ...fallbackMock.repositories,
     auth: authRepo,
     bins: binsRepo,
+    alerts: alertsRepo,
     rewards: rewardsRepo,
     settings: settingsRepo,
   };
