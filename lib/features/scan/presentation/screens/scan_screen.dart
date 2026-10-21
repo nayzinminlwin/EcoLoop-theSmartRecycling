@@ -103,9 +103,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             const SizedBox(height: 8),
             AppButton(
               label: AppCopy.retry,
-              onPressed: _busy
-                  ? null
-                  : () => setState(() => _error = null),
+              onPressed: _busy ? null : () => setState(() => _error = null),
               expand: true,
             ),
           ],
@@ -113,6 +111,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           if (ref.watch(runtimeConfigProvider).mode == FirebaseMode.mock)
             AppButton(
               label: 'Simulate QR scan',
+              pendingLabel: 'QR detected - checking bin...',
               onPressed: _busy ? null : () => unawaited(_simulateScan()),
               isLoading: _busy,
               expand: true,

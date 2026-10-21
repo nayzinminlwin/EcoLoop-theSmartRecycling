@@ -124,6 +124,7 @@ class _NotificationPreferencesScreenState
             Expanded(
               child: AppButton(
                 label: 'Save',
+                pendingLabel: 'Saving changes...',
                 expand: true,
                 isLoading: ref
                     .watch(notificationPreferencesControllerProvider)

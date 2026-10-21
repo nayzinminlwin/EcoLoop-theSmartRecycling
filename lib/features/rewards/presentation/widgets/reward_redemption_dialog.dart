@@ -43,7 +43,12 @@ class RewardRedemptionDialog extends StatelessWidget {
         onPressed: isLoading ? null : () => Navigator.pop(context),
         child: const Text('Cancel'),
       ),
-      AppButton(label: 'Confirm', onPressed: onConfirm, isLoading: isLoading),
+      AppButton(
+        label: 'Confirm',
+        onPressed: onConfirm,
+        isLoading: isLoading,
+        pendingLabel: 'Redeeming reward...',
+      ),
     ],
   );
 }

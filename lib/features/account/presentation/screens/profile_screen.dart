@@ -126,6 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Expanded(
                 child: AppButton(
                   label: 'Save',
+                  pendingLabel: 'Saving changes...',
                   onPressed: () => _save(profile.avatarUrl),
                   isLoading: saving,
                 ),
