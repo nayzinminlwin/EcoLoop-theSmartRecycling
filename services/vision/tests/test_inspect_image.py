@@ -121,7 +121,7 @@ def test_worker_findings_use_normalized_boxes_and_native_model_ids():
         result,
     )
     finding = findings["findings"][0]
-    assert finding["box"] == {"x1": 0.5, "y1": 0.5, "x2": 0.7, "y2": 0.875}
+    assert finding["box"] == {"x1": 0.4, "y1": 0.3125, "x2": 0.6, "y2": 0.6875}
     assert finding["evidence"]["modelIds"]
 
 

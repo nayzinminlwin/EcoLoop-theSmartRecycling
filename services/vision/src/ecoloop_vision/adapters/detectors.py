@@ -70,11 +70,14 @@ def normalize_detector_response(
             raise ValueError("Detector prediction class must be a non-empty string")
         if not isinstance(score, (int, float)) or not 0 <= score <= 1:
             raise ValueError("Detector confidence must be between zero and one")
+        width = _number(item, "width")
+        height = _number(item, "height")
+        # Roboflow's x/y values identify the center of the prediction box.
         box = original_box(
-            x=_number(item, "x"),
-            y=_number(item, "y"),
-            width=_number(item, "width"),
-            height=_number(item, "height"),
+            x=_number(item, "x") - width / 2,
+            y=_number(item, "y") - height / 2,
+            width=width,
+            height=height,
             source_width=source_width,
             source_height=source_height,
             original_width=original_width,
