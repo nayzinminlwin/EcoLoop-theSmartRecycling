@@ -17,7 +17,7 @@
 | **AB-02** | Real admin identity, service composition and command recovery | Agent | COMPLETE | [AB-02_auth_and_recovery.md](evidence/AB-02_auth_and_recovery.md) | `feat: connect admin authentication and trusted command transport` | `cfda97c` / `a4dfcde` |
 | **AB-03** | Real read layer, query projections and indexes | Agent | COMPLETE | [AB-03_read_projections.md](evidence/AB-03_read_projections.md) | `feat: add admin query adapters and rebuildable read models` | `34b813c` / `62726b1` |
 | **AB-04** | Bin management and usable registered QR codes | Agent | COMPLETE | [AB-04_bin_fleet_management.md](evidence/AB-04_bin_fleet_management.md) | `feat: activate admin bin management and QR registration` | `600a20f` |
-| **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | — |
+| **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | `1e7590b` |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | NOT_STARTED | `evidence/AB-06_capacity_alerts_collection.md` | `feat: integrate capacity alert lifecycle and collection cycles` | — |
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | NOT_STARTED | `evidence/AB-07_review_and_settlement.md` | `feat: implement evidence-backed review resolution and settlement` | — |
 | **AB-08** | Versioned reward-offer catalog management | Agent | NOT_STARTED | `evidence/AB-08_rewards_catalog.md` | `feat: activate admin reward offer catalog management` | — |
