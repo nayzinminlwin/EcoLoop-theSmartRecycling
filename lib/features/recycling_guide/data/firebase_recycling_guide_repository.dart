@@ -128,6 +128,7 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
             .where((material) => _isAcceptedMaterial(material, accepted))
             .toList()
           ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    final displayMaterials = _combinePaperMaterials(parsedMaterials);
     return RecyclingGuide.compose(
       content: RecyclingGuideContent(
         heroTitle: guideContent.heroTitle,
@@ -138,7 +139,7 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
         rateExamples: guideContent.rateExamples,
         id: policyId,
       ),
-      materials: parsedMaterials,
+      materials: displayMaterials,
       steps: steps.map(RecyclingStep.fromJson).toList(growable: false),
       rates: rates,
     );
@@ -235,6 +236,40 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
       MaterialType.unknown => const <String>[],
     };
     return candidates.any(acceptedClasses.contains);
+  }
+
+  List<RecyclingMaterial> _combinePaperMaterials(
+    List<RecyclingMaterial> materials,
+  ) {
+    final paperMaterials = materials
+        .where(
+          (material) =>
+              material.canonicalClass == 'paper_item' ||
+              material.canonicalClass == 'paper_bag',
+        )
+        .toList();
+    if (paperMaterials.length < 2) return List.unmodifiable(materials);
+
+    final firstPaperIndex = materials.indexOf(paperMaterials.first);
+    final combinedTip = paperMaterials
+        .map((material) => material.preparationTip)
+        .toSet()
+        .join(' ');
+    final combined = RecyclingMaterial(
+      id: 'paper-items-and-bags',
+      type: MaterialType.paper,
+      title: 'Paper items & bags',
+      preparationTip: combinedTip,
+      iconKey: paperMaterials.first.iconKey,
+      sortOrder: paperMaterials.first.sortOrder,
+    );
+    final displayMaterials = [
+      for (var index = 0; index < materials.length; index++) ...[
+        if (index == firstPaperIndex) combined,
+        if (!paperMaterials.contains(materials[index])) materials[index],
+      ],
+    ];
+    return List.unmodifiable(displayMaterials);
   }
 
   String _displayName(String category) => category.isEmpty

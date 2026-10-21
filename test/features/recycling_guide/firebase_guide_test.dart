@@ -62,6 +62,24 @@ void main() {
                 'iconKey': 'book',
                 'sortOrder': 2,
               },
+              {
+                'id': 'paper-items',
+                'type': 'paper',
+                'canonicalClass': 'paper_item',
+                'title': 'Paper items',
+                'preparationTip': 'Keep clean and dry.',
+                'iconKey': 'book',
+                'sortOrder': 3,
+              },
+              {
+                'id': 'paper-bags',
+                'type': 'paper',
+                'canonicalClass': 'paper_bag',
+                'title': 'Paper bags',
+                'preparationTip': 'Remove non-paper contents.',
+                'iconKey': 'book',
+                'sortOrder': 4,
+              },
             ],
           },
           'guideSteps/policy-modern': {
@@ -84,8 +102,13 @@ void main() {
       expect(guide.rates.last.pointsFor(2), 20);
       expect(guide.materials.map((material) => material.title), [
         'Glass bottles',
+        'Paper items & bags',
       ]);
-      expect(guide.materials.single.canonicalClass, 'glass_bottle');
+      expect(guide.materials.last.canonicalClass, isNull);
+      expect(
+        guide.materials.last.preparationTip,
+        'Keep clean and dry. Remove non-paper contents.',
+      );
     },
   );
 

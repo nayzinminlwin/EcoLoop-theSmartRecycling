@@ -155,7 +155,13 @@ class _GuideContent extends StatelessWidget {
         const SizedBox(height: 24),
         _sectionTitle(context, 'EcoPoints per item'),
         const SizedBox(height: 12),
-        MaterialRatesTable(rates: data.rates, examples: data.rateExamples),
+        SizedBox(
+          width: double.infinity,
+          child: MaterialRatesTable(
+            rates: data.rates,
+            examples: data.rateExamples,
+          ),
+        ),
       ] else ...[
         const SizedBox(height: 24),
         _sectionTitle(context, 'EcoPoints per item'),
