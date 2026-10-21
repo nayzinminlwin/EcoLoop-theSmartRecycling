@@ -367,7 +367,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Align(child: _badge(session, result)),
+      if (session.stage != ScanStage.processing)
+        Align(child: _badge(session, result)),
       const SizedBox(height: 9),
       if (session.stage == ScanStage.completed && result != null)
         DepositResultCard(

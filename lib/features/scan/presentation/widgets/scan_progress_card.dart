@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:eco_loop/core/theme/app_colors.dart';
-import 'package:eco_loop/core/theme/app_radii.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
 import 'package:flutter/material.dart';
@@ -58,69 +57,60 @@ class _ScanProgressCardState extends State<ScanProgressCard> {
       label:
           '${progress.activeMessage}. Step ${progress.step} of 5. '
           'Elapsed $elapsedText.',
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Processing',
-              textAlign: TextAlign.center,
-              style: AppTypography.badge.copyWith(color: AppColors.amberText),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Processing',
+            textAlign: TextAlign.center,
+            style: AppTypography.badge.copyWith(color: AppColors.primaryDark),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Step ${progress.step} of 5 · $elapsedText',
+            textAlign: TextAlign.center,
+            style: AppTypography.activityMetadata.copyWith(
+              fontSize: 12,
+              color: AppColors.muted,
             ),
-            const SizedBox(height: 6),
-            Text(
-              progress.activeMessage,
-              textAlign: TextAlign.center,
-              style: AppTypography.sectionHeading,
-            ),
-            if (progress.detailMessage != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                progress.detailMessage!,
-                textAlign: TextAlign.center,
-                style: AppTypography.body.copyWith(
-                  color: AppColors.muted,
-                  height: 1.45,
-                ),
-              ),
-            ],
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                for (var index = 1; index <= 5; index++)
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: index == 5 ? 0 : 6),
-                      child: _ProgressSegment(
-                        state: index < progress.step
-                            ? _SegmentState.complete
-                            : index == progress.step
-                            ? _SegmentState.active
-                            : _SegmentState.next,
-                        label: 'Step $index',
-                      ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (var index = 1; index <= 5; index++)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: index == 5 ? 0 : 6),
+                    child: _ProgressSegment(
+                      state: index < progress.step
+                          ? _SegmentState.complete
+                          : index == progress.step
+                          ? _SegmentState.active
+                          : _SegmentState.next,
+                      label: 'Step $index',
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            progress.activeMessage,
+            textAlign: TextAlign.center,
+            style: AppTypography.sectionHeading,
+          ),
+          if (progress.detailMessage != null) ...[
+            const SizedBox(height: 6),
             Text(
-              'Step ${progress.step} of 5 · $elapsedText',
+              progress.detailMessage!,
               textAlign: TextAlign.center,
-              style: AppTypography.activityMetadata.copyWith(
-                fontSize: 12,
+              style: AppTypography.body.copyWith(
                 color: AppColors.muted,
+                height: 1.45,
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -144,9 +134,9 @@ class _ProgressSegment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, icon) = switch (state) {
-      _SegmentState.complete => (AppColors.primary, Icons.check),
-      _SegmentState.active => (AppColors.amber, Icons.circle),
-      _SegmentState.next => (AppColors.border, Icons.circle_outlined),
+      _SegmentState.complete => (AppColors.primaryDark, Icons.check),
+      _SegmentState.active => (AppColors.scannerCorner, Icons.circle),
+      _SegmentState.next => (AppColors.sage, Icons.circle_outlined),
     };
     return Semantics(
       label:
