@@ -13,6 +13,7 @@ import { FirestoreNotificationsStore } from "./infrastructure/firestore/notifica
 import { FirebaseMessagingProvider } from "./infrastructure/messaging.js";
 import { DurableNotificationDispatcher } from "./application/notifications.js";
 import { FirestoreMaintenanceStore } from "./infrastructure/firestore/maintenance_store.js";
+import { CloudTasksDispatcher, createDispatchConfig } from "./infrastructure/cloud_tasks.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -30,6 +31,7 @@ export function createComposition() {
     accounts: new FirestoreAccountsStore(firestore, auth),
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
+    dispatcher: new CloudTasksDispatcher(firestore, createDispatchConfig()),
     jobs: new FirestoreJobsStore(firestore),
     settlements: new FirestoreSettlementStore(firestore),
     rewards: new FirestoreRewardsStore(firestore),
@@ -38,6 +40,7 @@ export function createComposition() {
       new FirestoreNotificationsStore(firestore),
       new FirebaseMessagingProvider(app),
     ),
+    logger,
     maintenance: new FirestoreMaintenanceStore(firestore, storageBucket),
   };
 }
