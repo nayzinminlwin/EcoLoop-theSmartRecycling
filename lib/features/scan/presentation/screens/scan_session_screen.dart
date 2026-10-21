@@ -30,6 +30,7 @@ import '../widgets/bin_details_card.dart';
 import '../widgets/bin_session_visual.dart';
 import '../widgets/deposit_result_card.dart';
 import '../widgets/scanner_frame.dart';
+import '../widgets/scan_progress_card.dart';
 import '../widgets/simulation_asset_picker.dart';
 
 /// One reliable stateful scan flow.
@@ -373,6 +374,8 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           result: result,
           instructions: instructions ?? _fallbackInstructions,
         )
+      else if (session.stage == ScanStage.processing)
+        ScanProgressCard(session: session)
       else ...[
         Text(
           _stageTitle(instructions, session, result),
