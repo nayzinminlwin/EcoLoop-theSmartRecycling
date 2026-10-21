@@ -245,6 +245,12 @@ export class FirestoreAdminSettingsStore {
 
       const currentPolicyRef = this.firestore.doc(`policies/${currentPolicyId}`);
       const currentPolicySnap = await transaction.get(currentPolicyRef);
+      if (pointerSnap.exists && !currentPolicySnap.exists) {
+        throw new HttpsError(
+          "failed-precondition",
+          `Active pinned policy "${currentPolicyId}" not found. Cannot publish settings without a valid base policy.`
+        );
+      }
       const currentPolicy = policyFromData(
         currentPolicySnap.exists ? (currentPolicySnap.data() as Record<string, unknown>) : undefined,
         currentPolicyId

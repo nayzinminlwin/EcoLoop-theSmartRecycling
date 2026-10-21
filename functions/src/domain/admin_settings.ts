@@ -162,12 +162,27 @@ export function generatePolicyId(): string {
   return `policy-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
+export function validatePolicySpaceRules(policy: PolicySnapshot): void {
+  if (
+    !Number.isFinite(policy.defaultSpcPerRecognizedItem) ||
+    policy.defaultSpcPerRecognizedItem <= 0 ||
+    !Number.isFinite(policy.unresolvedSpcPerCandidate) ||
+    policy.unresolvedSpcPerCandidate <= 0 ||
+    !Number.isFinite(policy.unreadableBatchSpc) ||
+    policy.unreadableBatchSpc <= 0
+  ) {
+    throw new Error("invalid_policy_rules: Policy space parameters must be positive finite numbers.");
+  }
+}
+
 export function createNextPolicy(
   previousPolicy: PolicySnapshot,
   newPolicyId: string,
   acceptedClasses: readonly CanonicalClass[],
   materialRates: readonly MaterialRateInput[]
 ): PolicySnapshot {
+  validatePolicySpaceRules(previousPolicy);
+
   const pointsMap: Record<string, number> = { ...previousPolicy.pointsPerItemByCategory };
   for (const r of materialRates) {
     pointsMap[r.materialType] = r.pointsPerItem;

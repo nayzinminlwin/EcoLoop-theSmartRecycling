@@ -495,4 +495,40 @@ describe("Phase AB-05 — FirestoreAdminSettingsStore Publication & Invariants",
     // Resolving historical P1 batch now still strictly uses P1!
     expect(finalizationP1.pointsAwarded).toBe(10);
   });
+
+  it("never silently fills a missing pinned policy with defaults when pointer exists", async () => {
+    const { store } = createMockStore({
+      "adminSettings/global": {
+        id: "global",
+        version: 1,
+        capacityAlertThreshold: 80,
+        activePolicyId: "policy-missing-404",
+      },
+      "policyPointers/active": {
+        version: "policy-missing-404",
+        policyId: "policy-missing-404",
+      },
+      // Note: "policies/policy-missing-404" is missing!
+    });
+
+    await expect(
+      store.publishSettings(
+        caller,
+        {
+          expectedVersion: 1,
+          capacityAlertThreshold: 85,
+          acceptedClasses: ["plastic_bottle"],
+          materialRates: [
+            { materialType: "plastic", pointsPerItem: 10, eligible: true },
+            { materialType: "aluminium", pointsPerItem: 10, eligible: false },
+            { materialType: "paper", pointsPerItem: 0, eligible: false },
+            { materialType: "glass", pointsPerItem: 0, eligible: false },
+          ],
+        },
+        "req-fail-missing",
+        "trace-missing",
+        "2026-10-21T10:00:00.000Z"
+      )
+    ).rejects.toThrow(/Active pinned policy "policy-missing-404" not found/);
+  });
 });
