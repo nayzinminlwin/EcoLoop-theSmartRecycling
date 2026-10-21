@@ -31,9 +31,10 @@ class AppButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: .45),
+          disabledBackgroundColor: AppColors.grayBackground,
+          disabledForegroundColor: AppColors.grayText,
         ),
-        child: _content(),
+        child: _content(loadingColor: AppColors.primary),
       ),
       AppButtonVariant.secondary => OutlinedButton(
         onPressed: isLoading ? null : onPressed,
@@ -71,7 +72,7 @@ class AppButton extends StatelessWidget {
     );
   }
 
-  Widget _content() {
+  Widget _content({Color loadingColor = Colors.white}) {
     final labelContent = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -89,11 +90,11 @@ class AppButton extends StatelessWidget {
       children: [
         Opacity(opacity: isLoading ? 0 : 1, child: labelContent),
         if (isLoading)
-          const SizedBox.square(
+          SizedBox.square(
             dimension: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white,
+              color: loadingColor,
             ),
           ),
       ],
