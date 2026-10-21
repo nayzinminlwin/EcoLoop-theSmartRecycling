@@ -591,7 +591,7 @@ The following original row includes administrative missing items from the previo
 | S12 | HP4 measured cloud/region latency, if necessary | NOT_STARTED | — |
 | S13 | HP4 final forward feedback and seamless refresh | NOT_STARTED | — |
 | S14 | HP5 exact candidate and independent gap review | NOT_STARTED | — |
-| S15 | HP5 final repeated rehearsal and recording | NOT_STARTED | — |
+| S15 | HP5 final repeated rehearsal and recording | IN_PROGRESS | Phase 5 opening state before the first attempted repeat: wallet 20/version 1, verified batches 1, accepted items 4, cycle contribution 120 SPC, bin available, resident active session null, Vision revision `ecoloop-vision-00012-pxt` at 100% traffic, queue RUNNING. The operator reported the next run worked, but Cloud correlation found two jobs: `job-d8380c7955b4647a8a969613300818d7` ended `review/material_uncertainty` after a stale-attempt recovery path, then `job-e495f7ebd37cc2863dc2443dabe2ad65` ended `verified` for 20 points / 4 items. Wallet is now 40/version 2, verified batches 2, accepted items 8, cycle contribution 200 SPC, bin available and active session null. The verified recovery is valid accounting evidence, but the review means this is not one clean consecutive Phase 5 pass. Start a fresh consecutive sequence with the next new deposit; do not count the review as a verified run. |
 
 ### 8.3 Final acceptance
 
