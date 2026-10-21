@@ -28,7 +28,15 @@
     { "id": "asset-demo-0013", "sourceRef": "assets/trash_images/trash13.jpg", "displayName": "Prepared image 13", "sortOrder": 13 },
     { "id": "asset-demo-0014", "sourceRef": "assets/trash_images/trash14.webp", "displayName": "Prepared image 14", "sortOrder": 14 },
     { "id": "asset-demo-0015", "sourceRef": "assets/trash_images/trash15.jpg", "displayName": "Prepared image 15", "sortOrder": 15 },
-    { "id": "asset-demo-0016", "sourceRef": "assets/trash_images/trash909.png", "displayName": "Prepared image 16", "sortOrder": 16 }
+    { "id": "asset-demo-0016", "sourceRef": "assets/trash_images/trash909.png", "displayName": "Prepared image 16", "sortOrder": 16 },
+    { "id": "asset-demo-0017", "sourceRef": "assets/trash_images/2e_btl_pte_1can.jpg", "displayName": "Prepared image 17", "sortOrder": 17 },
+    { "id": "asset-demo-0018", "sourceRef": "assets/trash_images/2e_btl_pte_1can_.jpg", "displayName": "Prepared image 18", "sortOrder": 18 },
+    { "id": "asset-demo-0019", "sourceRef": "assets/trash_images/3can.jpg", "displayName": "Prepared image 19", "sortOrder": 19 },
+    { "id": "asset-demo-0020", "sourceRef": "assets/trash_images/3can_.jpg", "displayName": "Prepared image 20", "sortOrder": 20 },
+    { "id": "asset-demo-0021", "sourceRef": "assets/trash_images/4Bottle.jpg", "displayName": "Prepared image 21", "sortOrder": 21 },
+    { "id": "asset-demo-0022", "sourceRef": "assets/trash_images/4bottle_.jpg", "displayName": "Prepared image 22", "sortOrder": 22 },
+    { "id": "asset-demo-0023", "sourceRef": "assets/trash_images/5PTE.jpg", "displayName": "Prepared image 23", "sortOrder": 23 },
+    { "id": "asset-demo-0024", "sourceRef": "assets/trash_images/5PTE_.jpg", "displayName": "Prepared image 24", "sortOrder": 24 }
   ],
   "rewardCategories": [
     { "id": "food", "displayName": "Food & drink", "iconKey": "utensils", "sortOrder": 1, "isActive": true },
