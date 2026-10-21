@@ -776,7 +776,7 @@ export function createMockRepositories(options?: {
       ops.collectionStatus = "collected";
       const bin = state.bins.find((b) => b.id === alert.binId);
       if (bin) {
-        bin.capacityPercent = 10;
+        bin.capacityPercent = 0;
         bin.lastUpdatedAt = MOCK_NOW;
       }
       notifyCommit();

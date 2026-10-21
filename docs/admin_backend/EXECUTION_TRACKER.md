@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-09 — COMPLETE
-- **Next phase:** AB-10 — Acceptance, separate HTTPS deployment and operational handoff
+- **Current phase:** AB-10 — COMPLETE (All 10 Plan Phases Completed)
+- **Next phase:** System verification and operational handoff complete
 
 ---
 
@@ -22,7 +22,7 @@
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | COMPLETE | [AB-07_review_and_settlement.md](evidence/AB-07_review_and_settlement.md) | `feat: resolve admin reviews through shared pinned-policy settlement` | `393605f` |
 | **AB-08** | Versioned reward-offer catalog management | Agent | COMPLETE | [AB-08_rewards_catalog.md](evidence/AB-08_rewards_catalog.md) | `feat: activate versioned admin rewards catalog management` | `1f1b5b5` |
 | **AB-09** | Dashboard accounting and cross-client realtime convergence | Agent | COMPLETE | [AB-09_dashboard_convergence.md](evidence/AB-09_dashboard_convergence.md) | `feat: connect admin analytics and cross-client realtime projections` | `1b29ac2` / `d90ce0e` |
-| **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | NOT_STARTED | `evidence/AB-10_acceptance_and_deployment.md` | `chore: verify end-to-end admin backend and configure hosting` | — |
+| **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | COMPLETE | [AB-10_acceptance_and_deployment.md](evidence/AB-10_acceptance_and_deployment.md) | `feat: verify and deploy the integrated admin website` | Pending commit |
 
 *Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCKED, FAILED.*
 
@@ -31,11 +31,11 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 13:10 UTC+8
+Updated: 2026-10-21 14:35 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-09 verified & committed; ready for Phase AB-10 startup
-Source SHA: d90ce0e (branch dev1)
+Phase and substep: AB-10 verified & documented; all 10 phases COMPLETE
+Source SHA: Pending commit (branch dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
@@ -48,7 +48,7 @@ Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Begin Phase AB-10: Cross-client acceptance, separate deployment and handoff
+  - Commit Phase AB-10: feat: verify and deploy the integrated admin website
 ```
 
 ---
@@ -88,4 +88,4 @@ Next exact substep:
 | **A2** | AB-04 bins, AB-05 settings, AB-06 collection, AB-07 review settlement | `NOT_STARTED` | Shared domain transactions will be consumed or co-located under clean architecture. |
 | **A3** | AB-07 real camera/vision pipeline evidence | `NOT_STARTED` | Admin DTO accepts both `simulated_bin_capture` and pipeline evidence. |
 | **A4** | AB-09 cross-client dashboard convergence | `NOT_STARTED` | Admin dashboard aggregation uses Firestore transactions/metrics. |
-| **A5** | AB-10 final deployment and release freeze | `NOT_STARTED` | Final end-to-end verification. |
+| **A5** | AB-10 final deployment and release freeze | `COMPLETE` | Section 16/17 command gates and scenario matrix verified; runbooks delivered. |

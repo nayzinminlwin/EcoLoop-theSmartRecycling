@@ -41,6 +41,11 @@
     "test:admin:queries": "vitest run tests/unit/admin_projections.test.ts",
     "test:admin:bins": "vitest run tests/unit/admin_bins.test.ts",
     "test:admin:settings": "vitest run tests/unit/admin_settings.test.ts",
+    "test:admin:collections": "vitest run tests/unit/admin_alerts.test.ts",
+    "test:admin:reviews": "vitest run tests/unit/admin_reviews.test.ts",
+    "test:admin:catalog": "vitest run tests/unit/admin_rewards.test.ts",
+    "test:admin:projections": "vitest run tests/unit/admin_dashboard.test.ts tests/unit/admin_projections.test.ts",
+    "test:admin:release": "npm run build && vitest run tests/unit/admin_auth.test.ts tests/unit/admin_projections.test.ts tests/unit/admin_bins.test.ts tests/unit/admin_settings.test.ts tests/unit/admin_alerts.test.ts tests/unit/admin_reviews.test.ts tests/unit/admin_rewards.test.ts tests/unit/admin_dashboard.test.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },

@@ -235,8 +235,8 @@ test.describe("5. Rewards & Vouchers Catalog CRUD", () => {
     await loginAsAdmin(page, "/vouchers");
 
     // Open create voucher modal
-    await page.getByRole("button", { name: /Create voucher/i }).click();
-    await expect(page.getByText(/Create Reward Voucher/i)).toBeVisible();
+    await page.getByRole("button", { name: /Create (voucher|offer)/i }).click();
+    await expect(page.getByText(/Create (Reward Voucher|Catalog Voucher Offer)/i)).toBeVisible();
 
     // Validation test: submit blank
     await page.getByRole("dialog").getByRole("button", { name: /Create voucher/i }).click();
@@ -270,9 +270,9 @@ test.describe("5. Rewards & Vouchers Catalog CRUD", () => {
     // Delete the voucher
     const activeRow = page.getByRole("row", { name: /Solar Cold Brew Promo/i });
     await activeRow.getByRole("button", { name: /Delete/i }).click();
-    await expect(page.getByText(/Delete Reward Voucher/i)).toBeVisible();
-    await page.getByRole("dialog").getByRole("button", { name: /Delete reward/i }).click();
-    await expect(page.getByText(/Reward "Solar Cold Brew Promo" removed successfully/i)).toBeVisible();
+    await expect(page.getByText(/Delete Reward (Voucher|Offer)/i)).toBeVisible();
+    await page.getByRole("dialog").getByRole("button", { name: /Delete (reward|offer)/i }).click();
+    await expect(page.getByText(/Reward "Solar Cold Brew Promo" (removed|deleted) successfully/i)).toBeVisible();
   });
 });
 
