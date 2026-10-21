@@ -28,6 +28,7 @@ import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
+import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
@@ -65,6 +66,9 @@ final systemAppClockProvider = Provider<AppClock>(
 );
 final leaveDecisionProvider = Provider<LeaveDecisionCoordinator>(
   (ref) => LeaveDecisionCoordinator(),
+);
+final exitIntentCoordinatorProvider = Provider<ExitIntentCoordinator>(
+  (ref) => ExitIntentCoordinator(),
 );
 final mockScenarioProvider = Provider<MockScenarioState>(
   (ref) => MockScenarioState.fromEnvironment(),
