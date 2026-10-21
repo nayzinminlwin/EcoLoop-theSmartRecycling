@@ -67,7 +67,10 @@ export interface VerificationDetail {
   resident: ResidentProfile; bin: SmartBin;
 }
 export interface VerificationDecisionResult {
-  detail: VerificationDetail; wallet: WalletSnapshot;
+  detail: VerificationDetail;
+  wallet: WalletSnapshot;
+  outcome?: "verified" | "rejected" | "empty";
+  pointsAwarded?: number;
 }
 
 // ---------------------------------------------------------------------------

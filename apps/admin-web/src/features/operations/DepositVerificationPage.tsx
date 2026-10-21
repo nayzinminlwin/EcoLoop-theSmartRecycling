@@ -106,6 +106,7 @@ const CANONICAL_CLASSES: Array<{ value: string; label: string; eligible: boolean
 interface VerificationDetailPanelProps {
   ticketId: string;
   onClearSelection: () => void;
+  onDecisionResult?: (result: VerificationDecisionResult) => void;
 }
 
 function VerificationDetailPanel(props: VerificationDetailPanelProps): React.ReactElement {
@@ -345,6 +346,7 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
 
     if (result) {
       setLastReceipt(result);
+      props.onDecisionResult?.(result);
       setConfirmModalOpen(false);
     }
   };
@@ -679,6 +681,7 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
 export function DepositVerificationPage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const query: VerificationListQuery = parseVerificationQuery(searchParams);
+  const [lastReceipt, setLastReceipt] = React.useState<VerificationDecisionResult | null>(null);
 
   // Observable verification list query
   const listKey = `verification:${searchParams.toString()}`;
@@ -778,6 +781,18 @@ export function DepositVerificationPage(): React.ReactElement {
           <span>Rejected</span>
         </button>
       </div>
+ 
+      {/* Decision Receipt Banner */}
+      {lastReceipt && (
+        <div className="receipt-banner" role="status">
+          <Icon name="check" size={20} />
+          <span>
+            {(lastReceipt.outcome === "verified" || lastReceipt.detail.transaction.status === "verified")
+              ? `Deposit ${lastReceipt.detail.transaction.id} approved! +${lastReceipt.pointsAwarded ?? lastReceipt.detail.transaction.pointsAwarded ?? 0} EcoPoints credited to ${lastReceipt.detail.resident.fullName ?? lastReceipt.detail.resident.id}.`
+              : `Deposit ${lastReceipt.detail.transaction.id} resolved as ${lastReceipt.detail.transaction.status}. 0 points credited to ${lastReceipt.detail.resident.fullName ?? lastReceipt.detail.resident.id}.`}
+          </span>
+        </div>
+      )}
 
       {/* Review Queue Layout: List on Left, Detail on Right */}
       <div className="review-layout">
@@ -899,6 +914,7 @@ export function DepositVerificationPage(): React.ReactElement {
             key={selectedTicketId}
             ticketId={selectedTicketId}
             onClearSelection={handleClearSelection}
+            onDecisionResult={setLastReceipt}
           />
         ) : (
           <section className="panel review-detail">

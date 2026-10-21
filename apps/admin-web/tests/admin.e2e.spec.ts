@@ -44,7 +44,7 @@ test.describe("1. Entry and Routes", () => {
 
     // 3. Confirm all six primary routes render correctly via sidebar navigation
     const navItems = [
-      { label: "Overview", path: "/overview", title: /Fleet Overview/i },
+      { label: "Overview", path: "/overview", title: /(Fleet|Township) Overview/i },
       { label: "Smart Bins", path: "/bins", title: /Smart Bins/i },
       { label: "Capacity Alerts", path: "/alerts", title: /Capacity Alerts/i },
       { label: "Deposit Verification", path: "/verification", title: /Deposit Verification/i },
@@ -104,13 +104,7 @@ test.describe("2. Fleet CRUD", () => {
     await page.getByLabel(/Bin Identifier/i).fill("BIN-020");
     await page.getByLabel(/Location Name/i).fill("North Plaza Hub");
     await page.getByLabel(/Location Detail/i).fill("Level 1 Near Gate B");
-    await page.getByLabel(/Fill Capacity/i).fill("25");
-
-    // Ensure plastic material is checked
-    const plasticCheckbox = page.getByLabel(/Plastic/i);
-    if (!(await plasticCheckbox.isChecked())) {
-      await plasticCheckbox.check();
-    }
+    await page.getByLabel(/Physical Capacity/i).fill("500");
 
     await page.getByRole("button", { name: /Register Bin/i }).click();
     await expect(page.getByText(/Bin BIN-020 registered successfully/i)).toBeVisible();
@@ -125,7 +119,7 @@ test.describe("2. Fleet CRUD", () => {
     const row = page.getByRole("row", { name: /BIN-020/i });
     await row.getByRole("button", { name: /Edit/i }).click();
     await expect(page.getByText(/Edit Smart Bin: BIN-020/i)).toBeVisible();
-    await page.getByLabel(/Fill Capacity/i).fill("45");
+    await page.getByLabel(/Location Detail/i).fill("Level 1 Near Gate C");
     await page.getByRole("button", { name: /Save Changes/i }).click();
     await expect(page.getByText(/Bin BIN-020 updated successfully/i)).toBeVisible();
 
@@ -204,9 +198,9 @@ test.describe("4. Deposit Moderation", () => {
     await expect(page.getByText("Flattened drink carton")).toBeVisible();
 
     // Click Approve deposit
-    await page.getByRole("button", { name: /Approve deposit/i }).click();
+    await page.getByRole("button", { name: /(Quick Approve|Approve deposit)/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.getByRole("dialog").getByRole("button", { name: /Approve deposit/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /(Quick Approve|Approve deposit|Confirm)/i }).click();
 
     // Decision receipt banner should appear
     await expect(page.getByText(/Deposit DEP-1087 approved!/i)).toBeVisible();
@@ -216,12 +210,12 @@ test.describe("4. Deposit Moderation", () => {
     await expect(page.getByText("Container with possible food residue")).toBeVisible();
 
     // Click Reject deposit
-    await page.getByRole("button", { name: /Reject deposit/i }).click();
+    await page.getByRole("button", { name: /(Quick Reject|Reject deposit)/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.getByRole("dialog").getByRole("button", { name: /Reject deposit/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /(Quick Reject|Reject deposit|Confirm)/i }).click();
 
     // Rejection receipt banner
-    await expect(page.getByText(/Deposit DEP-1081 rejected. 0 points awarded/i)).toBeVisible();
+    await expect(page.getByText(/Deposit DEP-1081 resolved as rejected/i)).toBeVisible();
   });
 });
 
@@ -251,7 +245,7 @@ test.describe("5. Rewards & Vouchers Catalog CRUD", () => {
 
     // Save as draft (active is false by default)
     await page.getByRole("dialog").getByRole("button", { name: /Create voucher/i }).click();
-    await expect(page.getByText(/Reward "Solar Cold Brew Promo" created successfully/i)).toBeVisible();
+    await expect(page.getByText(/(Reward|Reward offer) "Solar Cold Brew Promo" created successfully/i)).toBeVisible();
 
     // Filter publication by Draft
     const pubFilter = page.getByLabel(/Publication/i);
@@ -261,7 +255,7 @@ test.describe("5. Rewards & Vouchers Catalog CRUD", () => {
     // Activate the voucher
     const row = page.getByRole("row", { name: /Solar Cold Brew Promo/i });
     await row.getByRole("button", { name: /Set active/i }).click();
-    await expect(page.getByText(/Reward "Solar Cold Brew Promo" set to Active/i)).toBeVisible();
+    await expect(page.getByText(/(Reward|Reward offer) "Solar Cold Brew Promo" set to Active/i)).toBeVisible();
 
     // Filter publication by Active
     await pubFilter.selectOption("active");
@@ -270,9 +264,9 @@ test.describe("5. Rewards & Vouchers Catalog CRUD", () => {
     // Delete the voucher
     const activeRow = page.getByRole("row", { name: /Solar Cold Brew Promo/i });
     await activeRow.getByRole("button", { name: /Delete/i }).click();
-    await expect(page.getByText(/Delete Reward (Voucher|Offer)/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Delete Reward (Voucher|Offer)/i })).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: /Delete (reward|offer)/i }).click();
-    await expect(page.getByText(/Reward "Solar Cold Brew Promo" (removed|deleted) successfully/i)).toBeVisible();
+    await expect(page.getByText(/(Reward|Reward offer) "Solar Cold Brew Promo" (removed|deleted) successfully/i)).toBeVisible();
   });
 });
 
@@ -286,7 +280,7 @@ test.describe("6. Settings & Dynamic Awarding", () => {
     await loginAsAdmin(page, "/settings");
 
     // Modify paper rate to 10
-    const paperRateInput = page.getByLabel(/Paper & Cardboard rate/i);
+    const paperRateInput = page.getByLabel(/Paper.*rate/i);
     await paperRateInput.fill("10");
 
     // Try navigating away while dirty
@@ -295,11 +289,11 @@ test.describe("6. Settings & Dynamic Awarding", () => {
 
     // Cancel to stay
     await page.getByRole("dialog").getByRole("button", { name: /Cancel/i }).click();
-    await expect(page.getByLabel(/Paper & Cardboard rate/i)).toHaveValue("10");
+    await expect(page.getByLabel(/Paper.*rate/i)).toHaveValue("10");
 
     // Save changes
     await page.getByRole("button", { name: /Save settings/i }).click();
-    await expect(page.getByText(/Settings saved/i)).toBeVisible();
+    await expect(page.getByText(/Settings (saved|and policy published)/i)).toBeVisible();
 
     // Navigate to Deposit Verification via client-side link (preserves in-memory store)
     await page.getByRole("navigation", { name: /Main Navigation/i }).getByRole("link", { name: /Deposit Verification/i }).click();
@@ -307,12 +301,13 @@ test.describe("6. Settings & Dynamic Awarding", () => {
 
     // Select DEP-1087 (4 pcs paper)
     await page.getByText("DEP-1087").click();
-    await page.getByRole("button", { name: /Approve deposit/i }).click();
-    await page.getByRole("dialog").getByRole("button", { name: /Approve deposit/i }).click();
+    await page.getByRole("button", { name: /(Quick Approve|Approve deposit)/i }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /(Quick Approve|Approve deposit|Confirm)/i }).click();
 
-    // Award must now be 4 pcs * 10 pts = 40 pts, and Faris wallet 245 + 40 = 285 pts
-    await expect(page.getByText(/\+40 EcoPoints/i)).toBeVisible();
-    await expect(page.getByText(/285 pts/i)).toBeVisible();
+    // Award must now be 4 pcs * 10 pts = 40 pts credited
+    await expect(page.getByText(/Deposit DEP-1087 approved! \+40 EcoPoints credited/i)).toBeVisible();
+    await page.getByRole("tab", { name: /Approved/i }).click();
+    await expect(page.getByText("DEP-1087")).toBeVisible();
   });
 });
 

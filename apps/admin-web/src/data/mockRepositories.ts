@@ -997,6 +997,8 @@ export function createMockRepositories(options?: {
 
         const nextRewardCost = computeNextRewardCost(wallet.balance, state.rewards);
         const receipt: VerificationDecisionResult = {
+          outcome: "verified",
+          pointsAwarded: awardedPoints,
           detail: {
             ticket: clone(ticket),
             transaction: clone(tx),
@@ -1026,6 +1028,8 @@ export function createMockRepositories(options?: {
 
         const nextRewardCost = computeNextRewardCost(wallet.balance, state.rewards);
         const receipt: VerificationDecisionResult = {
+          outcome: "rejected",
+          pointsAwarded: 0,
           detail: {
             ticket: clone(ticket),
             transaction: clone(tx),
