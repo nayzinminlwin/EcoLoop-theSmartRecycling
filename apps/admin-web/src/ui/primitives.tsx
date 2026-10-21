@@ -1,3 +1,4 @@
+/// <reference path="../vite-env.d.ts" />
 // =============================================================================
 // primitives.tsx — Reusable UI control atoms, inputs, badges and headers
 // Phase 4 — Accessible, typed, style-system controls for EcoLoop Admin

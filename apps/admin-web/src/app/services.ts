@@ -4,10 +4,78 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
-import type { Observable, MockBundle } from "../data/repositories.ts";
+import type { Observable, AdminRepositories, MockBundle } from "../data/repositories.ts";
 import { createMockRepositories } from "../data/mockRepositories.ts";
+import { firebaseConfig, type BackendMode } from "../core/firebase/config.ts";
+import { getFirebaseServices } from "../core/firebase/app.ts";
+import { initAppCheck } from "../core/firebase/appCheck.ts";
+import { FirebaseCommandClient } from "../core/firebase/commandClient.ts";
+import { FirebaseAuthRepository } from "../data/firebase/firebaseAuthRepository.ts";
 
-export const services: MockBundle = createMockRepositories();
+export interface AdminServiceBundle {
+  readonly repositories: AdminRepositories;
+  readonly controls?: MockBundle["controls"];
+  readonly mode: BackendMode;
+  readonly commandClient?: FirebaseCommandClient;
+  subscribe(listener: () => void): () => void;
+  getRevision(): number;
+}
+
+function createAdminServiceBundle(): AdminServiceBundle {
+  if (firebaseConfig.mode === "mock") {
+    const mock = createMockRepositories();
+    return {
+      repositories: mock.repositories,
+      controls: mock.controls,
+      mode: "mock",
+      subscribe: mock.subscribe,
+      getRevision: mock.getRevision,
+    };
+  }
+
+  // Live or emulator mode
+  const { app, auth, functions } = getFirebaseServices(firebaseConfig);
+  initAppCheck(app);
+
+  const commandClient = new FirebaseCommandClient(functions);
+  const authRepo = new FirebaseAuthRepository(auth, functions);
+
+  // For domain repositories not yet activated (bins, alerts, rewards, settings),
+  // retain baseline mock repositories until their respective phases (AB-03 to AB-08)
+  const fallbackMock = createMockRepositories();
+
+  let revision = 1;
+  const listeners = new Set<() => void>();
+
+  function notify() {
+    revision += 1;
+    listeners.forEach((l) => l());
+  }
+
+  // When auth changes, notify subscribers to refresh views
+  authRepo.watchAuthState().subscribe({
+    next: () => notify(),
+    error: () => notify(),
+  });
+
+  const repositories: AdminRepositories = {
+    ...fallbackMock.repositories,
+    auth: authRepo,
+  };
+
+  return {
+    repositories,
+    mode: firebaseConfig.mode,
+    commandClient,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getRevision: () => revision,
+  };
+}
+
+export const services: AdminServiceBundle = createAdminServiceBundle();
 
 export interface QueryState<T> {
   data: T | null;

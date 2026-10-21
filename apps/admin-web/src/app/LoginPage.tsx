@@ -203,14 +203,16 @@ export function LoginPage(): React.ReactElement {
               Sign In
             </Button>
 
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={loginMutation.pending}
-              onClick={handleFillDemoCredentials}
-            >
-              Use demo credentials
-            </Button>
+            {services.mode !== "firebase" && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loginMutation.pending}
+                onClick={handleFillDemoCredentials}
+              >
+                Use demo credentials
+              </Button>
+            )}
           </div>
         </form>
       </div>

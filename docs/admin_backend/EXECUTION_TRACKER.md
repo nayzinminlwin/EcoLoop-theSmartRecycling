@@ -14,7 +14,7 @@
 | Phase | Title | Lead | Status | Evidence Document | Target Commit Message | Commit SHA |
 | --- | --- | --- | --- | --- | --- | --- |
 | **AB-01** | Freeze the integration contract and handoff | Agent | COMPLETE | [AB-01_freeze_contract_and_handoff.md](evidence/AB-01_freeze_contract_and_handoff.md) | `docs: define admin backend integration contracts and handoff` | `7dda851` |
-| **AB-02** | Real admin identity, service composition and command recovery | Agent | NOT_STARTED | `evidence/AB-02_auth_and_recovery.md` | `feat: connect admin authentication and trusted command transport` | — |
+| **AB-02** | Real admin identity, service composition and command recovery | Agent | COMPLETE | [AB-02_auth_and_recovery.md](evidence/AB-02_auth_and_recovery.md) | `feat: connect admin authentication and trusted command transport` | *Pending commit* |
 | **AB-03** | Real read layer, query projections and indexes | Agent | NOT_STARTED | `evidence/AB-03_read_projections.md` | `feat: establish admin query projections and composite indexes` | — |
 | **AB-04** | Bin management and usable registered QR codes | Agent | NOT_STARTED | `evidence/AB-04_bin_fleet_management.md` | `feat: implement admin smart bin lifecycle and qr generation` | — |
 | **AB-05** | Immutable program settings and policy publication | Agent | NOT_STARTED | `evidence/AB-05_program_settings_policy.md` | `feat: implement admin program policy publication` | — |
@@ -31,18 +31,43 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 09:35 UTC+8
+Updated: 2026-10-21 09:45 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-01 complete; ready for Phase AB-02 startup
-Source SHA: 7dda851 (branch: dev1)
+Phase and substep: AB-02 complete; ready for commit and Phase AB-03 startup
+Source SHA: c7bb66a (branch: dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
   - Storage Bucket: ecoloop-thesmartrecycling.firebasestorage.app
   - Functions Region: us-central1 (admin callables & resident gateway)
   - Vision Worker Region: asia-southeast1
-Exact target files created/staged for AB-01:
+Exact target files created/staged for AB-02:
+  - apps/admin-web/package.json
+  - apps/admin-web/src/vite-env.d.ts
+  - apps/admin-web/src/core/firebase/config.ts
+  - apps/admin-web/src/core/firebase/app.ts
+  - apps/admin-web/src/core/firebase/appCheck.ts
+  - apps/admin-web/src/core/firebase/commandClient.ts
+  - apps/admin-web/src/data/firebase/firebaseAuthRepository.ts
+  - apps/admin-web/src/app/services.ts
+  - apps/admin-web/src/app/LoginPage.tsx
+  - apps/admin-web/src/ui/primitives.tsx
+  - apps/admin-web/tests/admin_auth_ab02.test.ts
+  - functions/src/domain/admin_crypto.ts
+  - functions/src/infrastructure/firestore/admin_accounts_store.ts
+  - functions/src/infrastructure/firestore/admin_operations_store.ts
+  - functions/src/composition.ts
+  - functions/src/index.ts
+  - functions/src/transport/admin_guard.ts
+  - functions/src/transport/admin_context.ts
+  - functions/tools/admin_provision.ts
+  - functions/tools/copy-contracts.mjs
+  - firestore.rules
+  - storage.rules
+  - docs/admin_backend/EXECUTION_TRACKER.md
+  - docs/admin_backend/evidence/AB-02_auth_and_recovery.md
+  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB02_AdminIdentityAndCommandRecovery.md
   - contracts/admin/v1/commands.schema.json
   - contracts/admin/v1/dtos.schema.json
   - contracts/admin/v1/golden_cases.json

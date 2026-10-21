@@ -24,3 +24,7 @@ export {
 export { dispatchPendingJobs } from "./transport/dispatch.js";
 export { dispatchPendingNotifications } from "./transport/notification_dispatch.js";
 export { reconcileBackendState, runDailyMaintenance } from "./transport/schedules.js";
+export {
+  getAdminContext,
+  recoverAdminOperation,
+} from "./transport/admin_context.js";

@@ -9,9 +9,9 @@
     "preview": "vite preview --host 127.0.0.1 --port 4174 --strictPort",
     "check": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --target ES2022 --module ESNext --moduleResolution Bundler --jsx react --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowImportingTsExtensions",
     "lint": "npm run check -- src/main.tsx",
-    "check:tests": "npm run check -- tests/contracts.test.ts",
+    "check:tests": "npm run check -- tests/contracts.test.ts tests/admin_auth_ab02.test.ts",
     "build": "vite build",
-    "test": "node --experimental-strip-types --test tests/contracts.test.ts",
+    "test": "node --experimental-strip-types --test tests/contracts.test.ts tests/admin_auth_ab02.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-router-dom": "7.6.2",
+    "firebase": "10.14.1",
     "zod": "3.24.2"
   },
   "devDependencies": {

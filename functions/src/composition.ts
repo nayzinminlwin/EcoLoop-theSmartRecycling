@@ -13,6 +13,8 @@ import { FirestoreNotificationsStore } from "./infrastructure/firestore/notifica
 import { FirebaseMessagingProvider } from "./infrastructure/messaging.js";
 import { DurableNotificationDispatcher } from "./application/notifications.js";
 import { FirestoreMaintenanceStore } from "./infrastructure/firestore/maintenance_store.js";
+import { FirestoreAdminAccountsStore } from "./infrastructure/firestore/admin_accounts_store.js";
+import { FirestoreAdminOperationsStore } from "./infrastructure/firestore/admin_operations_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -28,6 +30,8 @@ export function createComposition() {
     firestore,
     auth,
     accounts: new FirestoreAccountsStore(firestore, auth),
+    adminAccounts: new FirestoreAdminAccountsStore(firestore, auth),
+    adminOperations: new FirestoreAdminOperationsStore(firestore),
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     jobs: new FirestoreJobsStore(firestore),

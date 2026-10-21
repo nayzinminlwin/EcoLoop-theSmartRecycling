@@ -12,8 +12,8 @@ service firebase.storage {
 
     function isAdmin() {
       return signedIn() &&
-        ('admin' in request.auth.token) &&
-        request.auth.token.admin == true;
+        (('role' in request.auth.token && request.auth.token.role == 'admin') ||
+         ('admin' in request.auth.token && request.auth.token.admin == true));
     }
 
     match /simulation-assets/{assetId}/{assetVersion}/{fileName=**} {
@@ -32,7 +32,7 @@ service firebase.storage {
     }
 
     match /inspection-evidence/{residentId}/{depositId}/{runId}/{fileName=**} {
-      allow read: if isOwner(residentId) || isAdmin();
+      allow read: if isOwner(residentId);
       allow write: if false;
     }
 

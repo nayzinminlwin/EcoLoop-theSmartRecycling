@@ -11,7 +11,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
+      return signedIn() &&
+        (request.auth.token.role == 'admin' || request.auth.token.admin == true) &&
+        exists(/databases/$(database)/documents/adminAccounts/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/adminAccounts/$(request.auth.uid)).data.enabled == true;
     }
 
     function canReadCatalog() {
@@ -101,11 +104,56 @@ service cloud.firestore {
       allow write: if false;
 
       match /{subcollection}/{documentId} {
-        allow read, write: if isAdmin();
+        allow read: if isAdmin();
+        allow write: if false;
       }
     }
 
     match /reviewTickets/{ticketId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminAccounts/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+    }
+
+    match /adminSettings/{settingId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminOperations/{operationId} {
+      allow read, write: if false;
+    }
+
+    match /adminAuditEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminBinViews/{binId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminAlertViews/{alertId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminReviewViews/{reviewId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminRewardViews/{rewardId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /adminDashboard/{dashboardId} {
       allow read: if isAdmin();
       allow write: if false;
     }
