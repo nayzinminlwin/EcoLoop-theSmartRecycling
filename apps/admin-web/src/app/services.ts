@@ -16,6 +16,7 @@ import { FirebaseRewardRepository } from "../data/firebase/firebaseRewardReposit
 import { FirebaseSettingsRepository } from "../data/firebase/firebaseSettingsRepository.ts";
 import { FirebaseAlertsRepository } from "../data/firebase/firebaseAlertsRepository.ts";
 import { FirebaseVerificationRepository } from "../data/firebase/firebaseVerificationRepository.ts";
+import { FirebaseDashboardRepository } from "../data/firebase/firebaseDashboardRepository.ts";
 
 export interface AdminServiceBundle {
   readonly repositories: AdminRepositories;
@@ -96,6 +97,12 @@ function createAdminServiceBundle(): AdminServiceBundle {
     commandClient,
     fallbackMock.repositories.verification
   );
+  const dashboardRepo = new FirebaseDashboardRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.dashboard
+  );
 
   let revision = 1;
   let authGeneration = 1;
@@ -133,6 +140,7 @@ function createAdminServiceBundle(): AdminServiceBundle {
     verification: verificationRepo,
     rewards: rewardsRepo,
     settings: settingsRepo,
+    dashboard: dashboardRepo,
   };
 
   return {

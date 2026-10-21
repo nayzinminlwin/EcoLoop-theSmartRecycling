@@ -9,9 +9,9 @@
     "preview": "vite preview --host 127.0.0.1 --port 4174 --strictPort",
     "check": "tsc --noEmit --strict --noUnusedLocals --noUnusedParameters --target ES2022 --module ESNext --moduleResolution Bundler --jsx react --lib ES2022,DOM,DOM.Iterable --skipLibCheck --allowImportingTsExtensions",
     "lint": "npm run check -- src/main.tsx",
-    "check:tests": "npm run check -- tests/contracts.test.ts tests/admin_auth_ab02.test.ts tests/admin_queries_ab03.test.ts tests/admin_bins_ab04.test.ts tests/admin_settings_ab05.test.ts tests/admin_alerts_ab06.test.ts tests/admin_reviews_ab07.test.ts tests/admin_rewards_ab08.test.ts",
+    "check:tests": "npm run check -- tests/contracts.test.ts tests/admin_auth_ab02.test.ts tests/admin_queries_ab03.test.ts tests/admin_bins_ab04.test.ts tests/admin_settings_ab05.test.ts tests/admin_alerts_ab06.test.ts tests/admin_reviews_ab07.test.ts tests/admin_rewards_ab08.test.ts tests/admin_dashboard_ab09.test.ts",
     "build": "vite build",
-    "test": "node --experimental-strip-types --test tests/contracts.test.ts && node --experimental-strip-types --test tests/admin_auth_ab02.test.ts && node --experimental-strip-types --test tests/admin_queries_ab03.test.ts && node --experimental-strip-types --test tests/admin_bins_ab04.test.ts && node --experimental-strip-types --test tests/admin_settings_ab05.test.ts && node --experimental-strip-types --test tests/admin_alerts_ab06.test.ts && node --experimental-strip-types --test tests/admin_reviews_ab07.test.ts && node --experimental-strip-types --test tests/admin_rewards_ab08.test.ts",
+    "test": "node --experimental-strip-types --test tests/contracts.test.ts && node --experimental-strip-types --test tests/admin_auth_ab02.test.ts && node --experimental-strip-types --test tests/admin_queries_ab03.test.ts && node --experimental-strip-types --test tests/admin_bins_ab04.test.ts && node --experimental-strip-types --test tests/admin_settings_ab05.test.ts && node --experimental-strip-types --test tests/admin_alerts_ab06.test.ts && node --experimental-strip-types --test tests/admin_reviews_ab07.test.ts && node --experimental-strip-types --test tests/admin_rewards_ab08.test.ts && node --experimental-strip-types --test tests/admin_dashboard_ab09.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

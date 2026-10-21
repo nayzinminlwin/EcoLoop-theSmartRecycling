@@ -682,4 +682,217 @@ export function adminReviewDetailToVerificationDetail(view: AdminReviewDetailVie
   return { ticket, transaction, resident, bin };
 }
 
+// ---------------------------------------------------------------------------
+// Dashboard View Codecs (Phase AB-09)
+// ---------------------------------------------------------------------------
+
+export interface AdminDailyActivityView {
+  readonly date: string;
+  readonly depositsCount: number;
+  readonly pointsAwarded: number;
+}
+
+export interface AdminMaterialMixView {
+  readonly materialType: "plastic" | "aluminium" | "paper" | "glass" | "unknown";
+  readonly percentage: number;
+  readonly itemCount: number;
+  readonly weightKg?: number;
+}
+
+export interface AdminAttentionBinView {
+  readonly binId: string;
+  readonly locationName: string;
+  readonly fillPercent: number;
+  readonly collectionState: "normal" | "warning" | "critical" | "collection_pending";
+}
+
+export interface AdminDashboardView {
+  readonly registeredBins: number;
+  readonly activeAlerts: number;
+  readonly pendingReviews: number;
+  readonly verifiedDepositsToday: number;
+  readonly pointsIssuedToday: number;
+  readonly totalVerifiedDeposits?: number;
+  readonly totalPointsIssued?: number;
+  readonly totalWeightKg?: number;
+  readonly lastCalculatedAt: string;
+  readonly dailyActivity: AdminDailyActivityView[];
+  readonly materialMix: AdminMaterialMixView[];
+  readonly attentionBins: AdminAttentionBinView[];
+}
+
+export function decodeAdminDashboardView(raw: unknown): AdminDashboardView {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid admin dashboard view payload: must be a non-null object.");
+  }
+  const r = raw as Record<string, unknown>;
+
+  const registeredBins = Math.max(0, Number(r.registeredBins ?? 0));
+  const activeAlerts = Math.max(0, Number(r.activeAlerts ?? 0));
+  const pendingReviews = Math.max(0, Number(r.pendingReviews ?? 0));
+  const verifiedDepositsToday = Math.max(0, Number(r.verifiedDepositsToday ?? 0));
+  const pointsIssuedToday = Math.max(0, Number(r.pointsIssuedToday ?? 0));
+  const totalVerifiedDeposits = r.totalVerifiedDeposits !== undefined ? Math.max(0, Number(r.totalVerifiedDeposits)) : undefined;
+  const totalPointsIssued = r.totalPointsIssued !== undefined ? Math.max(0, Number(r.totalPointsIssued)) : undefined;
+  const totalWeightKg = r.totalWeightKg !== undefined ? Math.max(0, Number(r.totalWeightKg)) : undefined;
+  const lastCalculatedAt = normalizeTimestamp(r.lastCalculatedAt);
+
+  const dailyActivity: AdminDailyActivityView[] = Array.isArray(r.dailyActivity)
+    ? r.dailyActivity.map((a: unknown) => {
+        const item = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+        return {
+          date: String(item.date ?? ""),
+          depositsCount: Math.max(0, Number(item.depositsCount ?? 0)),
+          pointsAwarded: Math.max(0, Number(item.pointsAwarded ?? 0)),
+        };
+      })
+    : [];
+
+  const materialMix: AdminMaterialMixView[] = Array.isArray(r.materialMix)
+    ? r.materialMix.map((m: unknown) => {
+        const item = (m && typeof m === "object" ? m : {}) as Record<string, unknown>;
+        const rawType = String(item.materialType ?? "unknown");
+        const matType = (["plastic", "aluminium", "paper", "glass"].includes(rawType)
+          ? rawType
+          : "unknown") as AdminMaterialMixView["materialType"];
+        return {
+          materialType: matType,
+          percentage: Math.min(100, Math.max(0, Number(item.percentage ?? 0))),
+          itemCount: Math.max(0, Number(item.itemCount ?? 0)),
+          ...(item.weightKg !== undefined ? { weightKg: Math.max(0, Number(item.weightKg)) } : {}),
+        };
+      })
+    : [];
+
+  const attentionBins: AdminAttentionBinView[] = Array.isArray(r.attentionBins)
+    ? r.attentionBins.map((b: unknown) => {
+        const item = (b && typeof b === "object" ? b : {}) as Record<string, unknown>;
+        const rawState = String(item.collectionState ?? "normal");
+        const collectionState = (["normal", "warning", "critical", "collection_pending"].includes(rawState)
+          ? rawState
+          : "normal") as AdminAttentionBinView["collectionState"];
+        return {
+          binId: String(item.binId ?? ""),
+          locationName: String(item.locationName ?? "Unknown Location"),
+          fillPercent: Math.min(100, Math.max(0, Number(item.fillPercent ?? 0))),
+          collectionState,
+        };
+      })
+    : [];
+
+  return {
+    registeredBins,
+    activeAlerts,
+    pendingReviews,
+    verifiedDepositsToday,
+    pointsIssuedToday,
+    totalVerifiedDeposits,
+    totalPointsIssued,
+    totalWeightKg,
+    lastCalculatedAt,
+    dailyActivity,
+    materialMix,
+    attentionBins,
+  };
+}
+
+const DISPLAY_NAMES: Record<string, string> = {
+  plastic: "Plastic Bottles",
+  aluminium: "Aluminium Cans",
+  paper: "Paper & Packaging",
+  glass: "Glass Containers",
+  unknown: "Other Items",
+};
+
+const DISPLAY_WEIGHTS: Record<string, number> = {
+  plastic: 0.025,
+  aluminium: 0.015,
+  paper: 0.050,
+  glass: 0.200,
+  unknown: 0,
+};
+
+export function adminDashboardViewToSummary(
+  view: AdminDashboardView,
+  attentionBinLookup?: Map<string, SmartBinRow>
+): import("./admin.ts").DashboardSummary {
+  const activity = view.dailyActivity.map((a) => ({
+    date: a.date,
+    verifiedDepositCount: a.depositsCount,
+  }));
+
+  let calculatedWeight = 0;
+  const materialMix = view.materialMix.map((m) => {
+    const unitWeight = DISPLAY_WEIGHTS[m.materialType] ?? 0;
+    const weightKg = m.weightKg !== undefined
+      ? m.weightKg
+      : Math.round(m.itemCount * unitWeight * 1000) / 1000;
+    calculatedWeight += weightKg;
+    return {
+      materialType: (m.materialType === "unknown" ? "unknown" : m.materialType) as import("./shared.ts").MaterialType,
+      displayName: DISPLAY_NAMES[m.materialType] ?? m.materialType,
+      weightKg,
+    };
+  });
+
+  const totalWeightKg = view.totalWeightKg !== undefined
+    ? view.totalWeightKg
+    : Math.round(calculatedWeight * 1000) / 1000;
+
+  const attentionBins: SmartBinRow[] = view.attentionBins.map((b) => {
+    const existing = attentionBinLookup?.get(b.binId);
+    if (existing) {
+      return {
+        ...existing,
+        bin: {
+          ...existing.bin,
+          capacityPercent: b.fillPercent,
+        },
+        operations: {
+          ...existing.operations,
+          collectionStatus: b.collectionState === "critical" || b.collectionState === "collection_pending"
+            ? "pending"
+            : b.collectionState === "warning"
+            ? "scheduled"
+            : existing.operations.collectionStatus,
+        },
+      };
+    }
+
+    const band = b.fillPercent >= 85 ? "critical" : b.fillPercent >= 75 ? "warning" : "normal";
+    return {
+      bin: {
+        id: b.binId,
+        locationName: b.locationName,
+        locationDetail: "Smart Recycling Chamber",
+        capacityPercent: b.fillPercent,
+        acceptedMaterials: ["plastic", "aluminium", "paper", "glass"],
+        isOnline: true,
+        lastUpdatedAt: view.lastCalculatedAt,
+      },
+      operations: {
+        binId: b.binId,
+        collectionStatus: b.collectionState === "critical" || b.collectionState === "collection_pending"
+          ? "pending"
+          : band === "warning"
+          ? "scheduled"
+          : "notScheduled",
+      },
+    };
+  });
+
+  return {
+    registeredBins: view.registeredBins,
+    activeAlerts: view.activeAlerts,
+    verifiedDeposits: view.totalVerifiedDeposits ?? view.verifiedDepositsToday,
+    ecoPointsIssued: view.totalPointsIssued ?? view.pointsIssuedToday,
+    totalWeightKg,
+    activity,
+    materialMix,
+    attentionBins,
+    updatedAt: view.lastCalculatedAt,
+  };
+}
+
+
 

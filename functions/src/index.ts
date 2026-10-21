@@ -66,5 +66,10 @@ export {
   adminDeleteUnusedReward,
   adminDeleteRewardOffer,
 } from "./transport/admin_rewards.js";
+export {
+  getAdminDashboard,
+  rebuildAdminDashboard,
+} from "./transport/admin_dashboard.js";
+
 
 

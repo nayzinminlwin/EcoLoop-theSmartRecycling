@@ -196,6 +196,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /adminDashboardViews/{dashboardId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /notificationEvents/{eventId} {
       allow read: if signedIn() &&
         resource.data.recipientUid == request.auth.uid;
