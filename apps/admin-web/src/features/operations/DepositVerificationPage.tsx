@@ -67,15 +67,37 @@ function formatTime(iso: string | null | undefined): string {
   }
 }
 
+import type {
+  AdminReviewDetailView,
+  ObjectResolutionDecisionInput,
+  ReviewResolutionPreview,
+  ResolveReviewInput,
+} from "../../contracts/adminViewCodecs.ts";
+
 function maskResidentId(id: string): string {
+  if (!id) return "—";
+  if (id.startsWith("Resident ")) return id;
   const parts = id.split("-");
   if (parts.length === 2) {
     const num = parts[1];
     const tail = num.slice(-3);
     return `${parts[0]}-•••${tail}`;
   }
+  if (id.length > 6) {
+    return `${id.slice(0, 3)}•••${id.slice(-3)}`;
+  }
   return id;
 }
+
+const CANONICAL_CLASSES: Array<{ value: string; label: string; eligible: boolean }> = [
+  { value: "plastic_bottle", label: "Plastic Bottle", eligible: true },
+  { value: "aluminium_can", label: "Aluminium Can", eligible: true },
+  { value: "glass_bottle", label: "Glass Bottle", eligible: true },
+  { value: "paper_item", label: "Paper Item", eligible: true },
+  { value: "paper_bag", label: "Paper Bag", eligible: true },
+  { value: "cardboard_item", label: "Cardboard (Excluded)", eligible: false },
+  { value: "other", label: "Other / Contaminant", eligible: false },
+];
 
 // ---------------------------------------------------------------------------
 // 2. Private VerificationDetailPanel Component
@@ -89,21 +111,107 @@ interface VerificationDetailPanelProps {
 function VerificationDetailPanel(props: VerificationDetailPanelProps): React.ReactElement {
   const { ticketId, onClearSelection } = props;
 
-  // Unconditional observation of selected ticket
+  // Observation of selected ticket & review detail
   const detailQuery = useObservableQuery<VerificationDetail | null>(
     `verification:${ticketId}`,
     () => services.repositories.verification.watch(ticketId)
   );
 
-  // Private UI state: decision and idempotencyKey
-  const [decision, setDecision] = React.useState<"approve" | "reject" | null>(null);
-  const [idempotencyKey, setIdempotencyKey] = React.useState<string | null>(null);
+  const reviewDetailQuery = useObservableQuery<AdminReviewDetailView | null>(
+    `reviewDetail:${ticketId}`,
+    () => {
+      if (services.repositories.verification.watchReviewDetail) {
+        return services.repositories.verification.watchReviewDetail(ticketId);
+      }
+      return {
+        subscribe: (observer) => {
+          return services.repositories.verification.watch(ticketId).subscribe({
+            next: () => {
+              if (services.repositories.verification.getReviewDetail) {
+                services.repositories.verification
+                  .getReviewDetail(ticketId)
+                  .then(observer.next)
+                  .catch(observer.error);
+              }
+            },
+            error: observer.error,
+          });
+        },
+      };
+    }
+  );
+
+  // Private resolution editor UI state
+  const [inventoryState, setInventoryState] = React.useState<"resolved" | "empty" | "unreadable">("resolved");
+  const [objectDecisions, setObjectDecisions] = React.useState<ObjectResolutionDecisionInput[]>([]);
+  const [explanation, setExplanation] = React.useState<string>("Verified by operator review.");
+  const [preview, setPreview] = React.useState<ReviewResolutionPreview | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = React.useState<boolean>(false);
+  const [confirmModalOpen, setConfirmModalOpen] = React.useState<boolean>(false);
+  const [confirmAction, setConfirmAction] = React.useState<"resolve" | "quickApprove" | "quickReject">("resolve");
   const [lastReceipt, setLastReceipt] = React.useState<VerificationDecisionResult | null>(null);
 
   const decideMutation = useMutation();
   const detail = detailQuery.data;
+  const reviewDetail = reviewDetailQuery.data;
 
-  // 1. Loading State
+  // Synchronize decisions when review findings load
+  React.useEffect(() => {
+    if (reviewDetail?.findings && reviewDetail.findings.length > 0) {
+      setObjectDecisions(
+        reviewDetail.findings.map((f) => ({
+          objectId: f.objectId,
+          resolvedClass: f.resolvedClass ?? f.detectedClass,
+          decision: f.decision ?? (f.detectedClass === "cardboard_item" ? "exclude" : "accept"),
+          note: f.note ?? "",
+        }))
+      );
+    } else if (detail) {
+      setObjectDecisions([
+        {
+          objectId: "obj-1",
+          resolvedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+          decision: "accept",
+          note: "",
+        },
+      ]);
+    }
+  }, [reviewDetail?.review.ticketId, reviewDetail?.review.decisionVersion, detail?.ticket.id]);
+
+  const isFinalized = detail?.ticket.status !== "awaitingReview";
+
+  // Server-computed live resolution preview
+  React.useEffect(() => {
+    if (!detail || isFinalized) return;
+    let active = true;
+    setIsPreviewLoading(true);
+
+    if (services.repositories.verification.previewResolution) {
+      services.repositories.verification
+        .previewResolution({
+          ticketId,
+          inventoryState,
+          objects: objectDecisions,
+        })
+        .then((res) => {
+          if (active) {
+            setPreview(res);
+            setIsPreviewLoading(false);
+          }
+        })
+        .catch(() => {
+          if (active) setIsPreviewLoading(false);
+        });
+    } else {
+      setIsPreviewLoading(false);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [ticketId, inventoryState, objectDecisions, isFinalized, detail?.ticket.status]);
+
+  // Loading State
   if (detailQuery.loading && !detail) {
     return (
       <section className="panel review-detail">
@@ -116,7 +224,7 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
     );
   }
 
-  // 2. Query Error State
+  // Error State
   if (detailQuery.error && !detail) {
     return (
       <section className="panel review-detail">
@@ -130,7 +238,7 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
     );
   }
 
-  // 3. Not Found State (Recoverable with Clear selection)
+  // Not Found State
   if (!detail) {
     return (
       <section className="panel review-detail">
@@ -153,9 +261,8 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
   }
 
   const { ticket, transaction, resident, bin } = detail;
-  const isFinalized = ticket.status !== "awaitingReview";
 
-  // Derive points status strictly from transaction.status and transaction.pointsAwarded
+  // Derive points status strictly from transaction
   let pointsStatusText = "On hold · no points issued";
   if (transaction.status === "verified") {
     pointsStatusText = `${transaction.pointsAwarded ?? 0} points credited`;
@@ -163,38 +270,87 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
     pointsStatusText = "Not eligible";
   }
 
-  // Handlers for decision modal
-  const handleOpenApprove = () => {
-    decideMutation.clearError();
-    setDecision("approve");
-    // Generate UUID once; retain for retries
-    setIdempotencyKey(crypto.randomUUID());
+  // Object decision changes
+  const handleClassChange = (objectId: string, newClass: string) => {
+    const isCardboard = newClass === "cardboard_item";
+    setObjectDecisions((prev) =>
+      prev.map((o) =>
+        o.objectId === objectId
+          ? {
+              ...o,
+              resolvedClass: newClass,
+              decision: isCardboard ? "exclude" : o.decision,
+            }
+          : o
+      )
+    );
   };
 
-  const handleOpenReject = () => {
-    decideMutation.clearError();
-    setDecision("reject");
-    // Generate UUID once; retain for retries
-    setIdempotencyKey(crypto.randomUUID());
+  const handleDecisionToggle = (objectId: string, decision: "accept" | "exclude") => {
+    setObjectDecisions((prev) =>
+      prev.map((o) => (o.objectId === objectId ? { ...o, decision } : o))
+    );
   };
 
-  const handleCancelDecision = () => {
-    setDecision(null);
-    setIdempotencyKey(null);
+  const handleOpenResolveDialog = (action: "resolve" | "quickApprove" | "quickReject") => {
     decideMutation.clearError();
+    setConfirmAction(action);
+    setConfirmModalOpen(true);
   };
 
   const handleConfirmDecision = async () => {
-    if (!decision || !idempotencyKey) return;
-    const result = await decideMutation.run(() =>
-      services.repositories.verification.decide(ticket.id, decision, idempotencyKey)
-    );
+    const result = await decideMutation.run(async () => {
+      let finalInventoryState = inventoryState;
+      let finalObjects = objectDecisions;
+      let finalExplanation = explanation.trim() || `Resolved as ${inventoryState} by operator.`;
+
+      if (confirmAction === "quickApprove") {
+        finalInventoryState = "resolved";
+        finalObjects = objectDecisions.map((o) => ({
+          ...o,
+          decision: o.resolvedClass === "cardboard_item" ? "exclude" : "accept",
+        }));
+        finalExplanation = "Quick approved all eligible items by operator.";
+      } else if (confirmAction === "quickReject") {
+        finalInventoryState = "resolved";
+        finalObjects = objectDecisions.map((o) => ({
+          ...o,
+          decision: "exclude",
+        }));
+        finalExplanation = "Rejected all items by operator review.";
+      }
+
+      const expectedVersion = reviewDetail?.review.decisionVersion ?? 1;
+
+      if (services.repositories.verification.resolveReview) {
+        const input: ResolveReviewInput = {
+          ticketId,
+          expectedDecisionVersion: expectedVersion,
+          inventoryState: finalInventoryState,
+          objects: finalObjects,
+          explanation: finalExplanation,
+        };
+        return await services.repositories.verification.resolveReview(input);
+      } else {
+        const isApproved =
+          finalInventoryState === "resolved" &&
+          finalObjects.some((o) => o.decision === "accept");
+        return await services.repositories.verification.decide(
+          ticketId,
+          isApproved ? "approve" : "reject",
+          crypto.randomUUID()
+        );
+      }
+    });
+
     if (result) {
       setLastReceipt(result);
-      setDecision(null);
-      setIdempotencyKey(null);
+      setConfirmModalOpen(false);
     }
   };
+
+  const residentDisplayAlias =
+    reviewDetail?.review.residentAlias ?? resident.fullName ?? maskResidentId(resident.id);
 
   return (
     <section className="panel review-detail">
@@ -204,7 +360,7 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
         </Feedback>
       )}
 
-      {/* Decision Receipt Banner (kept visible even after status leaves awaitingReview) */}
+      {/* Decision Receipt Banner */}
       {lastReceipt && lastReceipt.detail.ticket.id === ticket.id && (
         <div
           className={`decision-receipt-banner ${
@@ -218,12 +374,10 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
           />
           <span>
             {lastReceipt.detail.ticket.status === "approved"
-              ? `Deposit ${lastReceipt.detail.transaction.id} approved! +${
+              ? `Deposit ${lastReceipt.detail.transaction.id} verified! +${
                   lastReceipt.detail.transaction.pointsAwarded ?? 0
-                } EcoPoints credited to ${lastReceipt.detail.resident.fullName} (New balance: ${
-                  lastReceipt.wallet.balance
-                } pts).`
-              : `Deposit ${lastReceipt.detail.transaction.id} rejected. 0 points awarded to ${lastReceipt.detail.resident.fullName}.`}
+                } EcoPoints credited to ${residentDisplayAlias}.`
+              : `Deposit ${lastReceipt.detail.transaction.id} resolved as ${lastReceipt.detail.transaction.status}. 0 points credited to ${residentDisplayAlias}.`}
           </span>
         </div>
       )}
@@ -236,12 +390,10 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
           <>
             <Icon name="camera" size={48} />
             <b>Captured item: {ticket.captureDescription}</b>
-            <span>Simulated internal camera capture</span>
+            <span>Simulated bin capture</span>
           </>
         )}
-        <span className="camera-shot-tag">
-          {ticket.captureImageUrl ? "Physical camera capture" : "Simulated internal camera capture"}
-        </span>
+        <span className="camera-shot-tag">Simulated bin capture</span>
       </div>
 
       {/* Review Heading */}
@@ -279,12 +431,12 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
           <b>{ticket.predictedMaterialLabel}</b>
         </div>
         <div>
-          <span>AI confidence</span>
-          <strong>{ticket.confidencePercent}%</strong>
+          <span>Pinned policy</span>
+          <strong>{reviewDetail?.pinnedPolicyId ? `v${reviewDetail.pinnedPolicyVersion}` : "v1.0"}</strong>
         </div>
         <div>
           <span>Resident reference</span>
-          <b>{maskResidentId(resident.id)}</b>
+          <b>{residentDisplayAlias}</b>
         </div>
         <div>
           <span>Points status</span>
@@ -297,9 +449,147 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
         <div className="decision-meta">
           <Icon name="shield" size={16} />
           <span>
-            Reviewed by <b>{ticket.reviewedByAdminId ?? "ADM-001"}</b> on{" "}
+            Reviewed by <b>{ticket.reviewedByAdminId ?? reviewDetail?.review.reviewerAlias ?? "Admin"}</b> on{" "}
             {formatDateTime(ticket.reviewedAt)}.
           </span>
+        </div>
+      )}
+
+      {/* AB-07 Multi-Object Resolution Editor (when awaiting review) */}
+      {!isFinalized && (
+        <div className="resolution-editor">
+          <div className="resolution-editor-title">
+            <h3>Chamber Inventory & Decisions</h3>
+            <span style={{ fontSize: "11px", color: "var(--muted)" }}>
+              {reviewDetail?.provisionalSpaceSpc ?? 30} spc provisional hold
+            </span>
+          </div>
+
+          {/* Inventory State Selector */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase" }}>
+              Inventory status
+            </label>
+            <div className="inventory-state-pills" role="radiogroup" aria-label="Inventory status">
+              <button
+                type="button"
+                className={`inventory-state-pill ${inventoryState === "resolved" ? "active" : ""}`}
+                onClick={() => setInventoryState("resolved")}
+              >
+                Items Present
+              </button>
+              <button
+                type="button"
+                className={`inventory-state-pill empty ${inventoryState === "empty" ? "active empty" : ""}`}
+                onClick={() => setInventoryState("empty")}
+              >
+                Affirmative Empty
+              </button>
+              <button
+                type="button"
+                className={`inventory-state-pill unreadable ${inventoryState === "unreadable" ? "active unreadable" : ""}`}
+                onClick={() => setInventoryState("unreadable")}
+              >
+                Technical / Unreadable
+              </button>
+            </div>
+          </div>
+
+          {/* Per-Object Findings List (if items present) */}
+          {inventoryState === "resolved" && (
+            <div className="findings-list">
+              {objectDecisions.map((obj, idx) => {
+                const detectedFinding = reviewDetail?.findings.find((f) => f.objectId === obj.objectId);
+                const confPercent = detectedFinding?.confidence
+                  ? Math.round(detectedFinding.confidence * 100)
+                  : ticket.confidencePercent;
+
+                return (
+                  <div key={obj.objectId} className="finding-card">
+                    <div className="finding-info">
+                      <strong>Object #{idx + 1}</strong>
+                      <small>
+                        Detected: {detectedFinding?.detectedClass ?? "item"} · {confPercent}%
+                      </small>
+                    </div>
+
+                    <div className="finding-controls">
+                      <select
+                        aria-label={`Resolved class for object ${idx + 1}`}
+                        className="class-select"
+                        value={obj.resolvedClass}
+                        onChange={(e) => handleClassChange(obj.objectId, e.target.value)}
+                      >
+                        {CANONICAL_CLASSES.map((cls) => (
+                          <option key={cls.value} value={cls.value}>
+                            {cls.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="decision-toggle-group" role="group" aria-label={`Decision for object ${idx + 1}`}>
+                        <button
+                          type="button"
+                          className={`decision-toggle-btn accept ${obj.decision === "accept" ? "active" : ""}`}
+                          onClick={() => handleDecisionToggle(obj.objectId, "accept")}
+                          disabled={obj.resolvedClass === "cardboard_item"}
+                          title={obj.resolvedClass === "cardboard_item" ? "Cardboard is excluded by policy" : "Accept item"}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          className={`decision-toggle-btn exclude ${obj.decision === "exclude" ? "active" : ""}`}
+                          onClick={() => handleDecisionToggle(obj.objectId, "exclude")}
+                        >
+                          Exclude
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Live Server-Computed Preview Card */}
+          {preview && (
+            <div className={`resolution-preview-card ${preview.outcome}`}>
+              <div className="preview-stats">
+                <div className="preview-stat">
+                  <span>Outcome</span>
+                  <strong>{preview.outcome.toUpperCase()}</strong>
+                </div>
+                <div className="preview-stat">
+                  <span>Points</span>
+                  <strong>+{preview.pointsAwarded} pts</strong>
+                </div>
+                <div className="preview-stat">
+                  <span>Accepted</span>
+                  <strong>{preview.acceptedCount} items</strong>
+                </div>
+                <div className="preview-stat">
+                  <span>Capacity delta</span>
+                  <strong>
+                    {preview.spaceDeltaSpc > 0 ? `+${preview.spaceDeltaSpc}` : preview.spaceDeltaSpc} spc
+                  </strong>
+                </div>
+              </div>
+              {isPreviewLoading && <small style={{ color: "var(--muted)" }}>Updating preview…</small>}
+            </div>
+          )}
+
+          {/* Explanation Textarea */}
+          <div className="explanation-field">
+            <label htmlFor="review-explanation">Resolution note / explanation</label>
+            <textarea
+              id="review-explanation"
+              rows={2}
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder="State reason for resolution decisions..."
+            />
+          </div>
         </div>
       )}
 
@@ -317,43 +607,66 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
         ) : (
           <>
             <Button
-              variant="danger"
+              variant="secondary"
               busy={decideMutation.pending}
-              onClick={handleOpenReject}
+              onClick={() => handleOpenResolveDialog("quickReject")}
             >
-              Reject deposit
+              Quick Reject
+            </Button>
+            <Button
+              variant="secondary"
+              busy={decideMutation.pending}
+              onClick={() => handleOpenResolveDialog("quickApprove")}
+            >
+              Quick Approve
             </Button>
             <Button
               variant="primary"
               busy={decideMutation.pending}
-              onClick={handleOpenApprove}
+              onClick={() => handleOpenResolveDialog("resolve")}
             >
-              <Icon name="check" size={16} /> Approve deposit
+              <Icon name="check" size={16} /> Submit resolution
             </Button>
           </>
         )}
       </div>
 
       <p className="fine" style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--muted)" }}>
-        Uncertain deposits never receive EcoPoints automatically. Points are issued only after an
-        admin approves an eligible item.
+        Uncertain deposits never receive EcoPoints automatically. Points and bin space corrections are
+        issued only after an admin resolves the verification ticket.
       </p>
 
       {/* Decision Confirmation Dialog */}
       <ConfirmDialog
-        open={decision !== null}
-        title={decision === "approve" ? "Approve Deposit" : "Reject Deposit"}
-        description={
-          decision === "approve"
-            ? `Approve deposit ${transaction.id} (${ticket.predictedMaterialLabel})? This will award points according to the active material rate and credit the resident's wallet.`
-            : `Reject deposit ${transaction.id}? No points will be credited and the transaction will be closed as rejected.`
+        open={confirmModalOpen}
+        title={
+          confirmAction === "quickApprove"
+            ? "Quick Approve Deposit"
+            : confirmAction === "quickReject"
+            ? "Quick Reject Deposit"
+            : "Confirm Batch Resolution"
         }
-        confirmLabel={decision === "approve" ? "Approve deposit" : "Reject deposit"}
-        variant={decision === "approve" ? "primary" : "danger"}
+        description={
+          confirmAction === "quickApprove"
+            ? `Approve deposit ${transaction.id} and award EcoPoints for all eligible items to ${residentDisplayAlias}?`
+            : confirmAction === "quickReject"
+            ? `Reject deposit ${transaction.id}? No points will be credited to ${residentDisplayAlias}.`
+            : `Submit resolution for ticket ${ticket.id} (${inventoryState}) with ${
+                preview ? `+${preview.pointsAwarded} pts and ${preview.spaceContributionSpc} spc` : "calculated changes"
+              }?`
+        }
+        confirmLabel={
+          confirmAction === "quickApprove"
+            ? "Approve deposit"
+            : confirmAction === "quickReject"
+            ? "Reject deposit"
+            : "Confirm resolution"
+        }
+        variant={confirmAction === "quickReject" ? "danger" : "primary"}
         busy={decideMutation.pending}
         error={decideMutation.error}
         onConfirm={handleConfirmDecision}
-        onCancel={handleCancelDecision}
+        onCancel={() => setConfirmModalOpen(false)}
       />
     </section>
   );

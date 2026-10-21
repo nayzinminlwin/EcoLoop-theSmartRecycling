@@ -989,7 +989,7 @@ export function createMockRepositories(options?: {
 
         ticket.status = "approved";
         ticket.reviewedAt = MOCK_NOW;
-        ticket.reviewedByAdminId = "ADM-001";
+        ticket.reviewedByAdminId = state.adminSession?.adminId ?? "Admin";
 
         wallet.balance += awardedPoints;
         wallet.version += 1;
@@ -1022,7 +1022,7 @@ export function createMockRepositories(options?: {
 
         ticket.status = "rejected";
         ticket.reviewedAt = MOCK_NOW;
-        ticket.reviewedByAdminId = "ADM-001";
+        ticket.reviewedByAdminId = state.adminSession?.adminId ?? "Admin";
 
         const nextRewardCost = computeNextRewardCost(wallet.balance, state.rewards);
         const receipt: VerificationDecisionResult = {
@@ -1045,6 +1045,161 @@ export function createMockRepositories(options?: {
         notifyCommit();
         return clone(receipt);
       }
+    },
+    async getReviewDetail(ticketId: string): Promise<import("../contracts/adminViewCodecs.ts").AdminReviewDetailView> {
+      await wait(readDelay);
+      checkFailure("verification.get");
+      requireAdmin();
+      const detail = getVerificationDetail(ticketId);
+      const isApproved = detail.ticket.status === "approved";
+      const isRejected = detail.ticket.status === "rejected";
+      const reviewOutcome: "verified" | "rejected" | "review" = isApproved ? "verified" : isRejected ? "rejected" : "review";
+      const detailView: import("../contracts/adminViewCodecs.ts").AdminReviewDetailView = {
+        review: {
+          ticketId: detail.ticket.id,
+          batchId: detail.transaction.id,
+          residentAlias: detail.resident.fullName,
+          binId: detail.bin.id,
+          locationName: detail.bin.locationName,
+          state: detail.ticket.status === "awaitingReview" ? "awaiting_review" : "resolved",
+          outcome: reviewOutcome,
+          decisionVersion: 1,
+          reason: detail.ticket.flag,
+          occurredAt: detail.transaction.occurredAt,
+          resolvedAt: detail.ticket.reviewedAt ?? null,
+          reviewerAlias: detail.ticket.reviewedByAdminId ?? null,
+          materialSummary: detail.ticket.predictedMaterialLabel,
+          totalCount: 1,
+        },
+        sessionId: "session-001",
+        resultId: "result-001",
+        pinnedPolicyId: "policy-v1",
+        pinnedPolicyVersion: 1,
+        provisionalSpaceSpc: 10,
+        heldPoints: null,
+        finalSpaceSpc: isApproved ? 10 : 0,
+        awardedPoints: isApproved ? detail.transaction.pointsAwarded : 0,
+        inventoryState: isApproved ? "resolved" : "uncertain",
+        findings: [
+          {
+            objectId: "obj-1",
+            detectedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+            confidence: detail.ticket.confidencePercent / 100,
+            boundingBox: null,
+            resolvedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+            decision: isApproved ? "accept" : null,
+            note: null,
+          }
+        ],
+        source: {
+          type: "simulated_bin_capture",
+          assetId: "asset-001",
+          modelVersion: "ecoloop-cv-v1",
+        },
+        evidence: {
+          previewAvailable: Boolean(detail.ticket.captureImageUrl),
+          previewUrl: detail.ticket.captureImageUrl ?? null,
+          failureReason: null,
+        },
+        explanation: detail.ticket.reviewedAt ? "Reviewed by operator" : null,
+        history: [],
+      };
+      return detailView;
+    },
+    watchReviewDetail(ticketId: string): Observable<import("../contracts/adminViewCodecs.ts").AdminReviewDetailView | null> {
+      return createObservable("verification.get", () => {
+        try {
+          const detail = getVerificationDetail(ticketId);
+          const isApproved = detail.ticket.status === "approved";
+          const isRejected = detail.ticket.status === "rejected";
+          const reviewOutcome: "verified" | "rejected" | "review" = isApproved ? "verified" : isRejected ? "rejected" : "review";
+          return {
+            review: {
+              ticketId: detail.ticket.id,
+              batchId: detail.transaction.id,
+              residentAlias: detail.resident.fullName,
+              binId: detail.bin.id,
+              locationName: detail.bin.locationName,
+              state: detail.ticket.status === "awaitingReview" ? "awaiting_review" : "resolved",
+              outcome: reviewOutcome,
+              decisionVersion: 1,
+              reason: detail.ticket.flag,
+              occurredAt: detail.transaction.occurredAt,
+              resolvedAt: detail.ticket.reviewedAt ?? null,
+              reviewerAlias: detail.ticket.reviewedByAdminId ?? null,
+              materialSummary: detail.ticket.predictedMaterialLabel,
+              totalCount: 1,
+            },
+            sessionId: "session-001",
+            resultId: "result-001",
+            pinnedPolicyId: "policy-v1",
+            pinnedPolicyVersion: 1,
+            provisionalSpaceSpc: 10,
+            heldPoints: null,
+            finalSpaceSpc: isApproved ? 10 : 0,
+            awardedPoints: isApproved ? detail.transaction.pointsAwarded : 0,
+            inventoryState: isApproved ? "resolved" : "uncertain",
+            findings: [
+              {
+                objectId: "obj-1",
+                detectedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+                confidence: detail.ticket.confidencePercent / 100,
+                boundingBox: null,
+                resolvedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+                decision: isApproved ? "accept" : null,
+                note: null,
+              }
+            ],
+            source: {
+              type: "simulated_bin_capture",
+              assetId: "asset-001",
+              modelVersion: "ecoloop-cv-v1",
+            },
+            evidence: {
+              previewAvailable: Boolean(detail.ticket.captureImageUrl),
+              previewUrl: detail.ticket.captureImageUrl ?? null,
+              failureReason: null,
+            },
+            explanation: detail.ticket.reviewedAt ? "Reviewed by operator" : null,
+            history: [],
+          };
+        } catch {
+          return null;
+        }
+      });
+    },
+    async previewResolution(input: {
+      ticketId: string;
+      inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+      objects: import("../contracts/adminViewCodecs.ts").ObjectResolutionDecisionInput[];
+    }): Promise<import("../contracts/adminViewCodecs.ts").ReviewResolutionPreview> {
+      await wait(readDelay);
+      const isExcluded = input.inventoryState === "empty" || input.inventoryState === "unreadable";
+      const acceptedCount = isExcluded ? 0 : input.objects.filter((o) => o.decision === "accept").length;
+      const pointsAwarded = acceptedCount * 10;
+      const spaceContributionSpc = isExcluded ? (input.inventoryState === "empty" ? 0 : 50) : acceptedCount * 10;
+      const proposedOutcome = isExcluded ? (input.inventoryState === "empty" ? "empty" : "rejected") : (acceptedCount > 0 ? "verified" : "rejected");
+      return {
+        outcome: proposedOutcome,
+        pointsAwarded,
+        acceptedCount,
+        totalCount: input.objects.length,
+        spaceContributionSpc,
+        spaceDeltaSpc: spaceContributionSpc - 10,
+        lines: [
+          {
+            class: "plastic_bottle",
+            eligible: acceptedCount > 0,
+            count: acceptedCount,
+            points: pointsAwarded,
+            spaceSpc: spaceContributionSpc,
+          }
+        ],
+      };
+    },
+    async resolveReview(input: import("../contracts/adminViewCodecs.ts").ResolveReviewInput): Promise<VerificationDecisionResult> {
+      const isApproved = input.inventoryState === "resolved" && input.objects.some((o) => o.decision === "accept");
+      return verification.decide(input.ticketId, isApproved ? "approve" : "reject", `mock-${Date.now()}`);
     }
   };
 

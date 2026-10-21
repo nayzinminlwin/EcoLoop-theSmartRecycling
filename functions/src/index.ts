@@ -52,4 +52,11 @@ export {
   adminRecordCollection,
   adminResolveCapacityAlert,
 } from "./transport/admin_alerts.js";
+export {
+  listAdminReviews,
+  getAdminReview,
+  previewAdminReviewResolution,
+  adminResolveReview,
+} from "./transport/admin_reviews.js";
+
 

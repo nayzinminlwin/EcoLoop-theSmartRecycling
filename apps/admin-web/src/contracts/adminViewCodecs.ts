@@ -3,8 +3,15 @@
 // Phase AB-03 — Decodes, validates, and normalizes server read projections
 // =============================================================================
 
-import type { SmartBin, Reward } from "./shared.ts";
-import type { SmartBinRow, CapacityAlertRow, CapacityAlert, BinOperations } from "./admin.ts";
+import type { SmartBin, Reward, DepositTransaction, ResidentProfile } from "./shared.ts";
+import type {
+  SmartBinRow,
+  CapacityAlertRow,
+  CapacityAlert,
+  BinOperations,
+  VerificationDetail,
+  VerificationTicket,
+} from "./admin.ts";
 
 export interface AdminAlertView {
   readonly alertId: string;
@@ -382,4 +389,297 @@ export function decodeCursor(cursorStr: string): unknown[] {
     throw new Error(`Malformed pagination cursor: ${cursorStr}`);
   }
 }
+
+export interface AdminReviewView {
+  readonly ticketId: string;
+  readonly batchId: string;
+  readonly binId: string;
+  readonly locationName: string;
+  readonly occurredAt: string;
+  readonly state: "awaiting_review" | "resolved";
+  readonly outcome: "processing" | "review" | "verified" | "rejected" | "empty";
+  readonly decisionVersion: number;
+  readonly residentAlias: string;
+  readonly totalCount: number | null;
+  readonly materialSummary: string | null;
+  readonly reason?: string | null;
+  readonly reviewerAlias?: string | null;
+  readonly resolvedAt?: string | null;
+}
+
+export interface AdminReviewDetailView {
+  readonly review: AdminReviewView;
+  readonly sessionId: string;
+  readonly resultId: string;
+  readonly pinnedPolicyId: string;
+  readonly pinnedPolicyVersion: number;
+  readonly provisionalSpaceSpc: number;
+  readonly heldPoints: number | null;
+  readonly finalSpaceSpc: number | null;
+  readonly awardedPoints: number | null;
+  readonly inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+  readonly findings: Array<{
+    readonly objectId: string;
+    readonly detectedClass: string;
+    readonly confidence: number | null;
+    readonly boundingBox: { x1: number; y1: number; x2: number; y2: number } | null;
+    readonly resolvedClass: string | null;
+    readonly decision: "accept" | "exclude" | null;
+    readonly note: string | null;
+  }>;
+  readonly source: {
+    readonly type: "simulated_bin_capture" | "physical_camera";
+    readonly assetId?: string | null;
+    readonly pipelineRunId?: string | null;
+    readonly modelVersion?: string | null;
+  };
+  readonly evidence: {
+    readonly previewAvailable: boolean;
+    readonly previewUrl?: string | null;
+    readonly failureReason?: string | null;
+  };
+  readonly explanation: string | null;
+  readonly history: Array<{
+    readonly actor: string;
+    readonly action: string;
+    readonly timestamp: string;
+    readonly note?: string | null;
+  }>;
+}
+
+export interface ObjectResolutionDecisionInput {
+  readonly objectId: string;
+  readonly resolvedClass: string;
+  readonly decision: "accept" | "exclude";
+  readonly note?: string;
+}
+
+export interface ReviewResolutionPreview {
+  readonly outcome: "verified" | "rejected" | "empty";
+  readonly pointsAwarded: number;
+  readonly spaceContributionSpc: number;
+  readonly spaceDeltaSpc: number;
+  readonly acceptedCount: number;
+  readonly totalCount: number | null;
+  readonly lines: Array<{
+    readonly class: string;
+    readonly eligible: boolean;
+    readonly count: number;
+    readonly points: number;
+    readonly spaceSpc: number;
+  }>;
+}
+
+export interface ResolveReviewInput {
+  readonly ticketId: string;
+  readonly expectedDecisionVersion: number;
+  readonly inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+  readonly objects: ObjectResolutionDecisionInput[];
+  readonly explanation: string;
+}
+
+export function decodeAdminReviewView(raw: unknown): AdminReviewView {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid review view payload: expected object");
+  }
+  const obj = raw as Record<string, unknown>;
+
+  const ticketId = String(obj.ticketId ?? obj.id ?? "");
+  if (!ticketId) throw new Error("Missing ticketId in review view");
+
+  const batchId = String(obj.batchId ?? "");
+  const binId = String(obj.binId ?? "");
+  const locationName = String(obj.locationName ?? `Smart Bin ${binId}`);
+
+  let occurredAt = String(obj.occurredAt ?? new Date().toISOString());
+  if (obj.occurredAt && typeof obj.occurredAt === "object" && "_seconds" in (obj.occurredAt as Record<string, unknown>)) {
+    const ts = obj.occurredAt as { _seconds: number; _nanoseconds?: number };
+    occurredAt = new Date(ts._seconds * 1000).toISOString();
+  }
+
+  let resolvedAt: string | null = null;
+  if (obj.resolvedAt) {
+    if (typeof obj.resolvedAt === "object" && "_seconds" in (obj.resolvedAt as Record<string, unknown>)) {
+      const ts = obj.resolvedAt as { _seconds: number; _nanoseconds?: number };
+      resolvedAt = new Date(ts._seconds * 1000).toISOString();
+    } else {
+      resolvedAt = String(obj.resolvedAt);
+    }
+  }
+
+  const rawState = String(obj.state ?? "awaiting_review");
+  const state = rawState === "resolved" ? "resolved" : "awaiting_review";
+
+  const rawOutcome = String(obj.outcome ?? "review");
+  const outcome = (["processing", "review", "verified", "rejected", "empty"].includes(rawOutcome)
+    ? rawOutcome
+    : "review") as AdminReviewView["outcome"];
+
+  const decisionVersion = Math.max(0, Number(obj.decisionVersion ?? 0));
+  const residentAlias = String(obj.residentAlias ?? "Resident •••000");
+  const totalCount = obj.totalCount !== undefined && obj.totalCount !== null ? Number(obj.totalCount) : null;
+  const materialSummary = obj.materialSummary ? String(obj.materialSummary) : null;
+  const reviewerAlias = obj.reviewerAlias ? String(obj.reviewerAlias) : null;
+
+  return {
+    ticketId,
+    batchId,
+    binId,
+    locationName,
+    occurredAt,
+    state,
+    outcome,
+    decisionVersion,
+    residentAlias,
+    totalCount,
+    materialSummary,
+    reviewerAlias,
+    resolvedAt,
+  };
+}
+
+export function decodeAdminReviewDetailView(raw: unknown): AdminReviewDetailView {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Invalid review detail payload: expected object");
+  }
+  const obj = raw as Record<string, unknown>;
+
+  const review = decodeAdminReviewView(obj.review ?? obj);
+  const sessionId = String(obj.sessionId ?? "");
+  const resultId = String(obj.resultId ?? "");
+  const pinnedPolicyId = String(obj.pinnedPolicyId ?? "policy-v1");
+  const pinnedPolicyVersion = Math.max(1, Number(obj.pinnedPolicyVersion ?? 1));
+  const provisionalSpaceSpc = Math.max(0, Number(obj.provisionalSpaceSpc ?? 0));
+  const heldPoints = obj.heldPoints !== undefined && obj.heldPoints !== null ? Number(obj.heldPoints) : null;
+  const finalSpaceSpc = obj.finalSpaceSpc !== undefined && obj.finalSpaceSpc !== null ? Number(obj.finalSpaceSpc) : null;
+  const awardedPoints = obj.awardedPoints !== undefined && obj.awardedPoints !== null ? Number(obj.awardedPoints) : null;
+  const inventoryState = (obj.inventoryState ?? "uncertain") as AdminReviewDetailView["inventoryState"];
+
+  const findings: AdminReviewDetailView["findings"] = [];
+  if (Array.isArray(obj.findings)) {
+    for (const f of obj.findings) {
+      if (f && typeof f === "object") {
+        findings.push({
+          objectId: String(f.objectId ?? `obj-${findings.length + 1}`),
+          detectedClass: String(f.detectedClass ?? "unknown"),
+          confidence: f.confidence !== undefined && f.confidence !== null ? Number(f.confidence) : null,
+          boundingBox: f.boundingBox ?? null,
+          resolvedClass: f.resolvedClass ? String(f.resolvedClass) : null,
+          decision: f.decision === "accept" || f.decision === "exclude" ? f.decision : null,
+          note: f.note ? String(f.note) : null,
+        });
+      }
+    }
+  }
+
+  const rawSource = (obj.source ?? {}) as Record<string, unknown>;
+  const source: AdminReviewDetailView["source"] = {
+    type: rawSource.type === "physical_camera" ? "physical_camera" : "simulated_bin_capture",
+    assetId: rawSource.assetId ? String(rawSource.assetId) : null,
+    pipelineRunId: rawSource.pipelineRunId ? String(rawSource.pipelineRunId) : null,
+    modelVersion: rawSource.modelVersion ? String(rawSource.modelVersion) : null,
+  };
+
+  const rawEvidence = (obj.evidence ?? {}) as Record<string, unknown>;
+  const evidence: AdminReviewDetailView["evidence"] = {
+    previewAvailable: Boolean(rawEvidence.previewAvailable),
+    previewUrl: rawEvidence.previewUrl ? String(rawEvidence.previewUrl) : null,
+    failureReason: rawEvidence.failureReason ? String(rawEvidence.failureReason) : null,
+  };
+
+  const explanation = obj.explanation ? String(obj.explanation) : null;
+
+  const history: AdminReviewDetailView["history"] = [];
+  if (Array.isArray(obj.history)) {
+    for (const h of obj.history) {
+      if (h && typeof h === "object") {
+        history.push({
+          actor: String(h.actor ?? "System"),
+          action: String(h.action ?? "Updated"),
+          timestamp: String(h.timestamp ?? review.occurredAt),
+          note: h.note ? String(h.note) : null,
+        });
+      }
+    }
+  }
+
+  return {
+    review,
+    sessionId,
+    resultId,
+    pinnedPolicyId,
+    pinnedPolicyVersion,
+    provisionalSpaceSpc,
+    heldPoints,
+    finalSpaceSpc,
+    awardedPoints,
+    inventoryState,
+    findings,
+    source,
+    evidence,
+    explanation,
+    history,
+  };
+}
+
+export function adminReviewDetailToVerificationDetail(view: AdminReviewDetailView): VerificationDetail {
+  const r = view.review;
+  const isApproved = r.outcome === "verified";
+  const isRejected = r.outcome === "rejected" || r.outcome === "empty";
+  const status = isApproved ? "approved" : isRejected ? "rejected" : "awaitingReview";
+
+  const ticket: VerificationTicket = {
+    id: r.ticketId,
+    transactionId: r.batchId,
+    predictedMaterialType: "plastic",
+    predictedMaterialLabel: r.materialSummary ?? "Mixed Batch",
+    confidencePercent: 90,
+    captureDescription: `Batch ${r.batchId} (${r.totalCount ?? 0} items)`,
+    captureImageUrl: view.evidence.previewUrl ?? null,
+    flag: "uncertain",
+    status,
+    reviewedAt: r.resolvedAt ?? null,
+    reviewedByAdminId: r.reviewerAlias ?? null,
+  };
+
+  let txStatus: import("./shared.ts").DepositStatus = "review";
+  if (r.outcome === "verified") txStatus = "verified";
+  else if (r.outcome === "rejected" || r.outcome === "empty") txStatus = "rejected";
+
+  const transaction: DepositTransaction = {
+    id: r.batchId,
+    residentId: r.residentAlias,
+    sessionId: view.sessionId ?? null,
+    binId: r.binId,
+    binLocation: r.locationName,
+    materialType: "plastic",
+    materialLabel: r.materialSummary ?? "Mixed Batch",
+    itemCount: r.totalCount ?? 1,
+    pointsAwarded: view.awardedPoints ?? 0,
+    status: txStatus,
+    occurredAt: r.occurredAt,
+    verifiedAt: r.resolvedAt ?? null,
+  };
+
+  const resident: ResidentProfile = {
+    id: r.residentAlias,
+    fullName: r.residentAlias,
+    email: `${r.residentAlias.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
+    avatarUrl: null,
+    createdAt: r.occurredAt,
+  };
+
+  const bin: SmartBin = {
+    id: r.binId,
+    locationName: r.locationName,
+    locationDetail: "Smart Recycling Chamber",
+    capacityPercent: 50,
+    acceptedMaterials: ["plastic", "aluminium", "paper", "glass"],
+    isOnline: true,
+    lastUpdatedAt: r.occurredAt,
+  };
+
+  return { ticket, transaction, resident, bin };
+}
+
 

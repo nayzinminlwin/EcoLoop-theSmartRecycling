@@ -11,6 +11,12 @@ import type {
   VerificationDecisionResult, RewardListQuery, RewardInput,
   AdminSettings, SettingsInput, ResidentSnapshot
 } from "../contracts/admin.ts";
+import type {
+  AdminReviewDetailView,
+  ObjectResolutionDecisionInput,
+  ReviewResolutionPreview,
+  ResolveReviewInput,
+} from "../contracts/adminViewCodecs.ts";
 
 export type FailureCode = "unavailable" | "invalidData" | "notFound" |
   "validation" | "conflict" | "insufficientPoints" | "invalidQr" |
@@ -97,6 +103,14 @@ export interface VerificationRepository {
   watchList(query: VerificationListQuery): Observable<Page<VerificationDetail>>;
   get(id: string): Promise<VerificationDetail>;
   watch(id: string): Observable<VerificationDetail | null>;
+  getReviewDetail?(ticketId: string): Promise<AdminReviewDetailView>;
+  watchReviewDetail?(ticketId: string): Observable<AdminReviewDetailView | null>;
+  previewResolution?(input: {
+    ticketId: string;
+    inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+    objects: ObjectResolutionDecisionInput[];
+  }): Promise<ReviewResolutionPreview>;
+  resolveReview?(input: ResolveReviewInput): Promise<VerificationDecisionResult>;
   decide(id: string, decision: "approve" | "reject", idempotencyKey: string): Promise<VerificationDecisionResult>;
 }
 

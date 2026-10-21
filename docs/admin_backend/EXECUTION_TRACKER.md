@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-06 — COMPLETE
-- **Next phase:** AB-07 — Evidence-backed mixed-batch review and shared settlement
+- **Current phase:** AB-07 — COMPLETE
+- **Next phase:** AB-08 — Versioned reward-offer catalog management
 
 ---
 
@@ -19,7 +19,7 @@
 | **AB-04** | Bin management and usable registered QR codes | Agent | COMPLETE | [AB-04_bin_fleet_management.md](evidence/AB-04_bin_fleet_management.md) | `feat: activate admin bin management and QR registration` | `600a20f` |
 | **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | `1e7590b` / `0bc563c` |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | COMPLETE | [AB-06_capacity_alerts_collection.md](evidence/AB-06_capacity_alerts_collection.md) | `feat: integrate capacity alert lifecycle and collection cycles` | `fd258ed` |
-| **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | NOT_STARTED | `evidence/AB-07_review_and_settlement.md` | `feat: implement evidence-backed review resolution and settlement` | — |
+| **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | COMPLETE | [AB-07_review_and_settlement.md](evidence/AB-07_review_and_settlement.md) | `feat: resolve admin reviews through shared pinned-policy settlement` | `bc99d79` |
 | **AB-08** | Versioned reward-offer catalog management | Agent | NOT_STARTED | `evidence/AB-08_rewards_catalog.md` | `feat: activate admin reward offer catalog management` | — |
 | **AB-09** | Dashboard accounting and cross-client realtime convergence | Agent | NOT_STARTED | `evidence/AB-09_dashboard_convergence.md` | `feat: activate admin dashboard accounting and realtime updates` | — |
 | **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | NOT_STARTED | `evidence/AB-10_acceptance_and_deployment.md` | `chore: verify end-to-end admin backend and configure hosting` | — |
@@ -31,10 +31,10 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 11:42 UTC+8
+Updated: 2026-10-21 12:20 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-06 complete; ready for commit and Phase AB-07 startup
+Phase and substep: AB-07 complete; ready for commit and Phase AB-08 startup
 Source SHA: dev1 branch
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
@@ -42,32 +42,34 @@ Explicit Firebase mode / project / database / regions:
   - Storage Bucket: ecoloop-thesmartrecycling.firebasestorage.app
   - Functions Region: us-central1 (admin callables & resident gateway)
   - Vision Worker Region: asia-southeast1
-Exact target files created/staged for AB-06:
-  - contracts/admin/v1/dtos.schema.json
-  - functions/src/domain/admin_alerts.ts
-  - functions/src/infrastructure/firestore/admin_alerts_store.ts
+Exact target files created/staged for AB-07:
+  - functions/src/domain/admin_reviews.ts
+  - functions/src/infrastructure/firestore/admin_reviews_store.ts
   - functions/src/infrastructure/firestore/admin_projections_store.ts
   - functions/src/infrastructure/firestore/admin_queries_store.ts
-  - functions/src/transport/admin_alerts.ts
+  - functions/src/transport/admin_reviews.ts
   - functions/src/composition.ts
   - functions/src/index.ts
-  - functions/tests/unit/admin_alerts.test.ts
+  - functions/tests/unit/admin_reviews.test.ts
   - firestore.rules
   - apps/admin-web/src/contracts/adminViewCodecs.ts
-  - apps/admin-web/src/data/firebase/firebaseAlertsRepository.ts
+  - apps/admin-web/src/data/repositories.ts
+  - apps/admin-web/src/data/mockRepositories.ts
+  - apps/admin-web/src/data/firebase/firebaseVerificationRepository.ts
   - apps/admin-web/src/app/services.ts
-  - apps/admin-web/src/features/operations/CapacityAlertsPage.tsx
+  - apps/admin-web/src/features/operations/DepositVerificationPage.tsx
+  - apps/admin-web/src/features/operations/operations.css
   - apps/admin-web/package.json
-  - apps/admin-web/tests/admin_alerts_ab06.test.ts
+  - apps/admin-web/tests/admin_reviews_ab07.test.ts
   - docs/admin_backend/EXECUTION_TRACKER.md
-  - docs/admin_backend/evidence/AB-06_capacity_alerts_collection.md
-  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB06_CapacityAlertsCollection.md
+  - docs/admin_backend/evidence/AB-07_review_and_settlement.md
+  - docs/dev_logs/2026-10-21_AdminBackend_PhaseAB07_ReviewAndSettlement.md
 Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Commit Phase AB-06: `feat: integrate capacity alert lifecycle and collection cycles`
-  - Begin Phase AB-07: Evidence-backed mixed-batch review and shared settlement
+  - Commit Phase AB-07: `feat: resolve admin reviews through shared pinned-policy settlement`
+  - Begin Phase AB-08: Versioned reward-offer catalog management
 ```
 
 ---

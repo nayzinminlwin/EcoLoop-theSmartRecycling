@@ -593,3 +593,211 @@
     border-top: 1px solid var(--line);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   8. AB-07 Multi-Object Review & Resolution Editor
+   --------------------------------------------------------------------------- */
+.resolution-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f9fbf9;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 16px;
+}
+
+.resolution-editor-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resolution-editor-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.inventory-state-pills {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.inventory-state-pill {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.inventory-state-pill:hover {
+  border-color: var(--green);
+  color: var(--text);
+}
+
+.inventory-state-pill.active {
+  background: var(--green);
+  color: white;
+  border-color: var(--green);
+}
+
+.inventory-state-pill.active.empty {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+.inventory-state-pill.active.unreadable {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.findings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finding-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.finding-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.finding-info strong {
+  font-size: 13px;
+}
+
+.finding-info small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.finding-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.class-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.decision-toggle-group {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.decision-toggle-btn {
+  border: none;
+  background: var(--surface);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+
+.decision-toggle-btn.accept.active {
+  background: var(--green);
+  color: white;
+}
+
+.decision-toggle-btn.exclude.active {
+  background: var(--red);
+  color: white;
+}
+
+.resolution-preview-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #eef6f0;
+  border: 1px solid #c2e2cc;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.resolution-preview-card.rejected {
+  background: #fdf2f2;
+  border-color: #f6caca;
+}
+
+.resolution-preview-card.empty {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.preview-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.preview-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preview-stat span {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.preview-stat strong {
+  font-size: 14px;
+}
+
+.explanation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explanation-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.explanation-field textarea {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 50px;
+}
+

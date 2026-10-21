@@ -298,5 +298,139 @@ export class FirestoreAdminProjectionsStore {
       updatedAt: FieldValue.serverTimestamp(),
     });
   }
+
+  projectReview(
+    ticketDoc: Record<string, unknown>,
+    batchDoc?: Record<string, unknown>,
+    binDoc?: Record<string, unknown>,
+    residentDoc?: Record<string, unknown>
+  ): AdminReviewViewRecord {
+    const ticketId = String(ticketDoc.id ?? ticketDoc.ticketId ?? "");
+    const batchId = String(ticketDoc.batchId ?? batchDoc?.id ?? "");
+    const binId = String(ticketDoc.binId ?? batchDoc?.binId ?? "");
+    const locationName = String(binDoc?.locationName ?? "Smart Bin " + binId);
+    const occurredAt =
+      tryTimestampToInstant(ticketDoc.createdAt ?? batchDoc?.createdAt) ??
+      new Date().toISOString();
+
+    const rawState = String(ticketDoc.state ?? "open");
+    const state: "awaiting_review" | "resolved" =
+      rawState === "resolved" ? "resolved" : "awaiting_review";
+
+    const outcome = String(
+      ticketDoc.finalOutcome ?? batchDoc?.status ?? "review"
+    ) as "processing" | "review" | "verified" | "rejected" | "empty";
+
+    const decisionVersion = Number(
+      ticketDoc.decisionVersion ?? batchDoc?.decisionVersion ?? 0
+    );
+
+    const ownerId = String(ticketDoc.ownerId ?? batchDoc?.ownerId ?? "");
+    const residentAlias = ownerId
+      ? `Resident •••${ownerId.slice(-4)}`
+      : "Resident Unknown";
+
+    const totalCount =
+      batchDoc?.totalDetectedObjectCount !== undefined &&
+      batchDoc.totalDetectedObjectCount !== null
+        ? Number(batchDoc.totalDetectedObjectCount)
+        : null;
+
+    let materialSummary: string | null = null;
+    if (Array.isArray(batchDoc?.lines)) {
+      materialSummary = batchDoc.lines
+        .map((l: { class?: string; count?: number }) => `${l.count ?? 1}x ${l.class ?? "item"}`)
+        .join(", ");
+    }
+
+    const reviewerUid = ticketDoc.resolvedBy ? String(ticketDoc.resolvedBy) : null;
+    const reviewerAlias = reviewerUid ? `Admin •••${reviewerUid.slice(-4)}` : null;
+    const resolvedAt = tryTimestampToInstant(ticketDoc.resolvedAt) ?? null;
+
+    const searchTokens = generatePrefixTokens([ticketId, batchId, binId, locationName]);
+
+    return {
+      ticketId,
+      batchId,
+      binId,
+      locationName,
+      occurredAt,
+      state,
+      outcome,
+      decisionVersion,
+      residentAlias,
+      totalCount,
+      materialSummary,
+      reviewerAlias,
+      resolvedAt,
+      searchTokens,
+    };
+  }
+
+  async writeReviewView(view: AdminReviewViewRecord): Promise<void> {
+    const docRef = this.firestore.doc(`adminReviewViews/${view.ticketId}`);
+    await docRef.set({
+      ...view,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
 }
+
+export interface AdminReviewViewRecord {
+  readonly ticketId: string;
+  readonly batchId: string;
+  readonly binId: string;
+  readonly locationName: string;
+  readonly occurredAt: Instant;
+  readonly state: "awaiting_review" | "resolved";
+  readonly outcome: "processing" | "review" | "verified" | "rejected" | "empty";
+  readonly decisionVersion: number;
+  readonly residentAlias: string;
+  readonly totalCount: number | null;
+  readonly materialSummary: string | null;
+  readonly reviewerAlias?: string | null;
+  readonly resolvedAt?: Instant | null;
+  readonly searchTokens?: string[];
+}
+
+export interface AdminReviewDetailViewRecord {
+  readonly review: AdminReviewViewRecord;
+  readonly sessionId: string;
+  readonly resultId: string;
+  readonly pinnedPolicyId: string;
+  readonly pinnedPolicyVersion: number;
+  readonly provisionalSpaceSpc: number;
+  readonly heldPoints: number | null;
+  readonly finalSpaceSpc: number | null;
+  readonly awardedPoints: number | null;
+  readonly inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+  readonly findings: Array<{
+    readonly objectId: string;
+    readonly detectedClass: string;
+    readonly confidence: number | null;
+    readonly boundingBox: { x1: number; y1: number; x2: number; y2: number } | null;
+    readonly resolvedClass: string | null;
+    readonly decision: "accept" | "exclude" | null;
+    readonly note: string | null;
+  }>;
+  readonly source: {
+    readonly type: "simulated_bin_capture" | "physical_camera";
+    readonly assetId?: string | null;
+    readonly pipelineRunId?: string | null;
+    readonly modelVersion?: string | null;
+  };
+  readonly evidence: {
+    readonly previewAvailable: boolean;
+    readonly previewUrl?: string | null;
+    readonly failureReason?: string | null;
+  };
+  readonly explanation: string | null;
+  readonly history: Array<{
+    readonly actor: string;
+    readonly action: string;
+    readonly timestamp: Instant;
+    readonly note?: string | null;
+  }>;
+}
+
 
