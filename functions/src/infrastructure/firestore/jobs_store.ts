@@ -42,6 +42,20 @@ export interface JobCheckpoint {
   readonly state: "checkpointed";
 }
 
+export type ProgressPhase =
+  | "queued"
+  | "validating"
+  | "detecting"
+  | "additional_analysis"
+  | "retrying"
+  | "finalizing";
+
+export interface JobProgress {
+  readonly phase: ProgressPhase;
+  readonly activity: string;
+  readonly completedStages: readonly string[];
+}
+
 export interface JobReadResult {
   readonly jobId: string;
   readonly batchId: string;
@@ -60,6 +74,13 @@ export interface JobsStore {
     outputReference: string,
     now: Instant,
   ): Promise<JobCheckpoint>;
+  progress(
+    jobId: string,
+    attemptId: string,
+    identity: WorkerIdentity,
+    progress: JobProgress,
+    now: Instant,
+  ): Promise<void>;
   renew(jobId: string, attemptId: string, identity: WorkerIdentity, now: Instant): Promise<JobClaim>;
   fail(jobId: string, attemptId: string, identity: WorkerIdentity, reason: string, now: Instant): Promise<JobReadResult>;
   readCurrentResult(jobId: string, identity: WorkerIdentity): Promise<JobReadResult>;
@@ -140,12 +161,54 @@ export class FirestoreJobsStore implements JobsStore {
       if (!outputReference.startsWith(String(attempt.artifactPrefix))) {
         throw new DomainError("permission_denied", "Checkpoint output is outside the allowed artifact prefix");
       }
+
       transaction.set(attemptRef, {
         checkpoints: { [stage]: { outputReference, recordedAt: now } },
         updatedAt: now,
       }, { merge: true });
       transaction.update(jobRef, { lastStage: stage, updatedAt: now });
       return { jobId, attemptId, stage, outputReference, state: "checkpointed" };
+    });
+  }
+
+  progress(
+    jobId: string,
+    attemptId: string,
+    identity: WorkerIdentity,
+    progress: JobProgress,
+    now: Instant,
+  ): Promise<void> {
+    return this.firestore.runTransaction(async (transaction) => {
+      const jobRef = this.firestore.doc(`inferenceJobs/${jobId}`);
+      const jobSnapshot = await transaction.get(jobRef);
+      const job = requireJob(jobSnapshot.data(), jobId);
+      const attemptRef = this.firestore.doc(`inferenceJobs/${jobId}/attempts/${attemptId}`);
+      const attemptSnapshot = await transaction.get(attemptRef);
+      const attempt = requireAttempt(attemptSnapshot.data(), attemptId);
+      verifyIdentity(job, identity);
+      verifyFence(job, attempt, now);
+      const sessionRef = this.firestore.doc(`depositSessions/${String(job.sessionId)}`);
+      const sessionSnapshot = await transaction.get(sessionRef);
+      const session = requireData(sessionSnapshot.data(), "The scan session no longer exists");
+      const previous = session.progress;
+      const revision = Number(previous?.revision ?? 0) + 1;
+      const summary = {
+        phase: progress.phase,
+        activity: progress.activity.slice(0, 120),
+        revision,
+        attemptNumber: Number(attempt.attemptNumber ?? 0),
+        completedStages: [...new Set(progress.completedStages)].slice(0, 5),
+        submissionAt: String(previous?.submissionAt ?? session.submittedAt ?? now),
+        stageStartedAt: now,
+        updatedAt: now,
+        deadlineAt: session.deadlineAt ?? job.deadlineAt ?? null,
+      };
+      transaction.update(sessionRef, { progress: summary, updatedAt: now });
+      transaction.update(jobRef, {
+        progress: summary,
+        lastStage: progress.phase,
+        updatedAt: now,
+      });
     });
   }
 
@@ -206,6 +269,11 @@ export class FirestoreJobsStore implements JobsStore {
 
 function requireJob(value: DocumentData | undefined, jobId: string): DocumentData {
   if (value === undefined) throw new DomainError("invalid_input", `Job ${jobId} does not exist`);
+  return value;
+}
+
+function requireData(value: DocumentData | undefined, message: string): DocumentData {
+  if (value === undefined) throw new DomainError("invalid_input", message);
   return value;
 }
 

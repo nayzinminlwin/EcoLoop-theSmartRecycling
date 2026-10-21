@@ -348,7 +348,11 @@ class FirebaseScanRepository implements ScanRepository {
 
   DepositSession? _observe(DepositSession session) {
     final previous = _observedSessions[session.id];
-    if (previous != null && session.sessionVersion < previous.sessionVersion) {
+    if (previous != null &&
+        (session.sessionVersion < previous.sessionVersion ||
+            (session.sessionVersion == previous.sessionVersion &&
+                (session.progress?.revision ?? 0) <
+                    (previous.progress?.revision ?? 0)))) {
       return null;
     }
     _observedSessions[session.id] = session;

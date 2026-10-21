@@ -65,6 +65,13 @@ def run_job(
     claim = gateway.claim(job_id)
     if claim.state == "already_finalized":
         return _require_terminal_result(gateway.read_current_result(job_id))
+    _publish_progress(
+        gateway,
+        claim,
+        phase="validating",
+        activity="Validating the image",
+        completed_stages=[],
+    )
     set_context(jobId=claim.job_id, attemptId=claim.attempt_id, traceId=claim.trace_id)
     try:
         remaining_ms = min(
@@ -89,6 +96,13 @@ def run_job(
             total_budget_ms=max(1_000, min(90_000, remaining_ms - 1_000)),
             call_timeout_ms=max(500, min(15_000, remaining_ms - 1_000)),
         )
+        _publish_progress(
+            gateway,
+            claim,
+            phase="detecting",
+            activity="Identifying recyclable items",
+            completed_stages=["validating"],
+        )
         inspection_started_at = time.perf_counter()
         result = (inspection_runner or _default_runner)(image, config)
         emit_structured(level=20, event="vision.stage_completed", fields={
@@ -97,6 +111,14 @@ def run_job(
             "inventoryState": result.inventory_state,
             "objectCount": len(result.objects),
         })
+        if result.specialist_results or result.fallbacks:
+            _publish_progress(
+                gateway,
+                claim,
+                phase="additional_analysis",
+                activity="Confirming materials",
+                completed_stages=["validating", "detecting"],
+            )
         artifact_started_at = time.perf_counter()
         references = artifacts.write(prefix=claim.artifact_prefix, image=image.content, result=result)
         emit_structured(level=20, event="vision.stage_completed", fields={
@@ -104,6 +126,13 @@ def run_job(
             "durationMs": round((time.perf_counter() - artifact_started_at) * 1000, 2),
             "referenceCount": len(references),
         })
+        _publish_progress(
+            gateway,
+            claim,
+            phase="finalizing",
+            activity="Saving your result",
+            completed_stages=["validating", "detecting", "additional_analysis"],
+        )
         gateway.checkpoint(claim, "artifacts_written", references[0])
         findings = _findings(claim, image, result)
         try:
@@ -122,6 +151,29 @@ def run_job(
         raise
     finally:
         clear_context()
+
+
+def _publish_progress(
+    gateway: JobGateway,
+    claim: JobClaim,
+    *,
+    phase: str,
+    activity: str,
+    completed_stages: list[str],
+) -> None:
+    try:
+        gateway.progress(
+            claim,
+            phase=phase,
+            activity=activity,
+            completed_stages=completed_stages,
+        )
+    except Exception as error:
+        emit_structured(
+            level=30,
+            event="vision.progress_publish_failed",
+            fields={"phase": phase, "errorType": type(error).__name__},
+        )
 
 
 def _default_runner(image: ProcessingInput, config: InspectionConfig) -> InspectionResult:

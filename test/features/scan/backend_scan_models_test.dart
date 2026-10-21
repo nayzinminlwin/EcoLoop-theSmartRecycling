@@ -49,6 +49,17 @@ void main() {
       'batchId': 'batch-1',
       'jobId': 'job-1',
       'jobSubstage': 'settled',
+      'progress': {
+        'phase': 'finalizing',
+        'activity': 'Saving your result',
+        'revision': 7,
+        'attemptNumber': 1,
+        'completedStages': ['validating', 'detecting'],
+        'submissionAt': '2026-10-19T04:00:00Z',
+        'stageStartedAt': '2026-10-19T04:01:00Z',
+        'updatedAt': '2026-10-19T04:01:00Z',
+        'deadlineAt': '2026-10-19T04:05:00Z',
+      },
       'deadlineAt': '2026-10-19T04:05:00Z',
       'reservationExpiresAt': null,
       'resultId': 'result-1',
@@ -60,6 +71,8 @@ void main() {
     expect(session.committedAssetSha256, 'a' * 64);
     expect(session.jobSubstage, 'settled');
     expect(session.deadlineAt, isNotNull);
+    expect(session.progress?.revision, 7);
+    expect(session.progress?.phase, 'finalizing');
   });
 
   test('parses immutable asset metadata and nullable digest', () {

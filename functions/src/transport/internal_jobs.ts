@@ -40,6 +40,25 @@ async function routeOperation(operation: string, data: Record<string, unknown>, 
         requiredString(data, "jobId"), requiredString(data, "attemptId"), identity,
         requiredString(data, "stage"), requiredString(data, "outputReference"), now,
       );
+    case "progress": {
+      const completedStages = data.completedStages;
+      if (!Array.isArray(completedStages) ||
+          completedStages.some((stage) => typeof stage !== "string")) {
+        throw new HttpsError("invalid-argument", "completedStages is required");
+      }
+      const phase = requiredString(data, "phase");
+      const allowed = ["queued", "validating", "detecting", "additional_analysis", "retrying", "finalizing"];
+      if (!allowed.includes(phase)) {
+        throw new HttpsError("invalid-argument", "phase is invalid");
+      }
+      await jobs.progress(
+        requiredString(data, "jobId"), requiredString(data, "attemptId"), identity,
+        { phase: phase as import("../infrastructure/firestore/jobs_store.js").ProgressPhase,
+          activity: requiredString(data, "activity"), completedStages },
+        now,
+      );
+      return { state: "published" };
+    }
     case "renew":
       return jobs.renew(requiredString(data, "jobId"), requiredString(data, "attemptId"), identity, now);
     case "fail":

@@ -92,6 +92,22 @@ class JobGateway:
             "outputReference": output_reference,
         })
 
+    def progress(
+        self,
+        claim: JobClaim,
+        *,
+        phase: str,
+        activity: str,
+        completed_stages: list[str],
+    ) -> Mapping[str, Any]:
+        return self._call("progress", {
+            "jobId": claim.job_id,
+            "attemptId": claim.attempt_id,
+            "phase": phase,
+            "activity": activity,
+            "completedStages": completed_stages,
+        })
+
     def complete(self, claim: JobClaim, findings: Mapping[str, Any], references: list[str]) -> Mapping[str, Any]:
         return self._call("complete", {
             "jobId": claim.job_id,

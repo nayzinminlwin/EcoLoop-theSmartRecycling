@@ -30,6 +30,10 @@ class FakeGateway:
         self.calls.append(("checkpoint", stage, output_reference))
         return {"state": "checkpointed"}
 
+    def progress(self, claim, *, phase, activity, completed_stages):
+        self.calls.append(("progress", phase, activity, completed_stages))
+        return {"state": "published"}
+
     def complete(self, claim, findings, references):
         self.calls.append(("complete", findings, references))
         return {"outcome": "verified", "decisionVersion": 1}

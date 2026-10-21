@@ -139,6 +139,17 @@ export class FirestoreInspectionStore implements InspectionStore {
         resultId,
         submittedAt: now,
         updatedAt: now,
+        progress: {
+          phase: "queued",
+          activity: "Request received — waiting for verification to start",
+          revision: 0,
+          attemptNumber: 0,
+          completedStages: [],
+          submissionAt: now,
+          stageStartedAt: now,
+          updatedAt: now,
+          deadlineAt,
+        },
       };
       transaction.create(batchRef, {
         id: batchId, ownerId: identity.uid, sessionId, binId: session.binId,

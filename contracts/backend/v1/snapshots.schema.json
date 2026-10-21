@@ -23,7 +23,23 @@
         "version": { "type": "integer", "minimum": 0 }, "createdAt": { "$ref": "#/$defs/instant" }, "updatedAt": { "$ref": "#/$defs/instant" },
         "draftAssetId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
         "draftAssetVersion": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 64 }, { "type": "null" }] },
-        "batchId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+        "batchId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] },
+        "progress": { "anyOf": [{ "$ref": "#/$defs/progress" }, { "type": "null" }] }
+      }
+    },
+    "progress": {
+      "type": "object", "additionalProperties": false,
+      "required": ["phase", "activity", "revision", "attemptNumber", "completedStages", "submissionAt", "updatedAt"],
+      "properties": {
+        "phase": { "type": "string", "enum": ["queued", "validating", "detecting", "additional_analysis", "retrying", "finalizing"] },
+        "activity": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "attemptNumber": { "type": "integer", "minimum": 0 },
+        "completedStages": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 32 }, "maxItems": 5 },
+        "submissionAt": { "$ref": "#/$defs/instant" },
+        "stageStartedAt": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] },
+        "updatedAt": { "$ref": "#/$defs/instant" },
+        "deadlineAt": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] }
       }
     },
     "asset": {

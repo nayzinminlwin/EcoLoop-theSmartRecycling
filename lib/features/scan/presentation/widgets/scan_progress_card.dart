@@ -211,6 +211,13 @@ class ScanProgress {
 
   factory ScanProgress.fromSession(DepositSession session, {DateTime? now}) {
     final substage = session.jobSubstage?.toLowerCase();
+    final summary = session.progress;
+    if (summary != null) {
+      return ScanProgress(
+        step: _stepForPhase(summary.phase),
+        activeMessage: summary.activity,
+      );
+    }
     if (substage == null) {
       final elapsed = (now ?? DateTime.now()).difference(session.updatedAt);
       if (elapsed >= const Duration(seconds: 45)) {
@@ -265,4 +272,13 @@ class ScanProgress {
       _ => const ScanProgress(step: 2, activeMessage: 'Validating the image'),
     };
   }
+
+  static int _stepForPhase(String phase) => switch (phase) {
+    'queued' => 1,
+    'validating' => 2,
+    'detecting' || 'retrying' => 3,
+    'additional_analysis' => 4,
+    'finalizing' => 5,
+    _ => 2,
+  };
 }
