@@ -593,6 +593,8 @@ The following original row includes administrative missing items from the previo
 | S14 | HP5 exact candidate and independent gap review | NOT_STARTED | — |
 | S15 | HP5 final repeated rehearsal and recording | IN_PROGRESS | Phase 5 opening state before the first attempted repeat: wallet 20/version 1, verified batches 1, accepted items 4, cycle contribution 120 SPC, bin available, resident active session null, Vision revision `ecoloop-vision-00012-pxt` at 100% traffic, queue RUNNING. The operator reported the next run worked, but Cloud correlation found two jobs: `job-d8380c7955b4647a8a969613300818d7` ended `review/material_uncertainty` after a stale-attempt recovery path, then `job-e495f7ebd37cc2863dc2443dabe2ad65` ended `verified` for 20 points / 4 items. Wallet is now 40/version 2, verified batches 2, accepted items 8, cycle contribution 200 SPC, bin available and active session null. The verified recovery is valid accounting evidence, but the review means this is not one clean consecutive Phase 5 pass. Start a fresh consecutive sequence with the next new deposit; do not count the review as a verified run. |
 
+**Latest operational update:** Vision revision `ecoloop-vision-00013-w4t` is deployed at 100% traffic with image digest `sha256:afb5c5a417f04dd570d2a493c6f64f2f7cb98bfb4438eed517bcfdac70f594e7`. The aggregate inspection budget is now 90 seconds; per-provider calls remain capped at 15 seconds and worker/lease deadlines remain authoritative. Review receipts no longer render the `Items`/`Material` summary component. The connected Flutter workspace had no active app for hot restart, so phone-side UI confirmation remains pending.
+
 ### 8.3 Final acceptance
 
 | Gate | Result | Safe IDs / values / actual observation |

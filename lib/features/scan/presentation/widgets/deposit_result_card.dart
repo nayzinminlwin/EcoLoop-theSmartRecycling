@@ -43,7 +43,7 @@ class DepositResultCard extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 6),
-      _countMaterialRow(context),
+      if (result.outcome != DepositOutcome.review) _countMaterialRow(context),
       if (result.lines.length > 1) ...[
         const SizedBox(height: 10),
         _lineList(context),
