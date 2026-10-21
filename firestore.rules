@@ -31,6 +31,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /binCycles/{cycleId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /binTombstones/{binId} {
+      allow read, write: if false;
+    }
+
     match /simulationAssets/{assetId} {
       allow read: if canReadCatalog();
       allow write: if false;

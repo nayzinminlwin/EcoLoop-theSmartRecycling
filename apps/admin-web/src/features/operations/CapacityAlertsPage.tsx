@@ -558,13 +558,15 @@ export function CapacityAlertsPage(): React.ReactElement {
         title="Capacity alerts"
         description="Monitor automated threshold alerts, schedule collection runs, and verify bin reset workflows."
         actions={
-          <Button
-            variant="primary"
-            busy={simulateMutation.pending}
-            onClick={handleSimulate}
-          >
-            <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
-          </Button>
+          services.mode !== "firebase" ? (
+            <Button
+              variant="primary"
+              busy={simulateMutation.pending}
+              onClick={handleSimulate}
+            >
+              <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
+            </Button>
+          ) : undefined
         }
       />
 
@@ -625,7 +627,7 @@ export function CapacityAlertsPage(): React.ReactElement {
               ? "Resolved collection alerts will appear here once collections are completed."
               : "All smart bins are operating within normal capacity thresholds. Simulate 85% capacity to demonstrate the operational workflow."}
           </p>
-          {query.status === "active" && (
+          {query.status === "active" && services.mode !== "firebase" && (
             <div style={{ marginTop: "12px" }}>
               <Button
                 variant="primary"

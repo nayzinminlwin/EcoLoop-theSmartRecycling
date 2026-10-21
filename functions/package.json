@@ -37,6 +37,9 @@
     "test:settlement:runner": "vitest run --config vitest.settlement.config.ts",
     "test:rewards": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:rewards:runner\"",
     "test:rewards:runner": "vitest run --config vitest.rewards.config.ts",
+    "test:admin:auth": "vitest run tests/unit/admin_auth.test.ts",
+    "test:admin:queries": "vitest run tests/unit/admin_projections.test.ts",
+    "test:admin:bins": "vitest run tests/unit/admin_bins.test.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },

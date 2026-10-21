@@ -18,6 +18,7 @@ import { FirestoreAdminOperationsStore } from "./infrastructure/firestore/admin_
 import { FirestoreAdminReadVersionsStore } from "./infrastructure/firestore/admin_read_versions_store.js";
 import { FirestoreAdminProjectionsStore } from "./infrastructure/firestore/admin_projections_store.js";
 import { FirestoreAdminQueriesStore } from "./infrastructure/firestore/admin_queries_store.js";
+import { FirestoreAdminBinsStore } from "./infrastructure/firestore/admin_bins_store.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -28,16 +29,29 @@ export function createComposition() {
   const logger = new StructuredLogger(process.env.NODE_ENV ?? "production");
   const storageBucketName = process.env.ECOLOOP_STORAGE_BUCKET ?? app.options.storageBucket;
   const storageBucket = storageBucketName === undefined ? undefined : getStorage(app).bucket(storageBucketName);
+
+  const adminOperations = new FirestoreAdminOperationsStore(firestore);
+  const adminReadVersions = new FirestoreAdminReadVersionsStore(firestore);
+  const adminProjections = new FirestoreAdminProjectionsStore(firestore);
+  const adminQueries = new FirestoreAdminQueriesStore(firestore);
+  const adminBins = new FirestoreAdminBinsStore(
+    firestore,
+    adminOperations,
+    adminProjections,
+    adminReadVersions
+  );
+
   return {
     app,
     firestore,
     auth,
     accounts: new FirestoreAccountsStore(firestore, auth),
     adminAccounts: new FirestoreAdminAccountsStore(firestore, auth),
-    adminOperations: new FirestoreAdminOperationsStore(firestore),
-    adminReadVersions: new FirestoreAdminReadVersionsStore(firestore),
-    adminProjections: new FirestoreAdminProjectionsStore(firestore),
-    adminQueries: new FirestoreAdminQueriesStore(firestore),
+    adminOperations,
+    adminReadVersions,
+    adminProjections,
+    adminQueries,
+    adminBins,
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     jobs: new FirestoreJobsStore(firestore),

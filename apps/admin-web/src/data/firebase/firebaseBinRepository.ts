@@ -9,11 +9,13 @@ import {
   onSnapshot,
   type Firestore,
 } from "firebase/firestore";
-import type {
-  BinsRepository,
-  Observable,
-  Observer,
-  Unsubscribe,
+import {
+  type BinsRepository,
+  type Observable,
+  type Observer,
+  type Unsubscribe,
+  type BinQrCode,
+  RepositoryError,
 } from "../repositories.ts";
 import type {
   BinListQuery,
@@ -198,18 +200,82 @@ export class FirebaseBinRepository implements BinsRepository {
   }
 
   async create(id: string, input: BinInput): Promise<SmartBinRow> {
-    return await this.fallbackBinsRepo.create(id, input);
+    try {
+      const capacitySpc = input.capacitySpc ?? 1000;
+      await this.commandClient.execute("adminCreateBin", {
+        binId: id,
+        locationName: input.locationName,
+        locationDetail: input.locationDetail,
+        capacitySpc,
+      });
+      return await this.get(id);
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminCreateBin");
+    }
   }
 
   async update(id: string, input: BinInput): Promise<SmartBinRow> {
-    return await this.fallbackBinsRepo.update(id, input);
+    try {
+      let expectedVersion = input.expectedVersion;
+      if (expectedVersion === undefined) {
+        const callable = httpsCallable<{ binId: string }, { bin: { version: number } }>(
+          this.functions,
+          "getAdminBin"
+        );
+        const res = await callable({ binId: id });
+        expectedVersion = res.data?.bin?.version ?? 1;
+      }
+
+      await this.commandClient.execute("adminUpdateBin", {
+        binId: id,
+        expectedVersion,
+        locationName: input.locationName,
+        locationDetail: input.locationDetail,
+        enabled: input.isOnline !== false,
+      });
+      return await this.get(id);
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminUpdateBin");
+    }
   }
 
   async delete(id: string): Promise<void> {
-    await this.fallbackBinsRepo.delete(id);
+    try {
+      const callable = httpsCallable<{ binId: string }, { bin: { version: number } }>(
+        this.functions,
+        "getAdminBin"
+      );
+      const res = await callable({ binId: id });
+      const expectedVersion = res.data?.bin?.version ?? 1;
+
+      await this.commandClient.execute("adminDeleteUnusedBin", {
+        binId: id,
+        expectedVersion,
+      });
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminDeleteUnusedBin");
+    }
   }
 
-  async simulateCapacity(id: string, capacityPercent: number): Promise<SmartBinRow> {
-    return await this.fallbackBinsRepo.simulateCapacity(id, capacityPercent);
+  async simulateCapacity(_id: string, _capacityPercent: number): Promise<SmartBinRow> {
+    throw new RepositoryError({
+      code: "invalidTransition",
+      message: "Direct capacity percentage simulation is disabled in live Firebase mode. Capacity is derived from positive integer volume measurements.",
+      fieldErrors: {},
+    });
+  }
+
+  async getQrCode(id: string): Promise<BinQrCode> {
+    try {
+      const callable = httpsCallable<{ binId: string }, BinQrCode>(
+        this.functions,
+        "getAdminBinQr"
+      );
+      const res = await callable({ binId: id });
+      return res.data;
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "getAdminBinQr");
+    }
   }
 }
+

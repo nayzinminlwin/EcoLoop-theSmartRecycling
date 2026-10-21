@@ -62,6 +62,14 @@ export interface DashboardRepository {
   watchSummary(): Observable<DashboardSummary>;
 }
 
+export interface BinQrCode {
+  binId: string;
+  qrId: string;
+  qrPayload: string;
+  dataUrl: string;
+  svg: string;
+}
+
 export interface BinsRepository {
   list(query: BinListQuery): Promise<Page<SmartBinRow>>;
   watchList(query: BinListQuery): Observable<Page<SmartBinRow>>;
@@ -71,6 +79,7 @@ export interface BinsRepository {
   update(id: string, input: BinInput): Promise<SmartBinRow>;
   delete(id: string): Promise<void>;
   simulateCapacity(id: string, capacityPercent: number): Promise<SmartBinRow>;
+  getQrCode(id: string): Promise<BinQrCode>;
 }
 
 export interface AlertsRepository {
@@ -124,7 +133,7 @@ export interface AdminRepositories {
 export type OperationName =
   "auth.getAuthState" | "auth.getSession" | "auth.getIdentity" | "auth.getDemoCredentials" | "auth.login" | "auth.logout" |
   "dashboard.getSummary" | "bins.list" | "bins.get" | "bins.create" | "bins.update" | "bins.delete" |
-  "bins.simulateCapacity" | "alerts.list" | "alerts.get" | "alerts.schedule" | "alerts.collect" |
+  "bins.simulateCapacity" | "bins.getQrCode" | "alerts.list" | "alerts.get" | "alerts.schedule" | "alerts.collect" |
   "alerts.resolve" | "verification.list" | "verification.get" | "verification.decide" |
   "rewards.list" | "rewards.get" | "rewards.getCategories" | "rewards.create" | "rewards.update" |
   "rewards.delete" | "settings.get" | "settings.update" | "residents.getSnapshot";

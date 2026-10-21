@@ -23,7 +23,8 @@ import {
   type Observable,
   type Observer,
   type Unsubscribe,
-  type OperationName
+  type OperationName,
+  type BinQrCode
 } from "./repositories.ts";
 import { createSeedState, MOCK_NOW, MOCK_LOGIN, type MockSeedState } from "./mockSeeds.ts";
 
@@ -612,6 +613,22 @@ export function createMockRepositories(options?: {
       checkAndTriggerAlert(bin);
       notifyCommit();
       return clone(getBinRow(id));
+    },
+    async getQrCode(id: string): Promise<BinQrCode> {
+      await wait(readDelay);
+      checkFailure("bins.getQrCode");
+      requireAdmin();
+      const qrId = `qr-${id}`;
+      const qrPayload = `ecoloop://bin/${qrId}`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" font-size="10">${qrPayload}</text></svg>`;
+      const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+      return {
+        binId: id,
+        qrId,
+        qrPayload,
+        dataUrl,
+        svg,
+      };
     }
   };
 

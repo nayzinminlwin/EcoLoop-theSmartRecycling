@@ -35,3 +35,9 @@ export {
   getAdminReward,
   getAdminRewardCategories,
 } from "./transport/admin_queries.js";
+export {
+  adminCreateBin,
+  adminUpdateBin,
+  adminDeleteUnusedBin,
+  getAdminBinQr,
+} from "./transport/admin_bins.js";

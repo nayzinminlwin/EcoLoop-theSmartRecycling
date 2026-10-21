@@ -117,7 +117,10 @@ export interface ResidentSnapshot {
 // ---------------------------------------------------------------------------
 // Input / mutation types
 // ---------------------------------------------------------------------------
-export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt">;
+export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt"> & {
+  capacitySpc?: number;
+  expectedVersion?: number;
+};
 export type RewardInput = Omit<RewardDocument, "id">;
 export type SettingsInput = Pick<AdminSettings,
   "capacityAlertThreshold" | "acceptedMaterials" | "materialRates">;
