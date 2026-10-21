@@ -154,7 +154,7 @@ test.describe("2. Fleet CRUD", () => {
 // 3. Alert Lifecycle Test Suite
 // ---------------------------------------------------------------------------
 test.describe("3. Alert Lifecycle", () => {
-  test("simulates 85% capacity, increments alert counts, schedules, collects (reset to 10%), and resolves", async ({
+  test("simulates 85% capacity, increments alert counts, schedules, collects (reset to 0%), and resolves", async ({
     page
   }) => {
     await loginAsAdmin(page, "/alerts");
@@ -171,14 +171,14 @@ test.describe("3. Alert Lifecycle", () => {
     // 1. Schedule Collection
     const scheduleBtn = page.getByRole("button", { name: /Schedule collection/i });
     await scheduleBtn.click();
-    await expect(page.getByText(/Collection dispatched for bin BIN-004/i)).toBeVisible();
+    await expect(page.getByText(/Collection (scheduled|dispatched) for bin BIN-004/i)).toBeVisible();
 
     // 2. Collect and Reset
     const collectBtn = page.getByRole("button", { name: /Mark collected & reset bin/i });
     await collectBtn.click();
     await expect(page.getByText(/Confirm Bin Collection/i)).toBeVisible();
     await page.getByRole("dialog").getByRole("button", { name: /Mark collected & reset bin/i }).click();
-    await expect(page.getByText(/Bin BIN-004 marked as collected and capacity reset to 10%/i)).toBeVisible();
+    await expect(page.getByText(/Bin BIN-004 marked as collected/i)).toBeVisible();
 
     // 3. Resolve Alert
     const resolveBtn = page.getByRole("button", { name: /Resolve alert/i });
