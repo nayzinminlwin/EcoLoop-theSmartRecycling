@@ -17,16 +17,16 @@ class FirestoreWalletReadTransport implements WalletReadTransport {
 
   @override
   Future<Map<String, Object?>?> read(String uid) async {
-    final snapshot = await firestore
-        .doc('residents/$uid/wallet/current')
-        .get();
+    final snapshot = await firestore.doc('residents/$uid/wallet/current').get();
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
 
   @override
-  Stream<Map<String, Object?>> watch(String uid) =>
-      firestore.doc('residents/$uid/wallet/current').snapshots().map((snapshot) {
+  Stream<Map<String, Object?>> watch(String uid) => firestore
+      .doc('residents/$uid/wallet/current')
+      .snapshots()
+      .map((snapshot) {
         final data = snapshot.data();
         if (data == null) throw StateError('Wallet $uid does not exist');
         return Map<String, Object?>.from(data);
@@ -56,8 +56,12 @@ class FirebaseWalletRepository implements WalletRepository {
 
   @override
   Stream<WalletSnapshot?> watchWallet() async* {
+    var latestVersion = -1;
     await for (final data in _reads.watch(uid)) {
-      yield _map(data);
+      final wallet = _map(data);
+      if (wallet.version <= latestVersion) continue;
+      latestVersion = wallet.version;
+      yield wallet;
     }
   }
 

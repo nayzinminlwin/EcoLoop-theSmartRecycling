@@ -89,7 +89,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                       const AppIcon('leaf', size: 16, color: AppColors.primary),
                       const SizedBox(width: 6),
                       Text(
-                        '${value.balance} pts',
+                        '${value?.balance ?? 0} pts',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -140,11 +140,13 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
               loading: () =>
                   const AppLoadingView(message: 'Loading your points'),
               error: (_, _) => const Text('Your wallet could not be loaded.'),
-              data: (balance) => _RewardGrid(
-                rewards: items,
-                balance: balance.balance,
-                onRedeem: _openRedemption,
-              ),
+              data: (balance) => balance == null
+                  ? const Text('Your wallet could not be loaded.')
+                  : _RewardGrid(
+                      rewards: items,
+                      balance: balance.balance,
+                      onRedeem: _openRedemption,
+                    ),
             ),
           ),
           const SizedBox(height: 28),
@@ -197,7 +199,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       builder: (_) => StatefulBuilder(
         builder: (context, setDialogState) => RewardRedemptionDialog(
           reward: reward,
-          balance: ref.read(walletSnapshotProvider).value?.balance ?? 0,
+          balance: ref.read(walletSnapshotProvider).valueOrNull?.balance ?? 0,
           error: _redemptionError,
           isLoading: _redeeming,
           onConfirm: () => _redeem(setDialogState),
@@ -224,7 +226,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       _redeeming = false;
       Navigator.pop(context);
       ref
-        ..invalidate(walletSnapshotProvider)
         ..invalidate(rewardsProvider)
         ..invalidate(vouchersProvider(null));
       setState(() {

@@ -73,6 +73,7 @@ class _HomeContent extends StatelessWidget {
       WalletSummaryCard(
         wallet: data.wallet,
         progress: data.rewardProgress,
+        progressState: data.rewardProgressState,
         onBrowseRewards: () => context.go(AppRoutes.rewards),
       ),
       const SizedBox(height: AppSpacing.section),

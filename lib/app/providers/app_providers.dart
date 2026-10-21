@@ -9,6 +9,7 @@ import 'package:eco_loop/features/activity/domain/repositories/activity_reposito
 import 'package:eco_loop/features/wallet/data/mock_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/data/firebase_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:eco_loop/features/wallet/domain/models/wallet_snapshot.dart';
 import 'package:eco_loop/features/recycling_guide/data/mock_recycling_guide_repository.dart';
 import 'package:eco_loop/features/recycling_guide/data/firebase_recycling_guide_repository.dart';
 import 'package:eco_loop/features/recycling_guide/domain/repositories/recycling_guide_repository.dart';
@@ -179,8 +180,8 @@ final residentProfileProvider = FutureProvider(
   (ref) => ref.watch(accountRepositoryProvider).getProfile(),
 );
 
-final walletSnapshotProvider = FutureProvider(
-  (ref) => ref.watch(walletRepositoryProvider).getWallet(),
+final walletSnapshotProvider = StreamProvider<WalletSnapshot?>(
+  (ref) => ref.watch(walletRepositoryProvider).watchWallet(),
 );
 
 final scanRepositoryProvider = Provider<ScanRepository>((ref) {
