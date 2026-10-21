@@ -96,7 +96,7 @@ class RewardCard extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 32),
             AppButton(
               label: atLimit
                   ? 'Redeemed'
