@@ -1,6 +1,7 @@
 import io
 import json
 import math
+import threading
 from pathlib import Path
 
 from PIL import Image
@@ -188,6 +189,41 @@ def test_low_confidence_eligible_candidate_keeps_specialist_evidence_and_needs_g
     assert item.eligibility == "eligible"
     assert "waste-classification-rjo28/2" in item.model_ids
     assert item.confidence == pytest.approx(0.68)
+
+
+def test_independent_specialist_crops_run_concurrently_and_reconcile_in_input_order():
+    barrier = threading.Barrier(2)
+
+    def detector(model_id, _image):
+        x = 25 if model_id.startswith("waste") else 75
+        return {
+            "image": {"width": 100, "height": 80},
+            "predictions": [{
+                "x": x, "y": 40, "width": 12, "height": 20,
+                "class": "Pet_Bottle", "confidence": 0.68,
+            }],
+        }
+
+    def specialist(_image, object_id):
+        barrier.wait(timeout=1)
+        return {
+            "predictions": {"Plastic Bottle": {"confidence": 0.942}},
+            "predicted_classes": ["Plastic Bottle"],
+        }
+
+    result = inspect_image(
+        image_input(),
+        detector_provider=detector,
+        specialist_provider=specialist,
+        config=InspectionConfig(max_gemini_crops=0),
+    )
+
+    assert [item.object_id for item in result.objects] == ["object-0001", "object-0002"]
+    assert [item.model_ids[-1] for item in result.objects] == [
+        "waste-classification-rjo28/2",
+        "waste-classification-rjo28/2",
+    ]
+    assert len(result.attempts) == 4
 
 
 def test_worker_findings_map_internal_specialist_reason_to_contract_reason():

@@ -21,9 +21,10 @@ def run_roboflow(
     image_path: Path,
     model_id: str,
     config: ProbeConfig,
+    client: InferenceHTTPClient | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    client = InferenceHTTPClient(
+    client = client or InferenceHTTPClient(
         api_url=config.roboflow_api_url,
         api_key=config.roboflow_api_key,
     )

@@ -128,6 +128,18 @@ def _default_runner(image: ProcessingInput, config: InspectionConfig) -> Inspect
     probe = ProbeConfig.from_environment()
     from ecoloop_vision.adapters.detectors import run_roboflow
     from ecoloop_vision.adapters.specialist import run_gemini
+    from inference_sdk import InferenceHTTPClient
+    from google import genai
+    from google.genai import types
+
+    roboflow_client = InferenceHTTPClient(
+        api_url=probe.roboflow_api_url,
+        api_key=probe.roboflow_api_key,
+    )
+    gemini_client = genai.Client(
+        api_key=probe.gemini_api_key,
+        http_options=types.HttpOptions(timeout=config.call_timeout_ms),
+    )
 
     return inspect_image(
         image,
@@ -137,10 +149,10 @@ def _default_runner(image: ProcessingInput, config: InspectionConfig) -> Inspect
             specialist_model=probe.specialist_model,
         ),
         detector_provider=lambda model_id, _image: run_roboflow(
-            image_path=_write_temp_image(image), model_id=model_id, config=probe
+            image_path=_write_temp_image(image), model_id=model_id, config=probe, client=roboflow_client
         )["response"],
         specialist_provider=lambda crop, _object_id: run_roboflow(
-            image_path=_write_temp_image(crop), model_id=probe.specialist_model, config=probe
+            image_path=_write_temp_image(crop), model_id=probe.specialist_model, config=probe, client=roboflow_client
         )["response"],
         gemini_provider=lambda provider_image, mode, object_id: json.loads(run_gemini(
             image_path=_write_temp_image(provider_image),
@@ -148,6 +160,7 @@ def _default_runner(image: ProcessingInput, config: InspectionConfig) -> Inspect
             mode=mode,
             candidate_id=object_id,
             timeout_ms=config.call_timeout_ms,
+            client=gemini_client,
         )["text"]),
     )
 

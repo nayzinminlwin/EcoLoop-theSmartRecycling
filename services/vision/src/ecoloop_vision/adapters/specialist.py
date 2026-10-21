@@ -20,11 +20,12 @@ def run_gemini(
     mode: str = "full_image",
     candidate_id: str | None = None,
     timeout_ms: int = 15_000,
+    client: Any | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     if timeout_ms < 1:
         raise ValueError("Gemini timeout must be positive")
-    client = genai.Client(
+    client = client or genai.Client(
         api_key=config.gemini_api_key,
         http_options=types.HttpOptions(timeout=timeout_ms),
     )
