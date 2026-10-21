@@ -124,11 +124,25 @@ describe("Phase AB-03 — Query Matrix Validation & Cursor Serialization", () =>
     ).rejects.toThrow(/Unsupported bin sort key: invalidNonIndexedField/);
   });
 
+  it("rejects unsupported bin filter", async () => {
+    const store = new FirestoreAdminQueriesStore({} as unknown as Firestore);
+    await expect(
+      store.listBins({ filters: { unknownFilter: "hack" } })
+    ).rejects.toThrow(/Unsupported bin filter: unknownFilter/);
+  });
+
   it("rejects unsupported reward sort key", async () => {
     const store = new FirestoreAdminQueriesStore({} as unknown as Firestore);
     await expect(
       store.listRewards({ sortKey: "unsupportedKey" })
     ).rejects.toThrow(/Unsupported reward sort key: unsupportedKey/);
+  });
+
+  it("rejects unsupported reward filter", async () => {
+    const store = new FirestoreAdminQueriesStore({} as unknown as Firestore);
+    await expect(
+      store.listRewards({ filters: { unindexedProp: true } })
+    ).rejects.toThrow(/Unsupported reward filter: unindexedProp/);
   });
 });
 

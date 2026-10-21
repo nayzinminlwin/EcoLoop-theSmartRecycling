@@ -35,10 +35,10 @@ export interface AdminBinDetailViewRecord {
   readonly activeAlertId: string | null;
 }
 
-const SUPPORTED_BIN_SORTS = new Set(["locationName", "fillPercent", "capacitySpc", "updatedAt", "binId"]);
-const SUPPORTED_BIN_FILTERS = new Set(["collectionState", "enabled"]);
+const SUPPORTED_BIN_SORTS = new Set(["locationName", "fillPercent", "capacitySpc", "updatedAt", "binId", "collectionState"]);
+const SUPPORTED_BIN_FILTERS = new Set(["collectionState", "enabled", "logicalOnline"]);
 
-const SUPPORTED_REWARD_SORTS = new Set(["sortOrder", "pointsCost", "title", "updatedAt", "rewardId"]);
+const SUPPORTED_REWARD_SORTS = new Set(["sortOrder", "pointsCost", "title", "updatedAt", "rewardId", "expiresAt"]);
 const SUPPORTED_REWARD_FILTERS = new Set(["categoryId", "isActive"]);
 
 export function encodeCursor(values: unknown[]): string {
@@ -68,6 +68,14 @@ export class FirestoreAdminQueriesStore {
       throw new HttpsError("invalid-argument", `Unsupported bin sort key: ${sortField}`);
     }
 
+    if (input.filters) {
+      for (const key of Object.keys(input.filters)) {
+        if (!SUPPORTED_BIN_FILTERS.has(key)) {
+          throw new HttpsError("invalid-argument", `Unsupported bin filter: ${key}`);
+        }
+      }
+    }
+
     const direction = input.sortDirection === "desc" ? "desc" : "asc";
     const pageSize = Math.max(1, Math.min(100, Number(input.pageSize ?? 10)));
 
@@ -76,9 +84,6 @@ export class FirestoreAdminQueriesStore {
     // Apply filters
     if (input.filters) {
       for (const [key, val] of Object.entries(input.filters)) {
-        if (!SUPPORTED_BIN_FILTERS.has(key)) {
-          throw new HttpsError("invalid-argument", `Unsupported bin filter: ${key}`);
-        }
         if (val !== undefined && val !== null && val !== "") {
           query = query.where(key, "==", val);
         }
@@ -166,6 +171,14 @@ export class FirestoreAdminQueriesStore {
       throw new HttpsError("invalid-argument", `Unsupported reward sort key: ${sortField}`);
     }
 
+    if (input.filters) {
+      for (const key of Object.keys(input.filters)) {
+        if (!SUPPORTED_REWARD_FILTERS.has(key)) {
+          throw new HttpsError("invalid-argument", `Unsupported reward filter: ${key}`);
+        }
+      }
+    }
+
     const direction = input.sortDirection === "desc" ? "desc" : "asc";
     const pageSize = Math.max(1, Math.min(100, Number(input.pageSize ?? 10)));
 
@@ -174,9 +187,6 @@ export class FirestoreAdminQueriesStore {
     // Apply filters
     if (input.filters) {
       for (const [key, val] of Object.entries(input.filters)) {
-        if (!SUPPORTED_REWARD_FILTERS.has(key)) {
-          throw new HttpsError("invalid-argument", `Unsupported reward filter: ${key}`);
-        }
         if (val !== undefined && val !== null && val !== "") {
           query = query.where(key, "==", val);
         }

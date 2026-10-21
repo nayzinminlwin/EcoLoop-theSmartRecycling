@@ -51,10 +51,18 @@ export class FirebaseBinRepository implements BinsRepository {
 
   private mapSortKey(key: string): string {
     switch (key) {
+      case "id":
+        return "binId";
+      case "locationName":
       case "location":
         return "locationName";
+      case "capacityPercent":
       case "capacity":
         return "fillPercent";
+      case "lastUpdatedAt":
+      case "updatedAt":
+        return "updatedAt";
+      case "collectionState":
       case "status":
         return "collectionState";
       default:

@@ -57,6 +57,8 @@ export class FirebaseRewardRepository implements AdminRewardsRepository {
       case "name":
       case "title":
         return "title";
+      case "expiresAt":
+        return "expiresAt";
       default:
         return "sortOrder";
     }
@@ -72,6 +74,11 @@ export class FirebaseRewardRepository implements AdminRewardsRepository {
       const filters: Record<string, unknown> = {};
       if (query.categoryId) {
         filters.categoryId = query.categoryId;
+      }
+      if (query.publication === "active") {
+        filters.isActive = true;
+      } else if (query.publication === "draft") {
+        filters.isActive = false;
       }
 
       const res = await callable({

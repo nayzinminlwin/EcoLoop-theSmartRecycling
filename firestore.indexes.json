@@ -118,6 +118,60 @@
         { "fieldPath": "sortOrder", "order": "ASCENDING" },
         { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "adminBinViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "logicalOnline", "order": "ASCENDING" },
+        { "fieldPath": "locationName", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adminBinViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "logicalOnline", "order": "ASCENDING" },
+        { "fieldPath": "fillPercent", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adminRewardViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "categoryId", "order": "ASCENDING" },
+        { "fieldPath": "pointsCost", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adminRewardViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "pointsCost", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adminRewardViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adminRewardViews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchTokens", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "title", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
