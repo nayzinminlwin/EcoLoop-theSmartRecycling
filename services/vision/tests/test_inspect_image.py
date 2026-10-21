@@ -4,6 +4,7 @@ import math
 from pathlib import Path
 
 from PIL import Image
+import pytest
 
 from ecoloop_vision.application.inspect_image import InspectionConfig, inspect_image, result_to_dict
 from ecoloop_vision.application.run_job import _findings
@@ -140,6 +141,53 @@ def test_specialist_predictions_are_normalized_as_scores():
         model_id="waste-classification-rjo28/2",
     )
     assert result.score_vector.scores["Plastic Bottle"] == 0.94
+
+
+def test_low_confidence_eligible_candidate_keeps_specialist_evidence_and_needs_gemini():
+    specialist_calls = []
+    gemini_calls = []
+
+    def detector(model_id, _image):
+        return {
+            "image": {"width": 100, "height": 80},
+            "predictions": [{
+                "x": 50, "y": 40, "width": 20, "height": 30,
+                "class": "Pet_Bottle" if model_id.startswith("waste") else "Plastic bottle",
+                "confidence": 0.68,
+            }],
+        }
+
+    def specialist(_image, object_id):
+        specialist_calls.append(object_id)
+        return {
+            "predictions": {"Plastic Bottle": {"confidence": 0.942}},
+            "predicted_classes": ["Plastic Bottle"],
+        }
+
+    def gemini(_image, mode, object_id):
+        gemini_calls.append((mode, object_id))
+        return {
+            "objects": [{
+                "label": "plastic_bottle",
+                "count": 1,
+                "confidence": 0.95,
+                "candidateId": object_id,
+            }],
+        }
+
+    result = inspect_image(
+        image_input(),
+        detector_provider=detector,
+        specialist_provider=specialist,
+        gemini_provider=gemini,
+    )
+
+    assert specialist_calls == ["object-0001"]
+    assert gemini_calls == [("crop", "object-0001")]
+    item = result.objects[0]
+    assert item.eligibility == "eligible"
+    assert "waste-classification-rjo28/2" in item.model_ids
+    assert item.confidence == pytest.approx(0.68)
 
 
 def test_result_to_dict_replaces_non_finite_values():

@@ -43,6 +43,14 @@ class FallbackEvidence:
 
 
 @dataclass(frozen=True)
+class ProviderAttempt:
+    stage: str
+    attempt: int
+    status: str
+    error_type: str | None = None
+
+
+@dataclass(frozen=True)
 class InspectionResult:
     input_sha256: str
     config_id: str
@@ -53,6 +61,7 @@ class InspectionResult:
     fallbacks: tuple[FallbackEvidence, ...]
     raw_responses: Mapping[str, Any]
     outcomes: tuple[StageOutcome, ...] = ()
+    attempts: tuple[ProviderAttempt, ...] = ()
 
     @property
     def inventory_state(self) -> str:
@@ -79,6 +88,7 @@ def inspect_image(
 ) -> InspectionResult:
     raw_responses: dict[str, Any] = {}
     outcomes: list[StageOutcome] = []
+    attempts: list[ProviderAttempt] = []
     started_at = time.monotonic()
     emit_structured(level=20, event="vision.inspection_started", fields={
         "inputSha256": image.sha256,
@@ -86,20 +96,31 @@ def inspect_image(
     })
     detector_results: dict[str, NormalizedResult] = {}
     candidates: list[DetectionCandidate] = []
-    for role, model_id in (
+    detector_specs = (
         ("A", config.detector_models[0]),
         ("B", config.detector_models[1]),
-    ):
-        if len(detector_results) >= config.max_detector_calls or _budget_exhausted(started_at, config):
-            outcomes.append(StageOutcome("detectors", "budget_exhausted", "detector_call_budget"))
-            break
+    )[:config.max_detector_calls]
+    def run_detector(role: str, model_id: str) -> tuple[str, str, Any, Exception | None]:
+        if _budget_exhausted(started_at, config):
+            return role, model_id, None, RuntimeError("budget_exhausted")
         try:
-            raw = _invoke_provider(
-                detector_provider, (model_id, image), "detector", started_at, config, outcomes
-            )
+            return role, model_id, _invoke_provider(
+                detector_provider, (model_id, image), "detector", started_at, config, attempts
+            ), None
         except Exception as error:
-            outcomes.append(_provider_outcome("detector", error))
-            detector_results[role] = NormalizedResult(model_id=model_id, model_version=None, error=type(error).__name__)
+            return role, model_id, None, error
+
+    detector_runs: list[tuple[str, str, Any, Exception | None]] = []
+    if detector_specs:
+        with ThreadPoolExecutor(max_workers=min(2, len(detector_specs))) as executor:
+            detector_runs = list(executor.map(lambda spec: run_detector(*spec), detector_specs))
+    for role, model_id, raw, provider_error in detector_runs:
+        if provider_error is not None:
+            outcomes.append(_provider_outcome("detector", provider_error))
+            detector_results[role] = NormalizedResult(model_id=model_id, model_version=None, error=type(provider_error).__name__)
+            continue
+        if raw is None:
+            outcomes.append(StageOutcome("detectors", "budget_exhausted", "detector_call_budget"))
             continue
         raw_responses[role] = raw
         try:
@@ -137,7 +158,7 @@ def inspect_image(
             crop, _ = crop_candidate(image, object_id=group.group_id, box=group.box)
             try:
                 raw = _invoke_provider(
-                    specialist_provider, (crop, group.group_id), "specialist", started_at, config, outcomes
+                    specialist_provider, (crop, group.group_id), "specialist", started_at, config, attempts
                 )
             except Exception as error:
                 outcomes.append(_provider_outcome("specialist", error))
@@ -165,7 +186,7 @@ def inspect_image(
             crop, _ = crop_candidate(image, object_id=group.group_id, box=group.box)
             try:
                 raw = _invoke_provider(
-                    gemini_provider, (crop, "crop", group.group_id), "gemini_crop", started_at, config, outcomes
+                    gemini_provider, (crop, "crop", group.group_id), "gemini_crop", started_at, config, attempts
                 )
             except Exception as error:
                 outcomes.append(_provider_outcome("gemini_crop", error))
@@ -194,7 +215,7 @@ def inspect_image(
         ):
             try:
                 raw = _invoke_provider(
-                    gemini_provider, (image, "full_image", None), "gemini_full_image", started_at, config, outcomes
+                    gemini_provider, (image, "full_image", None), "gemini_full_image", started_at, config, attempts
                 )
             except Exception as error:
                 outcomes.append(_provider_outcome("gemini_full_image", error))
@@ -211,6 +232,7 @@ def inspect_image(
                     fallbacks=tuple(fallbacks),
                     raw_responses=raw_responses,
                     outcomes=tuple(outcomes),
+                    attempts=tuple(attempts),
                 )
                 emit_structured(level=20, event="vision.inspection_completed", fields={
                     "inputSha256": image.sha256,
@@ -245,15 +267,13 @@ def inspect_image(
         fallbacks=tuple(fallbacks),
         raw_responses=raw_responses,
         outcomes=tuple(outcomes),
+        attempts=tuple(attempts),
     )
 
 
 def _needs_specialist(group: CandidateGroup, objects: tuple[ResolvedObject, ...]) -> bool:
-    object_index = int(group.group_id.rsplit("-", 1)[-1]) - 1
-    return (
-        0 <= object_index < len(objects)
-        and (objects[object_index].eligibility == "unresolved" or objects[object_index].confidence < 0.85)
-    )
+    item = next((item for item in objects if item.object_id == group.group_id), None)
+    return item is not None and item.confidence < 0.85
 
 
 def _apply_specialist_evidence(
@@ -264,7 +284,7 @@ def _apply_specialist_evidence(
     for item in objects:
         result = specialist_results.get(item.object_id)
         vector = None if result is None else result.score_vector
-        if vector is None or item.eligibility != "unresolved":
+        if vector is None:
             updated.append(item)
             continue
         candidates = sorted(vector.scores.items(), key=lambda pair: (-pair[1], pair[0]))
@@ -288,7 +308,7 @@ def _apply_specialist_evidence(
             raw_labels=item.raw_labels + (candidates[0][0],),
             confidence=item.confidence,
             rule_id="rule.specialist_existing_candidate",
-            reason_code="fallback",
+            reason_code="specialist_evidence",
         ))
     return tuple(updated)
 
@@ -408,7 +428,7 @@ def _invoke_provider(
     stage: str,
     started_at: float,
     config: InspectionConfig,
-    outcomes: list[StageOutcome],
+    attempts: list[ProviderAttempt],
 ) -> Any:
     last_error: Exception | None = None
     for attempt in range(config.max_retries + 1):
@@ -421,14 +441,29 @@ def _invoke_provider(
         executor = ThreadPoolExecutor(max_workers=1)
         future = executor.submit(provider, *args)
         try:
-            return future.result(timeout=remaining_ms / 1000)
+            result = future.result(timeout=remaining_ms / 1000)
+            attempts.append(ProviderAttempt(stage, attempt + 1, "success"))
+            return result
         except FutureTimeoutError as error:
             last_error = error
-            outcomes.append(StageOutcome(stage, "budget_exhausted", "call_timeout"))
+            attempts.append(ProviderAttempt(stage, attempt + 1, "timeout", type(error).__name__))
+            if attempt >= config.max_retries:
+                raise RuntimeError("budget_exhausted") from error
         except Exception as error:
             last_error = error
-            if attempt >= config.max_retries:
+            attempts.append(ProviderAttempt(stage, attempt + 1, "error", type(error).__name__))
+            if not _is_transient(error) or attempt >= config.max_retries:
                 raise
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
     raise last_error or RuntimeError("provider_call_failed")
+
+
+def _is_transient(error: Exception) -> bool:
+    return isinstance(error, (TimeoutError, ConnectionError)) or type(error).__name__ in {
+        "TransientProviderError",
+        "ReadTimeout",
+        "ConnectTimeout",
+        "ServiceUnavailable",
+        "InternalServerError",
+    }

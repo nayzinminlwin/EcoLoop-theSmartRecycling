@@ -123,6 +123,7 @@ def _default_runner(image: ProcessingInput, config: InspectionConfig) -> Inspect
             config=probe,
             mode=mode,
             candidate_id=object_id,
+            timeout_ms=config.call_timeout_ms,
         )["text"]),
     )
 

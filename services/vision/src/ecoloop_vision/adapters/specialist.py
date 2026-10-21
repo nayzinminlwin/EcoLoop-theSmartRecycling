@@ -19,9 +19,15 @@ def run_gemini(
     config: ProbeConfig,
     mode: str = "full_image",
     candidate_id: str | None = None,
+    timeout_ms: int = 15_000,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    client = genai.Client(api_key=config.gemini_api_key)
+    if timeout_ms < 1:
+        raise ValueError("Gemini timeout must be positive")
+    client = genai.Client(
+        api_key=config.gemini_api_key,
+        http_options=types.HttpOptions(timeout=timeout_ms),
+    )
     try:
         response = client.models.generate_content(
             model=config.gemini_model,
@@ -124,11 +130,19 @@ def normalize_specialist_response(
         raise ValueError("Specialist response must be an object")
     raw_scores = response.get("class_scores", response.get("scores"))
     if raw_scores is None:
-        raw_scores = {
-            label: value.get("confidence")
-            for label, value in response.get("predictions", {}).items()
-            if isinstance(value, dict) and "confidence" in value
-        }
+        predictions = response.get("predictions", {})
+        if isinstance(predictions, dict):
+            raw_scores = {
+                label: value.get("confidence")
+                for label, value in predictions.items()
+                if isinstance(value, dict) and "confidence" in value
+            }
+        elif isinstance(predictions, list):
+            raw_scores = {
+                item.get("class"): item.get("confidence")
+                for item in predictions
+                if isinstance(item, dict) and isinstance(item.get("class"), str)
+            }
     if not isinstance(raw_scores, dict):
         raise ValueError("Specialist class scores must be an object")
     scores: dict[str, float] = {}
@@ -136,6 +150,8 @@ def normalize_specialist_response(
         if not isinstance(label, str) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
             raise ValueError("Specialist scores must map labels to probabilities")
         scores[label] = float(value)
+    if not scores:
+        raise ValueError("Specialist response contains no verification scores")
     predicted = response.get("predicted_classes", [])
     if not isinstance(predicted, list) or not all(isinstance(label, str) for label in predicted):
         raise ValueError("Specialist predicted_classes must be an array of strings")

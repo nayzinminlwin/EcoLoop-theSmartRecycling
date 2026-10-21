@@ -1,6 +1,7 @@
 import io
 
 from PIL import Image
+import pytest
 
 from ecoloop_vision.domain.models import ProcessingInput
 from ecoloop_vision.infrastructure.images import crop_candidate
@@ -32,3 +33,13 @@ def test_crop_rejects_unbounded_padding():
         assert "padding" in str(error)
     else:
         raise AssertionError("Expected oversized padding to fail")
+
+
+def test_specialist_rejects_empty_scores():
+    from ecoloop_vision.adapters.specialist import normalize_specialist_response
+
+    with pytest.raises(ValueError, match="no verification scores"):
+        normalize_specialist_response(
+            {"predictions": [], "predicted_classes": []},
+            model_id="waste-classification-rjo28/2",
+        )

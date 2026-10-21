@@ -12,6 +12,10 @@ from ecoloop_vision.infrastructure.images import original_box
 from ecoloop_vision.logging import emit_event
 
 
+class TransientProviderError(RuntimeError):
+    """Provider failure that may be retried within the inspection deadline."""
+
+
 def run_roboflow(
     *,
     image_path: Path,
