@@ -178,7 +178,7 @@ function makeDocuments(manifest: SeedManifest, now: Timestamp): ReferenceDocumen
   for (const reward of manifest.rewards) {
     const data = {
       ...reward, offerVersion: "demo-offer-v1", demoOnly: true, isDemo: true, isActive: true, imageUrl: null,
-      maxRedemptionsPerResident: 1, voucherValidityDays: 30,
+      maxRedemptionsPerResident: 3, voucherValidityDays: 30,
       catalogExpiresAt: Timestamp.fromDate(new Date("2027-12-31T23:59:59.000Z")),
       terms: "DEMONSTRATION ONLY. This generated single-use voucher is not a real merchant obligation and has no cash value. Valid for 30 days from issuance. Copying the code does not consume it; use the clearly labeled Simulate voucher use action. Unused expiry provides no points refund.",
     };
