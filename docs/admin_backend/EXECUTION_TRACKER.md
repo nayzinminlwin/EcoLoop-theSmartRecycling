@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | **AB-01** | Freeze the integration contract and handoff | Agent | COMPLETE | [AB-01_freeze_contract_and_handoff.md](evidence/AB-01_freeze_contract_and_handoff.md) | `docs: define admin backend integration contracts and handoff` | `7dda851` |
 | **AB-02** | Real admin identity, service composition and command recovery | Agent | COMPLETE | [AB-02_auth_and_recovery.md](evidence/AB-02_auth_and_recovery.md) | `feat: connect admin authentication and trusted command transport` | `cfda97c` / `a4dfcde` |
-| **AB-03** | Real read layer, query projections and indexes | Agent | COMPLETE | [AB-03_read_projections.md](evidence/AB-03_read_projections.md) | `feat: add admin query adapters and rebuildable read models` | — |
+| **AB-03** | Real read layer, query projections and indexes | Agent | COMPLETE | [AB-03_read_projections.md](evidence/AB-03_read_projections.md) | `feat: add admin query adapters and rebuildable read models` | `34b813c` |
 | **AB-04** | Bin management and usable registered QR codes | Agent | NOT_STARTED | `evidence/AB-04_bin_fleet_management.md` | `feat: implement admin smart bin lifecycle and qr generation` | — |
 | **AB-05** | Immutable program settings and policy publication | Agent | NOT_STARTED | `evidence/AB-05_program_settings_policy.md` | `feat: implement admin program policy publication` | — |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | NOT_STARTED | `evidence/AB-06_capacity_alerts_collection.md` | `feat: integrate capacity alert lifecycle and collection cycles` | — |
