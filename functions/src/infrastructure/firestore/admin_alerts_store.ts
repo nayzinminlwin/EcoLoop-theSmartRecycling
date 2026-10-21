@@ -179,6 +179,7 @@ export class FirestoreAdminAlertsStore {
     await Promise.all([
       this.readVersionsStore.bumpVersion("alerts"),
       this.readVersionsStore.bumpVersion("bins"),
+      this.readVersionsStore.bumpVersion("dashboard"),
     ]);
 
     return {
@@ -420,6 +421,7 @@ export class FirestoreAdminAlertsStore {
     await Promise.all([
       this.readVersionsStore.bumpVersion("bins"),
       this.readVersionsStore.bumpVersion("alerts"),
+      this.readVersionsStore.bumpVersion("dashboard"),
     ]);
 
     return {
@@ -559,7 +561,10 @@ export class FirestoreAdminAlertsStore {
     );
 
     // Invalidate read projections
-    await this.readVersionsStore.bumpVersion("alerts");
+    await Promise.all([
+      this.readVersionsStore.bumpVersion("alerts"),
+      this.readVersionsStore.bumpVersion("dashboard"),
+    ]);
 
     return {
       schemaVersion: "admin.v1",
@@ -773,8 +778,11 @@ export class FirestoreAdminAlertsStore {
     }
 
     if (reconciledCount > 0) {
-      await this.readVersionsStore.bumpVersion("alerts");
-      await this.readVersionsStore.bumpVersion("bins");
+      await Promise.all([
+        this.readVersionsStore.bumpVersion("alerts"),
+        this.readVersionsStore.bumpVersion("bins"),
+        this.readVersionsStore.bumpVersion("dashboard"),
+      ]);
     }
 
     return { reconciledCount };

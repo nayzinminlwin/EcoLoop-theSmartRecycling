@@ -251,7 +251,10 @@ export class FirestoreAdminBinsStore {
     );
 
     // 5. Bump topic revision
-    await this.readVersionsStore.bumpVersion("bins", caller.uid);
+    await Promise.all([
+      this.readVersionsStore.bumpVersion("bins", caller.uid),
+      this.readVersionsStore.bumpVersion("dashboard", caller.uid),
+    ]);
 
     return receipt as unknown as AdminCommandResponse;
   }
@@ -369,7 +372,10 @@ export class FirestoreAdminBinsStore {
     );
 
     // 5. Bump topic revision
-    await this.readVersionsStore.bumpVersion("bins", caller.uid);
+    await Promise.all([
+      this.readVersionsStore.bumpVersion("bins", caller.uid),
+      this.readVersionsStore.bumpVersion("dashboard", caller.uid),
+    ]);
 
     return receipt as unknown as AdminCommandResponse;
   }
@@ -505,7 +511,10 @@ export class FirestoreAdminBinsStore {
     );
 
     // 5. Bump topic revision
-    await this.readVersionsStore.bumpVersion("bins", caller.uid);
+    await Promise.all([
+      this.readVersionsStore.bumpVersion("bins", caller.uid),
+      this.readVersionsStore.bumpVersion("dashboard", caller.uid),
+    ]);
 
     return receipt as unknown as AdminCommandResponse;
   }
