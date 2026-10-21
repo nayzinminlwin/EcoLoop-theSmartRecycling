@@ -20,7 +20,7 @@
 | **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | `1e7590b` / `0bc563c` |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | COMPLETE | [AB-06_capacity_alerts_collection.md](evidence/AB-06_capacity_alerts_collection.md) | `feat: integrate capacity alert lifecycle and collection cycles` | `fd258ed` |
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | COMPLETE | [AB-07_review_and_settlement.md](evidence/AB-07_review_and_settlement.md) | `feat: resolve admin reviews through shared pinned-policy settlement` | `393605f` |
-| **AB-08** | Versioned reward-offer catalog management | Agent | COMPLETE | [AB-08_rewards_catalog.md](evidence/AB-08_rewards_catalog.md) | `feat: activate versioned admin rewards catalog management` | — |
+| **AB-08** | Versioned reward-offer catalog management | Agent | COMPLETE | [AB-08_rewards_catalog.md](evidence/AB-08_rewards_catalog.md) | `feat: activate versioned admin rewards catalog management` | `1f1b5b5` |
 | **AB-09** | Dashboard accounting and cross-client realtime convergence | Agent | NOT_STARTED | `evidence/AB-09_dashboard_convergence.md` | `feat: activate admin dashboard accounting and realtime updates` | — |
 | **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | NOT_STARTED | `evidence/AB-10_acceptance_and_deployment.md` | `chore: verify end-to-end admin backend and configure hosting` | — |
 
@@ -34,21 +34,21 @@
 Updated: 2026-10-21 12:45 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-08 complete & verified; ready for commit
-Source SHA: 393605f (branch dev1)
+Phase and substep: AB-08 complete & committed; ready for Phase AB-09 startup
+Source SHA: 1f1b5b5 (branch dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
   - Storage Bucket: ecoloop-thesmartrecycling.firebasestorage.app
   - Functions Region: us-central1 (admin callables & resident gateway)
   - Vision Worker Region: asia-southeast1
-Committed commit for AB-07:
-  - 393605f: feat: resolve admin reviews through shared pinned-policy settlement
+Committed commit for AB-08:
+  - 1f1b5b5: feat: activate versioned admin rewards catalog management
 Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Commit Phase AB-08 and begin Phase AB-09: Dashboard accounting and cross-client realtime convergence
+  - Begin Phase AB-09: Dashboard accounting and cross-client realtime convergence
 ```
 
 ---
