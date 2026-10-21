@@ -131,7 +131,11 @@ export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt"> & {
   capacitySpc?: number;
   expectedVersion?: number;
 };
-export type RewardInput = Omit<RewardDocument, "id">;
+export type RewardInput = Omit<RewardDocument, "id"> & {
+  expectedVersion?: number;
+  terms?: string | null;
+  isDemo?: boolean;
+};
 export type SettingsInput = Pick<
   AdminSettings,
   "capacityAlertThreshold" | "acceptedMaterials" | "materialRates"

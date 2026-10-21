@@ -1281,7 +1281,7 @@ export function createMockRepositories(options?: {
     if (typeof input.pointsCost !== "number" || !Number.isInteger(input.pointsCost) || input.pointsCost <= 0) {
       throw new RepositoryError({ code: "validation", message: "Points cost must be positive integer", fieldErrors: { pointsCost: "Invalid points cost" } });
     }
-    if (!input.expiresAt || input.expiresAt <= MOCK_NOW) {
+    if (input.isActive !== false && (!input.expiresAt || input.expiresAt <= MOCK_NOW)) {
       throw new RepositoryError({ code: "validation", message: "Expiry must be in the future relative to mock clock", fieldErrors: { expiresAt: "Must be in the future" } });
     }
     if (typeof input.maxRedemptionsPerResident !== "number" || input.maxRedemptionsPerResident < 1) {
@@ -1339,7 +1339,7 @@ export function createMockRepositories(options?: {
       validateRewardInput(input);
 
       const id = defaultIdFactory("rewards");
-      const doc: RewardDocument = {
+      const doc: RewardDocument & { version: number } = {
         id,
         title: input.title,
         description: input.description,
@@ -1352,7 +1352,8 @@ export function createMockRepositories(options?: {
         isActive: Boolean(input.isActive),
         maxRedemptionsPerResident: input.maxRedemptionsPerResident,
         artKey: input.artKey,
-        sortOrder: input.sortOrder
+        sortOrder: input.sortOrder,
+        version: 1,
       };
 
       state.rewards.push(doc);
@@ -1370,7 +1371,18 @@ export function createMockRepositories(options?: {
         throw new RepositoryError({ code: "notFound", message: `Reward not found: ${id}`, fieldErrors: {} });
       }
 
-      const updated: RewardDocument = {
+      const existing = state.rewards[index];
+      const existingVersion = (existing as any).version ?? 1;
+      if (input.expectedVersion !== undefined && input.expectedVersion !== existingVersion) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Reward version mismatch: expected ${input.expectedVersion}, found ${existingVersion}`,
+          fieldErrors: { expectedVersion: "Version conflict" },
+        });
+      }
+
+      const nextVersion = existingVersion + 1;
+      const updated: RewardDocument & { version: number } = {
         id,
         title: input.title,
         description: input.description,
@@ -1383,36 +1395,47 @@ export function createMockRepositories(options?: {
         isActive: Boolean(input.isActive),
         maxRedemptionsPerResident: input.maxRedemptionsPerResident,
         artKey: input.artKey,
-        sortOrder: input.sortOrder
+        sortOrder: input.sortOrder,
+        version: nextVersion,
       };
 
       state.rewards[index] = updated;
       notifyCommit();
       return clone({ ...updated, residentRedemptionCount: 0 });
     },
-    async delete(id: string): Promise<void> {
+    async delete(id: string, expectedVersion?: number): Promise<void> {
       await wait(writeDelay);
       checkFailure("rewards.delete");
       requireAdmin();
-
-      const hasVoucher = state.vouchers.some((v) => v.rewardId === id);
-      const hasRedemption = state.redemptions.some((r) => r.rewardId === id);
-      if (hasVoucher || hasRedemption) {
-        throw new RepositoryError({
-          code: "conflict",
-          message: "Reward has issued vouchers or redemptions",
-          fieldErrors: { id: "Referenced by vouchers or redemptions" }
-        });
-      }
 
       const index = state.rewards.findIndex((r) => r.id === id);
       if (index === -1) {
         throw new RepositoryError({ code: "notFound", message: `Reward not found: ${id}`, fieldErrors: {} });
       }
 
+      const existing = state.rewards[index];
+      const existingVersion = (existing as any).version ?? 1;
+      if (expectedVersion !== undefined && expectedVersion !== existingVersion) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Reward version mismatch: expected ${expectedVersion}, found ${existingVersion}`,
+          fieldErrors: { expectedVersion: "Version conflict" },
+        });
+      }
+
+      const hasVoucher = state.vouchers.some((v) => v.rewardId === id);
+      const hasRedemption = state.redemptions.some((r) => r.rewardId === id);
+      if (hasVoucher || hasRedemption) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: "Reward has issued vouchers or redemptions and cannot be deleted. Deactivate it instead.",
+          fieldErrors: { id: "Referenced by vouchers or redemptions" }
+        });
+      }
+
       state.rewards.splice(index, 1);
       notifyCommit();
-    }
+    },
   };
 
   // ---------------------------------------------------------------------------

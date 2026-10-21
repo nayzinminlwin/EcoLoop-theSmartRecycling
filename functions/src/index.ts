@@ -58,5 +58,13 @@ export {
   previewAdminReviewResolution,
   adminResolveReview,
 } from "./transport/admin_reviews.js";
+export {
+  adminCreateReward,
+  adminCreateRewardOffer,
+  adminUpdateReward,
+  adminUpdateRewardOffer,
+  adminDeleteUnusedReward,
+  adminDeleteRewardOffer,
+} from "./transport/admin_rewards.js";
 
 

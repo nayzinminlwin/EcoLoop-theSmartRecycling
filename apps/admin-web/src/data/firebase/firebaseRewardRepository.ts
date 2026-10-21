@@ -247,14 +247,93 @@ export class FirebaseRewardRepository implements AdminRewardsRepository {
   }
 
   async create(input: RewardInput): Promise<Reward> {
-    return await this.fallbackRewardsRepo.create(input);
+    try {
+      const payload = {
+        title: input.title,
+        description: input.description,
+        merchantName: input.merchantName,
+        categoryId: input.categoryId,
+        tag: input.tag ?? null,
+        imageUrl: input.imageUrl ?? null,
+        pointsCost: input.pointsCost,
+        expiresAt: input.expiresAt,
+        isActive: input.isActive,
+        maxRedemptionsPerResident: input.maxRedemptionsPerResident,
+        artKey: input.artKey,
+        sortOrder: input.sortOrder,
+        isDemo: true,
+        terms: input.terms ?? "Standard demo reward terms apply.",
+      };
+
+      const res = await this.commandClient.execute("adminCreateReward", payload);
+      const data = res.data as Record<string, unknown>;
+      const view = decodeAdminRewardView(data);
+      return adminRewardViewToReward(view);
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminCreateReward");
+    }
   }
 
   async update(id: string, input: RewardInput): Promise<Reward> {
-    return await this.fallbackRewardsRepo.update(id, input);
+    try {
+      let expectedVersion = input.expectedVersion;
+      if (expectedVersion === undefined) {
+        const callable = httpsCallable<{ rewardId: string }, unknown>(
+          this.functions,
+          "getAdminReward"
+        );
+        const res = await callable({ rewardId: id });
+        const view = decodeAdminRewardView(res.data);
+        expectedVersion = view.version;
+      }
+
+      const payload = {
+        rewardId: id,
+        expectedVersion,
+        title: input.title,
+        description: input.description,
+        merchantName: input.merchantName,
+        categoryId: input.categoryId,
+        tag: input.tag ?? null,
+        imageUrl: input.imageUrl ?? null,
+        pointsCost: input.pointsCost,
+        expiresAt: input.expiresAt,
+        isActive: input.isActive,
+        maxRedemptionsPerResident: input.maxRedemptionsPerResident,
+        artKey: input.artKey,
+        sortOrder: input.sortOrder,
+        isDemo: true,
+        terms: input.terms ?? "Standard demo reward terms apply.",
+      };
+
+      const res = await this.commandClient.execute("adminUpdateReward", payload);
+      const data = res.data as Record<string, unknown>;
+      const view = decodeAdminRewardView(data);
+      return adminRewardViewToReward(view);
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminUpdateReward");
+    }
   }
 
-  async delete(id: string): Promise<void> {
-    await this.fallbackRewardsRepo.delete(id);
+  async delete(id: string, expectedVersion?: number): Promise<void> {
+    try {
+      let ver = expectedVersion;
+      if (ver === undefined) {
+        const callable = httpsCallable<{ rewardId: string }, unknown>(
+          this.functions,
+          "getAdminReward"
+        );
+        const res = await callable({ rewardId: id });
+        const view = decodeAdminRewardView(res.data);
+        ver = view.version;
+      }
+
+      await this.commandClient.execute("adminDeleteUnusedReward", {
+        rewardId: id,
+        expectedVersion: ver,
+      });
+    } catch (err) {
+      throw this.commandClient.mapFirebaseError(err, "adminDeleteUnusedReward");
+    }
   }
 }

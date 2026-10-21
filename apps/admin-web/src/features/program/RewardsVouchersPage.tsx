@@ -122,6 +122,7 @@ export function RewardsVouchersPage(): React.ReactElement {
   const [isModalOpen, setIsModalOpen] = React.useState<boolean>(false);
   const [modalMode, setModalMode] = React.useState<"create" | "edit">("create");
   const [editingRewardId, setEditingRewardId] = React.useState<string | null>(null);
+  const [editingRewardVersion, setEditingRewardVersion] = React.useState<number | undefined>(undefined);
   const [formState, setFormState] = React.useState<RewardFormState>(INITIAL_FORM);
   const [formErrors, setFormErrors] = React.useState<RewardFormErrors>({});
 
@@ -186,6 +187,7 @@ export function RewardsVouchersPage(): React.ReactElement {
     formMutation.clearError();
     setModalMode("create");
     setEditingRewardId(null);
+    setEditingRewardVersion(undefined);
     setFormState({
       ...INITIAL_FORM,
       categoryId: categories[0]?.id ?? "food"
@@ -203,6 +205,7 @@ export function RewardsVouchersPage(): React.ReactElement {
 
     try {
       const record = await services.repositories.rewards.get(id);
+      setEditingRewardVersion((record as unknown as { version?: number }).version ?? 1);
       setFormState({
         title: record.title,
         description: record.description,
@@ -225,10 +228,12 @@ export function RewardsVouchersPage(): React.ReactElement {
     }
   };
 
-  // Toggle Active/Draft (Full input reconstructed)
+  // Toggle Active/Draft (Full input reconstructed with expectedVersion)
   const handleToggleActive = async (reward: Reward) => {
     setPageFeedback(null);
     toggleMutation.clearError();
+
+    const expectedVersion = (reward as unknown as { version?: number }).version;
 
     const input: RewardInput = {
       title: reward.title,
@@ -242,7 +247,8 @@ export function RewardsVouchersPage(): React.ReactElement {
       isActive: !reward.isActive,
       maxRedemptionsPerResident: reward.maxRedemptionsPerResident,
       artKey: reward.artKey,
-      sortOrder: reward.sortOrder
+      sortOrder: reward.sortOrder,
+      expectedVersion,
     };
 
     const result = await toggleMutation.run(() =>
@@ -250,7 +256,7 @@ export function RewardsVouchersPage(): React.ReactElement {
     );
     if (result) {
       setPageFeedback(
-        `Reward "${reward.title}" set to ${result.isActive ? "Active" : "Draft"}.`
+        `Reward offer "${reward.title}" set to ${result.isActive ? "Active" : "Draft"}.`
       );
     }
   };
@@ -263,11 +269,12 @@ export function RewardsVouchersPage(): React.ReactElement {
 
   const handleConfirmDelete = async () => {
     if (!deletingReward) return;
+    const expectedVersion = (deletingReward as unknown as { version?: number }).version;
     const result = await deleteMutation.run(() =>
-      services.repositories.rewards.delete(deletingReward.id)
+      services.repositories.rewards.delete(deletingReward.id, expectedVersion)
     );
     if (result !== null) {
-      setPageFeedback(`Reward "${deletingReward.title}" removed successfully.`);
+      setPageFeedback(`Reward offer "${deletingReward.title}" removed successfully.`);
       setDeletingReward(null);
     }
   };
@@ -296,10 +303,10 @@ export function RewardsVouchersPage(): React.ReactElement {
 
     if (!formState.expiresOn || !/^\d{4}-\d{2}-\d{2}$/.test(formState.expiresOn)) {
       errors.expiresOn = "Expiry date is required (YYYY-MM-DD)";
-    } else {
+    } else if (formState.isActive) {
       const iso = `${formState.expiresOn}T23:59:59+08:00`;
       if (new Date(iso).getTime() <= Date.now()) {
-        errors.expiresOn = "Expiry date must be in the future";
+        errors.expiresOn = "Expiry date must be in the future for active offers";
       }
     }
 
@@ -345,7 +352,8 @@ export function RewardsVouchersPage(): React.ReactElement {
       isActive: formState.isActive,
       maxRedemptionsPerResident: Number(formState.maxRedemptionsPerResident),
       artKey: formState.artKey || "art0",
-      sortOrder: Number(formState.sortOrder) || 0
+      sortOrder: Number(formState.sortOrder) || 0,
+      expectedVersion: modalMode === "edit" ? editingRewardVersion : undefined,
     };
 
     if (modalMode === "create") {
@@ -354,7 +362,7 @@ export function RewardsVouchersPage(): React.ReactElement {
       );
       if (result) {
         setIsModalOpen(false);
-        setPageFeedback(`Reward "${result.title}" created successfully.`);
+        setPageFeedback(`Reward offer "${result.title}" created successfully.`);
       }
     } else if (modalMode === "edit" && editingRewardId) {
       const result = await formMutation.run(() =>
@@ -362,7 +370,7 @@ export function RewardsVouchersPage(): React.ReactElement {
       );
       if (result) {
         setIsModalOpen(false);
-        setPageFeedback(`Reward "${result.title}" updated successfully.`);
+        setPageFeedback(`Reward offer "${result.title}" updated successfully.`);
       }
     }
   };
@@ -495,7 +503,7 @@ export function RewardsVouchersPage(): React.ReactElement {
         description="Manage the township resident redemption catalog, points costs, and merchant voucher availability."
         actions={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Icon name="plus" size={16} /> Create voucher
+            <Icon name="plus" size={16} /> Create offer
           </Button>
         }
       />
@@ -550,7 +558,7 @@ export function RewardsVouchersPage(): React.ReactElement {
       {/* Create / Edit Modal Dialog */}
       <Modal
         open={isModalOpen}
-        title={modalMode === "create" ? "Create Reward Voucher" : "Edit Reward Voucher"}
+        title={modalMode === "create" ? "Create Catalog Voucher Offer" : "Edit Catalog Voucher Offer"}
         closeDisabled={formMutation.pending}
         onClose={() => setIsModalOpen(false)}
         footer={
@@ -728,13 +736,13 @@ export function RewardsVouchersPage(): React.ReactElement {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deletingReward !== null}
-        title="Delete Reward Voucher"
+        title="Delete Reward Offer"
         description={
           deletingReward
-            ? `Are you sure you want to delete reward "${deletingReward.title}"? This action cannot be undone.`
+            ? `Are you sure you want to delete reward offer "${deletingReward.title}"? Note: Deleting is only permitted if the offer has never been redeemed by residents. Otherwise, deactivate it.`
             : ""
         }
-        confirmLabel="Delete reward"
+        confirmLabel="Delete offer"
         variant="danger"
         busy={deleteMutation.pending}
         error={deleteMutation.error}

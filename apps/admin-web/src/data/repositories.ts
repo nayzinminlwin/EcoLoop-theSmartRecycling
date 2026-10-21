@@ -123,7 +123,7 @@ export interface AdminRewardsRepository {
   watchCategories(): Observable<RewardCategory[]>;
   create(input: RewardInput): Promise<Reward>;
   update(id: string, input: RewardInput): Promise<Reward>;
-  delete(id: string): Promise<void>;
+  delete(id: string, expectedVersion?: number): Promise<void>;
 }
 
 export interface SettingsRepository {

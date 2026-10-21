@@ -4,8 +4,8 @@
 - **Authorities:** [ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md](../ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md), [ECOLOOP_DEMO_REFACTOR_PLAN.md](../ECOLOOP_DEMO_REFACTOR_PLAN.md)
 - **Created:** 2026-10-21
 - **Base source:** `e23d6bb`, branch `dev1`
-- **Current phase:** AB-07 — COMPLETE
-- **Next phase:** AB-08 — Versioned reward-offer catalog management
+- **Current phase:** AB-08 — COMPLETE
+- **Next phase:** AB-09 — Dashboard accounting and cross-client realtime convergence
 
 ---
 
@@ -20,7 +20,7 @@
 | **AB-05** | Immutable program settings and policy publication | Agent | COMPLETE | [AB-05_program_settings_policy.md](evidence/AB-05_program_settings_policy.md) | `feat: publish versioned admin program settings` | `1e7590b` / `0bc563c` |
 | **AB-06** | Capacity alerts and audited collection cycles | Agent | COMPLETE | [AB-06_capacity_alerts_collection.md](evidence/AB-06_capacity_alerts_collection.md) | `feat: integrate capacity alert lifecycle and collection cycles` | `fd258ed` |
 | **AB-07** | Evidence-backed mixed-batch review and shared settlement | Agent | COMPLETE | [AB-07_review_and_settlement.md](evidence/AB-07_review_and_settlement.md) | `feat: resolve admin reviews through shared pinned-policy settlement` | `393605f` |
-| **AB-08** | Versioned reward-offer catalog management | Agent | NOT_STARTED | `evidence/AB-08_rewards_catalog.md` | `feat: activate admin reward offer catalog management` | — |
+| **AB-08** | Versioned reward-offer catalog management | Agent | COMPLETE | [AB-08_rewards_catalog.md](evidence/AB-08_rewards_catalog.md) | `feat: activate versioned admin rewards catalog management` | — |
 | **AB-09** | Dashboard accounting and cross-client realtime convergence | Agent | NOT_STARTED | `evidence/AB-09_dashboard_convergence.md` | `feat: activate admin dashboard accounting and realtime updates` | — |
 | **AB-10** | Acceptance, separate HTTPS deployment and operational handoff | Agent | NOT_STARTED | `evidence/AB-10_acceptance_and_deployment.md` | `chore: verify end-to-end admin backend and configure hosting` | — |
 
@@ -31,10 +31,10 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 12:20 UTC+8
+Updated: 2026-10-21 12:45 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-07 complete & committed; ready for Phase AB-08 startup
+Phase and substep: AB-08 complete & verified; ready for commit
 Source SHA: 393605f (branch dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
@@ -48,7 +48,7 @@ Contract identities:
   - Schema version: admin.v1
   - Backend schema version: backend.v1
 Next exact substep:
-  - Begin Phase AB-08: Versioned reward-offer catalog management
+  - Commit Phase AB-08 and begin Phase AB-09: Dashboard accounting and cross-client realtime convergence
 ```
 
 ---

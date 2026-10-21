@@ -126,7 +126,7 @@ const rewardsSeed: RewardDocument[] = [
 ];
 
 const vouchersSeed: ResidentVoucher[] = [
-  { id: "VCH-WELCOME", residentId: "RES-000842", rewardId: null, title: "RM3 Welcome voucher", merchantName: "Demo merchant", code: "ECO-WELCOME-842", terms: "One redemption at the demo merchant.", issuedAt: "2024-05-01T09:00:00+08:00", expiresAt: "2024-05-31T23:59:59+08:00", status: "available", remainingUses: 1, usedAt: null }
+  { id: "VCH-WELCOME", residentId: "RES-000842", rewardId: "RWD-SNACK", title: "RM3 Welcome voucher", merchantName: "Demo merchant", code: "ECO-WELCOME-842", terms: "One redemption at the demo merchant.", issuedAt: "2024-05-01T09:00:00+08:00", expiresAt: "2024-05-31T23:59:59+08:00", status: "available", remainingUses: 1, usedAt: null }
 ];
 
 const programSettingsSeed: ProgramSettingsDocument = {
