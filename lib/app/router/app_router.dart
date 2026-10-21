@@ -44,7 +44,7 @@ GoRouter createAppRouter({
   final guards = RouteGuards(
     accountRepository ??
         MockAccountRepository(api: MockApi(readDelay: Duration.zero)),
-    exitIntentCoordinator ?? ExitIntentCoordinator(),
+    exitIntentCoordinator,
   );
 
   GoRoute scanStageRoute({

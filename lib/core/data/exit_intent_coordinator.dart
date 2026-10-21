@@ -26,10 +26,13 @@ class ExitIntentCoordinator {
   Future<void> _writeTail = Future<void>.value();
   bool _restored = false;
   bool _locallySignedOut = false;
+  final Set<String> _abandonedSessions = <String>{};
 
   List<ExitIntent> get intents => List.unmodifiable(_intents.values);
   bool get isRestored => _restored;
   bool get isLocallySignedOut => _locallySignedOut;
+  bool isSessionAbandoned(String sessionId) =>
+      _abandonedSessions.contains(sessionId);
 
   void fenceSignedOut() {
     _locallySignedOut = true;
@@ -57,6 +60,7 @@ class ExitIntentCoordinator {
               intent.operation == ExitIntentOperation.signOut &&
               !intent.isTerminal,
         );
+    _abandonedSessions.addAll(await _store.readAbandonedSessions());
     _restored = true;
   }
 
@@ -127,6 +131,11 @@ class ExitIntentCoordinator {
     );
   });
 
+  void fenceSession(String sessionId) {
+    _abandonedSessions.add(sessionId);
+    _persistAbandonedSessions();
+  }
+
   List<ExitIntent> retryDue([DateTime? at]) {
     final now = (at ?? _now()).toUtc();
     return intents
@@ -169,6 +178,19 @@ class ExitIntentCoordinator {
           _logger.log(
             AppLogLevel.error,
             'exit_fence_persistence_stack',
+            fields: <String, Object?>{'stack': stackTrace.toString()},
+          );
+        });
+  }
+
+  void _persistAbandonedSessions() {
+    _writeTail = _writeTail
+        .then<void>((_) => _store.writeAbandonedSessions(_abandonedSessions))
+        .catchError((Object error, StackTrace stackTrace) {
+          _logger.error('abandoned_session_persistence_failed', error);
+          _logger.log(
+            AppLogLevel.error,
+            'abandoned_session_persistence_stack',
             fields: <String, Object?>{'stack': stackTrace.toString()},
           );
         });

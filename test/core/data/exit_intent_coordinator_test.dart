@@ -101,6 +101,20 @@ void main() {
       expect(cleared.isLocallySignedOut, isFalse);
     },
   );
+
+  test('persists abandoned sessions as a local auto-resume fence', () async {
+    final preferences = MemoryPreferences();
+    final store = ExitIntentStore(preferences: preferences);
+    final coordinator = ExitIntentCoordinator(store: store);
+
+    coordinator.fenceSession('session-1');
+    await Future<void>.delayed(Duration.zero);
+
+    final restored = ExitIntentCoordinator(store: store);
+    await restored.restore();
+    expect(restored.isSessionAbandoned('session-1'), isTrue);
+    expect(restored.isSessionAbandoned('session-2'), isFalse);
+  });
 }
 
 class MemoryPreferences implements ExitIntentPreferences {

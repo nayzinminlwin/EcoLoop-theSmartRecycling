@@ -27,9 +27,26 @@ class SharedPreferencesExitIntentPreferences implements ExitIntentPreferences {
   Future<void> remove(String key) => _preferences.remove(key);
 }
 
+class MemoryExitIntentPreferences implements ExitIntentPreferences {
+  final Map<String, String> values = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> remove(String key) async {
+    values.remove(key);
+  }
+
+  @override
+  Future<void> write(String key, String value) async {
+    values[key] = value;
+  }
+}
+
 class ExitIntentStore {
   ExitIntentStore({ExitIntentPreferences? preferences})
-    : _preferences = preferences ?? SharedPreferencesExitIntentPreferences();
+    : _preferences = preferences ?? MemoryExitIntentPreferences();
 
   static const _key = 'ecoloop.exit_intents.v1';
   static const _fenceKey = 'ecoloop.exit_fence.v1';
@@ -74,4 +91,26 @@ class ExitIntentStore {
       await _preferences.remove(_fenceKey);
     }
   }
+
+  Future<Set<String>> readAbandonedSessions() async {
+    const key = 'ecoloop.abandoned_sessions.v1';
+    final encoded = await _preferences.read(key);
+    if (encoded == null || encoded.isEmpty) return <String>{};
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! List || decoded.any((value) => value is! String)) {
+        throw const FormatException('Abandoned sessions are not an array');
+      }
+      return decoded.cast<String>().toSet();
+    } on FormatException {
+      await _preferences.remove(key);
+      rethrow;
+    }
+  }
+
+  Future<void> writeAbandonedSessions(Iterable<String> sessionIds) =>
+      _preferences.write(
+        'ecoloop.abandoned_sessions.v1',
+        jsonEncode(sessionIds.toSet().toList()),
+      );
 }

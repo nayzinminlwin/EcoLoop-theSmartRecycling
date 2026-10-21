@@ -8,6 +8,7 @@ import 'package:eco_loop/core/mock/app_clock.dart';
 import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
+import 'package:eco_loop/core/data/exit_intent_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
 import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
@@ -18,6 +19,9 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   final pendingOperationStore = PendingOperationStore();
   final exitIntentCoordinator = ExitIntentCoordinator(
+    store: ExitIntentStore(
+      preferences: SharedPreferencesExitIntentPreferences(),
+    ),
     installationId: await pendingOperationStore.installationId(),
   );
   await exitIntentCoordinator.restore();

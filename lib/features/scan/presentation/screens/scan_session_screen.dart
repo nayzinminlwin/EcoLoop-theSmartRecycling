@@ -6,6 +6,7 @@ import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/data/exit_intent.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_result.dart';
@@ -867,15 +868,47 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       ),
     );
     if (decision != LeaveDecision.leave) return LeaveDecision.stay;
+    if (currentSession == null) return LeaveDecision.leave;
+
+    final coordinator = ref.read(exitIntentCoordinatorProvider);
+    final intent = coordinator.enqueue(
+      operation: ExitIntentOperation.cancelSession,
+      targetIdentity: currentSession.id,
+      owner: currentSession.residentId,
+      installationId: coordinator.installationId,
+      authGeneration: currentSession.residentId,
+      registrationGeneration: currentSession.residentId,
+    );
+    coordinator.fenceSession(currentSession.id);
+    ref.read(activeScanSessionProvider.notifier).clearIf(currentSession.id);
+    _stopRenewal();
+    unawaited(
+      _reconcileCancellation(
+        intent.id,
+        currentSession.id,
+        currentSession.sessionVersion,
+      ),
+    );
+    return LeaveDecision.leave;
+  }
+
+  Future<void> _reconcileCancellation(
+    String intentId,
+    String sessionId,
+    int expectedVersion,
+  ) async {
+    final coordinator = ref.read(exitIntentCoordinatorProvider);
+    coordinator.markAwaitingDelivery(intentId);
     try {
       await ref
           .read(scanRepositoryProvider)
-          .cancelSession(widget.sessionId, currentSession?.sessionVersion);
-      ref.read(activeScanSessionProvider.notifier).clear();
-      return LeaveDecision.leave;
+          .cancelSession(sessionId, expectedVersion);
+      coordinator.markResolved(intentId);
     } on Object {
-      if (mounted) setState(() => _actionError = AppCopy.scanCancelFailed);
-      return LeaveDecision.stay;
+      coordinator.markRetryWait(
+        intentId,
+        DateTime.now().toUtc().add(const Duration(seconds: 30)),
+      );
     }
   }
 
