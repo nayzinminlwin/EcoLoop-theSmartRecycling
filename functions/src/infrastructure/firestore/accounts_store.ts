@@ -136,7 +136,14 @@ export class FirestoreAccountsStore implements AccountsStore {
   }
 
   private newStats(input: AccountInput): Record<string, unknown> {
-    return { residentId: input.uid, verifiedBatchCount: 0, acceptedItemCount: 0, estimatedWeightKg: 0, updatedAt: input.now };
+    return {
+      residentId: input.uid,
+      verifiedBatchCount: 0,
+      acceptedItemCount: 0,
+      acceptedItemCounts: { plastic: 0, aluminium: 0, paper: 0, glass: 0 },
+      estimatedWeightKg: 0,
+      updatedAt: input.now,
+    };
   }
 
   private async ensureRoleClaim(uid: string, claims: Record<string, unknown>, role: string): Promise<void> {

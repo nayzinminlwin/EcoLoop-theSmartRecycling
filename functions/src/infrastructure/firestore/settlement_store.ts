@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { DocumentData, DocumentReference, Firestore, Transaction } from "firebase-admin/firestore";
 import { DomainError } from "../../domain/errors.js";
+import { acceptedItemCountsFromLines, addAcceptedItemCounts } from "../../domain/material_counts.js";
 import { calculateFinalization, initialPolicy, type PolicySnapshot } from "../../domain/policy.js";
 import type { Instant, WorkerFindings } from "../../domain/types.js";
 import type { WorkerIdentity } from "./jobs_store.js";
@@ -146,6 +147,7 @@ export class FirestoreSettlementStore implements SettlementStore {
       if (plan.status === "verified" && plan.acceptedCount !== null && plan.acceptedCount > 0) {
         const wallet = requireData(walletSnapshot.data(), "Resident wallet does not exist");
         const stats = requireData(statsSnapshot.data(), "Resident stats do not exist");
+        const acceptedItemCounts = acceptedItemCountsFromLines(plan.lines);
         const balance = Number(wallet.balance ?? 0);
         const nextVersion = Number(wallet.version ?? 0) + 1;
         if ((plan.pointsAwarded ?? 0) > 0) {
@@ -159,6 +161,7 @@ export class FirestoreSettlementStore implements SettlementStore {
         transaction.update(statsRef, {
           verifiedBatchCount: Number(stats.verifiedBatchCount ?? 0) + 1,
           acceptedItemCount: Number(stats.acceptedItemCount ?? 0) + Number(plan.acceptedCount ?? 0),
+          acceptedItemCounts: addAcceptedItemCounts(stats.acceptedItemCounts, acceptedItemCounts),
           updatedAt: input.now,
         });
       }
@@ -235,16 +238,21 @@ export class FirestoreSettlementStore implements SettlementStore {
       transaction.update(ticketRef, { state: "resolved", decisionVersion: nextVersion, resolvedBy: input.actorId, resolvedAt: input.now });
       transaction.create(capacityRef, { id: capacityRef.id, binId: String(batch.binId), cycleId: String(batch.cycleId), batchId: input.batchId, deltaSpc: delta, kind: "review_correction", decisionVersion: nextVersion, createdAt: input.now, historical: String(batch.cycleId) !== String(bin.cycleId) });
       applyCapacity(transaction, binRef, cycleRef, binSnapshot.data(), cycleSnapshot.data(), String(batch.cycleId), delta, input.now);
+      if (plan.status === "verified" && plan.acceptedCount !== null && plan.acceptedCount > 0) {
+        const stats = requireData(statsSnapshot.data(), "Resident stats do not exist");
+        const acceptedItemCounts = acceptedItemCountsFromLines(plan.lines);
+        transaction.update(statsRef, {
+          verifiedBatchCount: Number(stats.verifiedBatchCount ?? 0) + 1,
+          acceptedItemCount: Number(stats.acceptedItemCount ?? 0) + Number(plan.acceptedCount ?? 0),
+          acceptedItemCounts: addAcceptedItemCounts(stats.acceptedItemCounts, acceptedItemCounts),
+          updatedAt: input.now,
+        });
+      }
       if (plan.pointsAwarded !== null && plan.pointsAwarded > 0) {
         const wallet = requireData(walletSnapshot.data(), "Resident wallet does not exist");
         const nextWalletVersion = Number(wallet.version ?? 0) + 1;
         transaction.update(walletRef, { balance: Number(wallet.balance ?? 0) + plan.pointsAwarded, version: nextWalletVersion, updatedAt: input.now });
         transaction.create(this.firestore.doc(`walletEntries/${input.batchId}-review`), { residentId: batch.ownerId, type: "deposit_credit", pointsDelta: plan.pointsAwarded, sourceType: "deposit_review", sourceId: input.batchId, balanceAfter: Number(wallet.balance ?? 0) + plan.pointsAwarded, walletVersion: nextWalletVersion, createdAt: input.now });
-        transaction.update(statsRef, {
-          verifiedBatchCount: Number(statsSnapshot.data()?.verifiedBatchCount ?? 0) + 1,
-          acceptedItemCount: Number(statsSnapshot.data()?.acceptedItemCount ?? 0) + Number(plan.acceptedCount ?? 0),
-          updatedAt: input.now,
-        });
       }
       transaction.set(this.firestore.doc(`notificationEvents/${input.batchId}-${nextVersion}`), {
         id: `${input.batchId}-${nextVersion}`, recipientUid: String(batch.ownerId), batchId: input.batchId,
