@@ -202,15 +202,19 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
           balance: ref.read(walletSnapshotProvider).valueOrNull?.balance ?? 0,
           error: _redemptionError,
           isLoading: _redeeming,
-          onConfirm: () => _redeem(setDialogState),
+          onConfirm: () => _redeem(context, setDialogState),
         ),
       ),
     );
   }
 
-  Future<void> _redeem(void Function(void Function()) setDialogState) async {
+  Future<void> _redeem(
+    BuildContext dialogContext,
+    void Function(void Function()) setDialogState,
+  ) async {
     final reward = _pendingReward;
     if (reward == null || _redeeming) return;
+    final dialogNavigator = Navigator.of(dialogContext);
     setState(() => _redeeming = true);
     setDialogState(() {});
     try {
@@ -222,9 +226,9 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
             offerVersion: reward.offerVersion,
             displayedCost: reward.pointsCost,
           );
-      if (!mounted) return;
+      if (!mounted || !dialogNavigator.mounted) return;
       _redeeming = false;
-      Navigator.pop(context);
+      dialogNavigator.pop();
       ref
         ..invalidate(rewardsProvider)
         ..invalidate(vouchersProvider(null));

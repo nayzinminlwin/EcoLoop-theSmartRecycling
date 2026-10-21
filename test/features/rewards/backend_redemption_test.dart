@@ -36,6 +36,9 @@ void main() {
                 'issuedAt': '2026-10-19T00:00:00.000Z',
                 'redeemedAt': '2026-10-19T00:00:00.000Z',
                 'walletVersion': 2,
+                'title': 'Coffee',
+                'merchant': 'EcoLoop Cafe',
+                'terms': 'One demo voucher',
               },
             };
           },
@@ -55,8 +58,10 @@ void main() {
         'displayedCost': 25,
       });
       expect(receipt.voucher.code, 'DEMO-ABC');
+      expect(receipt.voucher.merchantName, 'EcoLoop Cafe');
       expect(receipt.wallet.balance, 12);
       expect(receipt.redemption.pointsSpent, 25);
+      expect(_FakeRewardsReads.readDocumentCalls, 0);
     },
   );
 }
@@ -75,6 +80,8 @@ class _MemoryPreferences implements PendingOperationPreferences {
 }
 
 class _FakeRewardsReads implements RewardsReadTransport {
+  static int readDocumentCalls = 0;
+
   @override
   Future<List<JsonMap>> readOwnerVouchers(String uid) async => const [];
 
@@ -86,6 +93,7 @@ class _FakeRewardsReads implements RewardsReadTransport {
 
   @override
   Future<JsonMap?> readDocument(String collection, String id) async {
+    readDocumentCalls++;
     if (collection != 'rewards') return null;
     return {
       'id': id,

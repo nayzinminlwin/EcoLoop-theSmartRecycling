@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { Firestore, DocumentData } from "firebase-admin/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { DomainError } from "../../domain/errors.js";
 import type { RewardRedemption, RewardStore, VoucherUseResult } from "../../application/rewards.js";
 import { canUseDemoVoucher, hasReachedResidentRewardLimit } from "../../domain/reward_policy.js";
@@ -36,7 +36,7 @@ export class FirestoreRewardsStore implements RewardStore {
       const reward = rewardSnap.data()!;
       const offerVersion = String(reward.offerVersion ?? "");
       const cost = integer(reward.pointsCost);
-      const expiresAt = Date.parse(String(reward.catalogExpiresAt ?? reward.expiresAt ?? ""));
+      const expiresAt = instantMillis(reward.catalogExpiresAt ?? reward.expiresAt);
       if (reward.isActive !== true || offerVersion !== input.offerVersion || cost !== input.displayedCost ||
           !Number.isFinite(expiresAt) || expiresAt <= Date.parse(input.now)) {
         throw new DomainError("offer_changed", "The reward offer has changed or expired", { retryability: "after_refresh" });
@@ -147,6 +147,20 @@ export class FirestoreRewardsStore implements RewardStore {
 
 function integer(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function instantMillis(value: unknown): number {
+  if (value instanceof Timestamp) return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return Date.parse(value);
+  if (value && typeof value === "object" && "seconds" in value) {
+    const seconds = (value as { seconds?: unknown }).seconds;
+    const nanoseconds = (value as { nanoseconds?: unknown }).nanoseconds ?? 0;
+    if (typeof seconds === "number" && typeof nanoseconds === "number") {
+      return seconds * 1000 + nanoseconds / 1_000_000;
+    }
+  }
+  return Number.NaN;
 }
 
 function redemptionFromRequest(data: DocumentData, replayed: boolean): RewardRedemption {
