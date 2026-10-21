@@ -60,5 +60,52 @@ def test_injection_and_geometry_rejected():
         validate_normalized_box({"x1": 0.8, "y1": 0.1, "x2": 0.2, "y2": 0.9})
 
 
+def test_findings_accept_normalized_provider_model_reference_and_reject_bad_geometry():
+    finding = {
+        "objectId": "object-001",
+        "resolution": "plastic_bottle",
+        "eligibility": "eligible",
+        "box": {"x1": 0.1, "y1": 0.2, "x2": 0.8, "y2": 0.9},
+        "evidence": {
+            "modelIds": ["waste-detection-0momv/6"],
+            "rawLabel": "Pet_Bottle",
+        },
+        "confidence": 0.9,
+        "reasonCode": "matched",
+    }
+    validate_contract("findings", {
+        "schemaVersion": "backend.v1",
+        "source": "worker",
+        "jobId": "job-001",
+        "attemptId": "attempt-001",
+        "image": {
+            "assetId": "asset-001",
+            "assetVersion": "v1",
+            "contentSha256": "a" * 64,
+            "width": 100,
+            "height": 80,
+        },
+        "findings": [finding],
+        "inventoryState": "resolved",
+    })
+    finding["box"] = {"x1": 0.8, "y1": 0.2, "x2": 0.2, "y2": 0.9}
+    with pytest.raises(Exception):
+        validate_contract("findings", {
+            "schemaVersion": "backend.v1",
+            "source": "worker",
+            "jobId": "job-001",
+            "attemptId": "attempt-001",
+            "image": {
+                "assetId": "asset-001",
+                "assetVersion": "v1",
+                "contentSha256": "a" * 64,
+                "width": 100,
+                "height": 80,
+            },
+            "findings": [finding],
+            "inventoryState": "resolved",
+        })
+
+
 def test_explicit_contract_root_can_be_packaged():
     assert (Path(__file__).parents[1] / "src" / "ecoloop_vision" / "infrastructure" / "contract_validation.py").exists()

@@ -35,6 +35,10 @@
         "y2": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
+    "providerModelId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$"
+    },
     "finding": {
       "type": "object", "additionalProperties": false,
       "required": ["objectId", "resolution", "eligibility", "box", "evidence", "confidence"],
@@ -49,7 +53,7 @@
         "evidence": {
           "type": "object", "additionalProperties": false, "required": ["modelIds", "rawLabel"],
           "properties": {
-            "modelIds": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "maxItems": 8 },
+            "modelIds": { "type": "array", "items": { "$ref": "#/$defs/providerModelId" }, "minItems": 1, "maxItems": 8 },
             "rawLabel": { "type": "string", "minLength": 1, "maxLength": 128 },
             "specialistLabels": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 128 }, "maxItems": 16 }
           }

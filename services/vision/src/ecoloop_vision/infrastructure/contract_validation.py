@@ -20,6 +20,8 @@ def validate_contract(name: str, value: Any, *, contract_root: Path = CONTRACT_R
     schema_path = contract_root / f"{name}.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(value)
+    if name == "findings":
+        _validate_findings_semantics(value)
 
 
 def validate_normalized_box(box: dict[str, float]) -> None:
@@ -28,3 +30,12 @@ def validate_normalized_box(box: dict[str, float]) -> None:
         raise ValueError("Finding box must be finite and ordered")
     if box["x1"] > box["x2"] or box["y1"] > box["y2"]:
         raise ValueError("Finding box must be finite and ordered")
+
+
+def _validate_findings_semantics(value: Any) -> None:
+    for finding in value["findings"]:
+        box = finding["box"]
+        if box is not None:
+            validate_normalized_box(box)
+            if any(coordinate < 0 or coordinate > 1 for coordinate in box.values()):
+                raise ValueError("Finding box must be normalized")

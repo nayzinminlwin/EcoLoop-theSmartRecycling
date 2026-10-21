@@ -6,6 +6,7 @@ from pathlib import Path
 from PIL import Image
 
 from ecoloop_vision.application.inspect_image import InspectionConfig, inspect_image, result_to_dict
+from ecoloop_vision.application.run_job import _findings
 from ecoloop_vision.infrastructure.images import decode_image
 from ecoloop_vision.infrastructure.overlays import render_overlay
 from ecoloop_vision.tools.replay import replay
@@ -91,6 +92,37 @@ def test_provider_failures_are_explicit_outcomes():
     )
     assert all(outcome.status == "provider_error" for outcome in result.outcomes)
     assert result.detector_results["A"].error == "RuntimeError"
+
+
+def test_provider_failure_with_detected_objects_is_uncertain():
+    result = inspect_image(
+        image_input(),
+        detector_provider=lambda model_id, _image: (
+            detector_response("Pet_Bottle") if model_id.startswith("waste") else
+            (_ for _ in ()).throw(RuntimeError("provider unavailable"))
+        ),
+    )
+    assert result.objects
+    assert result.inventory_state == "uncertain"
+
+
+def test_worker_findings_use_normalized_boxes_and_native_model_ids():
+    image = image_input()
+    result = inspect_image(
+        image,
+        detector_provider=lambda model_id, _image: detector_response("Pet_Bottle"),
+    )
+    findings = _findings(
+        type("Claim", (), {
+            "job_id": "job-001", "attempt_id": "attempt-001",
+            "asset_id": "asset-001", "asset_version": "v1",
+        })(),
+        image,
+        result,
+    )
+    finding = findings["findings"][0]
+    assert finding["box"] == {"x1": 0.5, "y1": 0.5, "x2": 0.7, "y2": 0.875}
+    assert finding["evidence"]["modelIds"]
 
 
 def test_result_to_dict_replaces_non_finite_values():

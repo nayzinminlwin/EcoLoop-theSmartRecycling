@@ -6,6 +6,7 @@ import { getComposition } from "../composition.js";
 import type { WorkerIdentity } from "../infrastructure/firestore/jobs_store.js";
 import type { WorkerFindings } from "../domain/types.js";
 import { finalizeInspection } from "../application/finalize_inspection.js";
+import { validateContract } from "./validation.js";
 
 export const workerGateway = onRequest({
   region: "us-central1",
@@ -49,6 +50,11 @@ async function routeOperation(operation: string, data: Record<string, unknown>, 
       const findings = data.findings;
       if (findings === null || typeof findings !== "object" || Array.isArray(findings)) {
         throw new HttpsError("invalid-argument", "findings is required");
+      }
+      try {
+        await validateContract("findings", findings);
+      } catch (error) {
+        throw new HttpsError("invalid-argument", "findings contract is invalid", error);
       }
       const references = data.artifactReferences;
       if (!Array.isArray(references) || references.some((reference) => typeof reference !== "string")) {

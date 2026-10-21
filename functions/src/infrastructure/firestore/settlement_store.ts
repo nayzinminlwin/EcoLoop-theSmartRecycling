@@ -339,6 +339,10 @@ function validateFindings(findings: WorkerFindings, policy: PolicySnapshot): voi
   for (const finding of findings.findings) {
     if (ids.has(finding.objectId)) throw new DomainError("invalid_input", "Finding object IDs must be unique");
     ids.add(finding.objectId);
+    if (finding.evidence.modelIds.length < 1 || finding.evidence.modelIds.length > 8 ||
+        finding.evidence.modelIds.some((modelId) => !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(modelId))) {
+      throw new DomainError("invalid_input", "Finding model identity is invalid");
+    }
     if (!Number.isFinite(finding.confidence) || finding.confidence < 0 || finding.confidence > 1) {
       throw new DomainError("invalid_input", "Finding confidence is outside the supported range");
     }

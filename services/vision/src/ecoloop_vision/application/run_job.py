@@ -134,7 +134,7 @@ def _findings(claim: JobClaim, image: ProcessingInput, result: InspectionResult)
             "objectId": item.object_id,
             "resolution": item.resolution,
             "eligibility": item.eligibility,
-            "box": {"x1": item.box[0], "y1": item.box[1], "x2": item.box[2], "y2": item.box[3]},
+            "box": {"x1": item.normalized_box[0], "y1": item.normalized_box[1], "x2": item.normalized_box[2], "y2": item.normalized_box[3]},
             "evidence": {"modelIds": list(item.model_ids), "rawLabel": ",".join(item.raw_labels)},
             "confidence": item.confidence,
             "reasonCode": item.reason_code,

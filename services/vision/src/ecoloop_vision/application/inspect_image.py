@@ -56,6 +56,9 @@ class InspectionResult:
 
     @property
     def inventory_state(self) -> str:
+        if any(outcome.status in {"provider_error", "invalid_response", "budget_exhausted", "review_required"}
+               for outcome in self.outcomes):
+            return "uncertain"
         if self.objects:
             return "resolved"
         return "uncertain" if self.fallbacks else "empty"
