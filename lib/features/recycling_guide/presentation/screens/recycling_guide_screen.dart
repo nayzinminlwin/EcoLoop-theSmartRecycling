@@ -92,6 +92,7 @@ class _GuideContent extends StatelessWidget {
           final cardWidth = columns == 2
               ? (constraints.maxWidth - 12) / 2
               : constraints.maxWidth;
+          const cardHeight = 200.0;
           return Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -110,6 +111,7 @@ class _GuideContent extends StatelessWidget {
                     for (final material in data.materials)
                       SizedBox(
                         width: cardWidth,
+                        height: cardHeight,
                         child: MaterialGuideCard(material: material),
                       ),
                   ],
