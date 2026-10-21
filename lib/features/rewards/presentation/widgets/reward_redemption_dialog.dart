@@ -38,6 +38,7 @@ class RewardRedemptionDialog extends StatelessWidget {
         ],
       ],
     ),
+    actionsAlignment: MainAxisAlignment.center,
     actions: [
       TextButton(
         onPressed: isLoading ? null : () => Navigator.pop(context),
