@@ -14,7 +14,8 @@ These are chat instructions to give your coding agent, not terminal commands.
    should stop after each slice rather than continuing through the whole file.
 4. In the same chat you may send this shorter command instead of the full block:
    "Execute S02 from docs/ECOLOOP_HAPPY_PATH_AGENT_PROMPTS.txt only. Apply the
-   plan's section 4.4 contract, update its slice ledger, and stop with evidence."
+   plan's section 4.4 contract, update its slice ledger, commit your updated code,
+   and stop with evidence."
    Replace S02 with the next assigned slice ID.
 5. For a fresh chat, paste STARTER and the chosen slice. The agent must read the
    current checkpoint; it must not assume the preceding chat finished its work.
@@ -52,6 +53,7 @@ unattached phone does not block independent code work. Continue the assigned
 repair and relevant tests. When an app build is ready, give me short normal-use
 steps and the expected screen result; I will answer Yes/No. You collect logs,
 IDs, timing and backend proof yourself. Keep the handoff brief.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -124,7 +126,8 @@ them. The 12-hour context is urgency, not a clock-validation task for me.
 
 Run heavy checks serially; use Windows PowerShell 5.1-compatible commands and
 .cmd shims. Inspect the working tree before edits and preserve unfamiliar work.
-Do not commit or push unless I separately ask. Do not delegate unless I ask.
+Commit the code you just updated once verified; do not push unless I separately ask.
+Do not delegate unless I ask.
 
 Use existing confirmed project/database/account inputs and recorded S01 evidence.
 Read CLI values, logs, wallet/session/job state and ADB yourself. A missing ADC
@@ -147,6 +150,7 @@ changed product decision is necessary. Do not ask me to reconfirm CLI values.
 Your final handoff for each slice must contain:
 slice / fix / changed files;
 relevant check and result;
+commit hash / message;
 short Yes/No app workflow only when needed;
 actual blocker and what you already tried;
 next code action.
@@ -154,6 +158,7 @@ next code action.
 If I included a slice assignment, execute it. Otherwise use the current checkpoint
 to identify the next unfinished code slice and state that action briefly. Do not
 start a time/configuration questionnaire. For this checkpoint, S02 is next.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -171,6 +176,7 @@ reconfirmation or an unattached phone. Do not rerun the inventory/provider calls
 solely to fill a checklist. Refresh only a fact needed by a specific code repair,
 using CLI/REST yourself. Defer actual device observation to a working candidate.
 The old S01 row is preserved historical evidence, not a set of human prerequisites.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -196,6 +202,7 @@ failure cannot report a verified/empty success. Use focused regression checks,
 not a fake gateway that accepts everything. Record concrete before/after output
 and commands. No live deposit is required for this local boundary slice; mark
 deployed/device evidence NOT_RUN. Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -220,6 +227,7 @@ waiting for cron and replay uses the same business/job identity. External Tasks
 calls stay outside retried transactions; no fire-and-forget after return. Build
 affected Functions and record the exact remaining live transport proof for S07.
 Do not perform an unobserved live financial submission here. Update and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -242,6 +250,7 @@ writer-shaped processing then final records render through the Firebase adapter
 and result screen without terminating observation. Use current SDK date types.
 Keep working camera/Recent Activity behavior. Record focused rules/Dart checks;
 candidate device observation may remain NOT_RUN until S07. Update and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -266,6 +275,7 @@ ledger; replay does not repost. Review changes neither balance nor verified coun
 Confirm occupancy and session release. This fixture is not a trash9 answer.
 Use actual production stores, explicit demo-ecoloop/ecoloop-db and safe emulator
 configuration. Record checks, update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -290,6 +300,7 @@ stages, explicit selection, one saved draft, submit identity and live result
 observation. Record tap/ack timings where observable. Prepare the precise Android
 steps for S07; do not broaden this slice into back/reopen recovery or styling.
 Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -324,6 +335,7 @@ slice. On No or failed backend proof, diagnose and fix the actual failed boundar
 within this assignment, then supply the shorter affected recheck. Ask for visible
 error text/screenshot only if tooling cannot retrieve it. Stop only when checked
 or a genuinely unavailable action/product decision blocks progress. Update briefly.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -345,6 +357,7 @@ categories and this account's real vouchers. Preload/reuse small real reference
 data where helpful. Do not add fake vouchers when the owner has none, and do not
 redeem or spend the reserved recording offer yet. Record exact read/device proof,
 update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -371,6 +384,7 @@ Compare Android Home values to the existing account's actual DB values. Do not
 generate another paid deposit only to repeat an already sufficient observation;
 use the next needed real run for the post-credit check. Record any remaining
 device proof explicitly, update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -400,6 +414,7 @@ document with correct metadata, and My vouchers/Rewards/Home show current state
 without restart. Record tap-to-commit/render time. Preserve copy/use semantics.
 If funds/offer availability blocks the live step, retain explicit missing proof;
 do not mark it passed from emulator results. Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -424,6 +439,7 @@ trash9 run shows the before/after provider and total timings, actual calls and
 unchanged accounting/decision semantics. If the total was already fast enough,
 retain the working implementation and record proof instead of rewriting it.
 Name any remaining cloud/network bottleneck for conditional S12. Update and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -453,6 +469,7 @@ shows the measured improvement and correct credit. Target <7s total, maximum 10s
 Record restoration commands for paid warm capacity after recording. If genuine
 provider time still prevents the goal, ask me with measurements; do not change
 image/recognition policy or report a timing pass. Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -478,6 +495,7 @@ Rewards uses those points; after real redemption both screens show the debit and
 new voucher. Reuse current-candidate observations where valid and coordinate the
 remaining live mutation with S15 if needed to conserve reward eligibility. State
 any missing observation explicitly. Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -495,7 +513,7 @@ Run only the necessary outstanding/invalidated checks in plan section 6, seriall
 Build/deploy the final affected source/config and identify exact APK path/hash,
 package/defines, source/diff identity, Functions regions/revisions, Vision image
 digest/revision and managed config references. Never call an earlier candidate's
-observations post-deploy proof. No commits unless separately authorized.
+observations post-deploy proof. Commit verified candidate changes; do not push unless separately authorized.
 
 Acceptance: the final candidate is installable/identified, targeted required
 checks pass, its post-deploy basic smoke works, and any remaining final device
@@ -503,6 +521,7 @@ proof is precisely assigned to S15. Verify enough bin capacity, real balance and
 eligible offers for rehearsal AND recording; conserve one-per-resident offers.
 Return exact install/QR/image instructions and the short S15 click sequence.
 Do not mark the final release PASS yet. Update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -534,6 +553,7 @@ using plan section 7, and fill every final acceptance row with observed evidence
 State honestly any missing gate. Keep warm instances through my recording and
 restore the recorded prior settings only after I confirm recording is finished.
 Return the concise final artifact/recording handoff, update the ledger and stop.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -553,6 +573,7 @@ phase work or ask me to keep restarting without diagnosis. Update the ledger
 with actual proof or the exact blocker, identify stale evidence and stop.
 Any app recheck must be a short workflow with an expected visible result and a
 Yes/No answer. Do not give me backend-state checklists or ask for clock metadata.
+Do not forget to commit the code you just updated.
 
 END PROMPT
 
@@ -584,5 +605,6 @@ confirmation are not feature evidence. Run relevant read-only CLI checks yoursel
 Return the brief findings in chat; the executor records
 them in the plan's existing ledger. Do not create a parallel tracker or declare
 all HP0–HP5 complete from this narrower review.
+Do not forget to commit the code you just updated.
 
 END PROMPT
