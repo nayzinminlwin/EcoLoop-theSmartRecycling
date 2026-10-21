@@ -13,7 +13,7 @@
 
 | Phase | Title | Lead | Status | Evidence Document | Target Commit Message | Commit SHA |
 | --- | --- | --- | --- | --- | --- | --- |
-| **AB-01** | Freeze the integration contract and handoff | Agent | COMPLETE | [AB-01_freeze_contract_and_handoff.md](evidence/AB-01_freeze_contract_and_handoff.md) | `docs: define admin backend integration contracts and handoff` | *Pending commit* |
+| **AB-01** | Freeze the integration contract and handoff | Agent | COMPLETE | [AB-01_freeze_contract_and_handoff.md](evidence/AB-01_freeze_contract_and_handoff.md) | `docs: define admin backend integration contracts and handoff` | `7dda851` |
 | **AB-02** | Real admin identity, service composition and command recovery | Agent | NOT_STARTED | `evidence/AB-02_auth_and_recovery.md` | `feat: connect admin authentication and trusted command transport` | — |
 | **AB-03** | Real read layer, query projections and indexes | Agent | NOT_STARTED | `evidence/AB-03_read_projections.md` | `feat: establish admin query projections and composite indexes` | — |
 | **AB-04** | Bin management and usable registered QR codes | Agent | NOT_STARTED | `evidence/AB-04_bin_fleet_management.md` | `feat: implement admin smart bin lifecycle and qr generation` | — |
@@ -31,11 +31,11 @@
 ## 2. Resume Checkpoint
 
 ```text
-Updated: 2026-10-21 09:30 UTC+8
+Updated: 2026-10-21 09:35 UTC+8
 Executor/model: Antigravity (Gemini 3.8 Flash High)
 Role: Backend & Integration Specialist
-Phase and substep: AB-01 complete; ready for commit and Phase AB-02 startup
-Source SHA: e23d6bb (branch: dev1)
+Phase and substep: AB-01 complete; ready for Phase AB-02 startup
+Source SHA: 7dda851 (branch: dev1)
 Explicit Firebase mode / project / database / regions:
   - Project ID: ecoloop-thesmartrecycling
   - Named Firestore DB: ecoloop-db
