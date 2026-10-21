@@ -40,21 +40,20 @@ class RewardRedemptionDialog extends StatelessWidget {
     ),
     actions: [
       Center(
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: 8),
             SizedBox(
               width: 112,
               child: AppButton(
                 label: 'Confirm',
                 onPressed: onConfirm,
                 isLoading: isLoading,
-                pendingLabel: 'Redeeming reward...',
               ),
             ),
           ],
