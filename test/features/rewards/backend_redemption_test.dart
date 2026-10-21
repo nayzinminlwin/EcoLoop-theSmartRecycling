@@ -76,6 +76,9 @@ class _MemoryPreferences implements PendingOperationPreferences {
 
 class _FakeRewardsReads implements RewardsReadTransport {
   @override
+  Future<List<JsonMap>> readOwnerVouchers(String uid) async => const [];
+
+  @override
   Future<List<JsonMap>> readCollection(String collection) async {
     if (collection == 'vouchers') return const [];
     return const [];
@@ -103,6 +106,10 @@ class _FakeRewardsReads implements RewardsReadTransport {
 
   @override
   Stream<List<JsonMap>> watchCollection(String collection) =>
+      const Stream<List<JsonMap>>.empty();
+
+  @override
+  Stream<List<JsonMap>> watchOwnerVouchers(String uid) =>
       const Stream<List<JsonMap>>.empty();
 
   @override

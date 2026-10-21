@@ -52,6 +52,14 @@ beforeAll(async () => {
       ownerId,
       status: 'verified',
     });
+    await firestore.doc('vouchers/voucher-owner').set({
+      residentId: ownerId,
+      title: 'Owner voucher',
+    });
+    await firestore.doc('vouchers/voucher-other').set({
+      residentId: otherResidentId,
+      title: 'Other voucher',
+    });
     await firestore.doc('bins/bin-1').set({
       enabled: true,
       capacitySpc: 2000,
@@ -75,6 +83,16 @@ describe('Firestore access boundaries', () => {
   it('allows an owner to read their profile and receipt data', async () => {
     await assertSucceeds(ownerFirestore.doc(`residents/${ownerId}`).get());
     await assertSucceeds(ownerFirestore.doc('deposits/batch-owner').get());
+  });
+
+  it('restricts private voucher queries to the authenticated resident', async () => {
+    await assertSucceeds(
+      ownerFirestore.collection('vouchers').where('residentId', '==', ownerId).get(),
+    );
+    await assertFails(
+      ownerFirestore.collection('vouchers').where('residentId', '==', otherResidentId).get(),
+    );
+    await assertFails(otherFirestore.doc('vouchers/voucher-owner').get());
   });
 
   it('denies signed-out and cross-resident private reads', async () => {

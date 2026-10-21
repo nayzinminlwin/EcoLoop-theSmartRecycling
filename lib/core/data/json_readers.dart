@@ -1,5 +1,7 @@
 import 'app_failure.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 typedef JsonMap = Map<String, Object?>;
 
 abstract final class JsonReaders {
@@ -51,6 +53,7 @@ abstract final class JsonReaders {
 
   static DateTime dateTime(JsonMap json, String field) {
     final value = json[field];
+    if (value is Timestamp) return value.toDate();
     if (value is String) {
       final parsed = DateTime.tryParse(value);
       if (parsed != null) return parsed;

@@ -58,7 +58,10 @@ class ResidentVoucher {
     residentId: JsonReaders.string(json, 'residentId'),
     rewardId: JsonReaders.nullableString(json, 'rewardId'),
     title: JsonReaders.string(json, 'title'),
-    merchantName: JsonReaders.string(json, 'merchantName'),
+    merchantName: JsonReaders.string(
+      json,
+      json['merchantName'] != null ? 'merchantName' : 'merchant',
+    ),
     code: JsonReaders.string(json, 'code'),
     terms: JsonReaders.string(json, 'terms'),
     issuedAt: JsonReaders.dateTime(json, 'issuedAt'),
