@@ -21,7 +21,7 @@ let settlements: FirestoreSettlementStore;
 
 beforeAll(() => {
   app = initializeApp({ projectId: "demo-ecoloop" }, `settlement-${Date.now()}`);
-  firestore = getFirestore(app);
+  firestore = getFirestore(app, "ecoloop-db");
   settlements = new FirestoreSettlementStore(firestore);
 });
 
@@ -55,13 +55,18 @@ beforeEach(async () => {
   await firestore.doc(`bins/${binId}`).set({ id: binId, cycleId: "cycle-1", capacitySpc: 100, occupiedSpc: 10 });
   await firestore.doc("binCycles/cycle-1").set({ id: "cycle-1", binId, openingOccupiedSpc: 10, capacitySpc: 100, contributionTotalSpc: 0 });
   await firestore.doc(`residents/${uid}`).set({ activeSessionId: sessionId });
-  await firestore.doc(`residents/${uid}/wallet/current`).set({ residentId: uid, balance: 0, version: 0 });
+  await firestore.doc(`residents/${uid}/wallet/current`).set({ residentId: uid, balance: 37, version: 0 });
   await firestore.doc(`residents/${uid}/stats/current`).set({ residentId: uid, verifiedBatchCount: 0, acceptedItemCount: 0 });
   await firestore.doc("policies/policy-v1").set({
     id: "policy-v1", version: "policy-v1",
     acceptedObjectClasses: ["plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag"],
+    rewardCategoryByClass: {
+      plastic_bottle: "plastic", aluminium_can: "aluminium", glass_bottle: "glass",
+      paper_item: "paper", paper_bag: "paper", cardboard_item: "paper",
+    },
     pointsPerItemByCategory: { plastic: 5, aluminium: 8, paper: 3, glass: 10 },
     spcPerItemByClass: { plastic_bottle: 10, aluminium_can: 6, paper_bag: 8, cardboard_item: 15 },
+    defaultSpcPerRecognizedItem: 10, unresolvedSpcPerCandidate: 10, unreadableBatchSpc: 50,
   });
 });
 
@@ -70,22 +75,25 @@ afterAll(async () => {
 });
 
 describe("atomic inspection settlement", () => {
-  it("posts the 37/61 golden batch and credits once", async () => {
+  it("adds ten points to a nonzero wallet and credits once", async () => {
     const completed = await settlements.finalizeInspection(input(resolvedFindings([
       finding("plastic_bottle"), finding("plastic_bottle"),
-      finding("aluminium_can"), finding("aluminium_can"), finding("aluminium_can"),
-      finding("paper_bag"), finding("cardboard_item", "excluded"),
     ])));
     const replay = await settlements.finalizeInspection(input(resolvedFindings([
       finding("plastic_bottle"),
     ])));
 
-    expect(completed).toMatchObject({ outcome: "verified", pointsAwarded: 37, spaceContributionSpc: 61, decisionVersion: 1 });
+    expect(completed).toMatchObject({ outcome: "verified", pointsAwarded: 10, spaceContributionSpc: 20, decisionVersion: 1 });
     expect(replay.replayed).toBe(true);
     expect((await firestore.collection("walletEntries").get()).size).toBe(1);
     expect((await firestore.collection("capacityEntries").get()).size).toBe(1);
-    expect((await firestore.doc(`residents/${uid}/wallet/current`).get()).data()).toMatchObject({ balance: 37, version: 1 });
+    expect((await firestore.doc(`residents/${uid}/wallet/current`).get()).data()).toMatchObject({ balance: 47, version: 1 });
+    expect((await firestore.doc(`residents/${uid}/stats/current`).get()).data()).toMatchObject({ verifiedBatchCount: 1, acceptedItemCount: 2 });
+    expect((await firestore.doc(`bins/${binId}`).get()).data()).toMatchObject({ occupiedSpc: 30 });
+    expect((await firestore.doc("binCycles/cycle-1").get()).data()).toMatchObject({ contributionTotalSpc: 20 });
+    expect((await firestore.doc(`binOperations/${binId}`).get()).data()).toMatchObject({ phase: "available", ownerId: null, sessionId: null });
     expect((await firestore.doc(`depositSessions/${sessionId}`).get()).data()?.stage).toBe("completed");
+    expect((await firestore.doc(`residents/${uid}`).get()).data()?.activeSessionId).toBeNull();
   });
 
   it("records excluded, empty, and unreadable semantics without positive credit", async () => {
@@ -108,6 +116,9 @@ describe("atomic inspection settlement", () => {
       jobId,
     }));
     expect(review).toMatchObject({ outcome: "review", spaceContributionSpc: 30 });
+    expect((await firestore.doc(`residents/${uid}/wallet/current`).get()).data()).toMatchObject({ balance: 37, version: 0 });
+    expect((await firestore.doc(`residents/${uid}/stats/current`).get()).data()).toMatchObject({ verifiedBatchCount: 0, acceptedItemCount: 0 });
+    expect((await firestore.collection("walletEntries").get()).size).toBe(0);
     const corrected = await settlements.resolveReview({
       batchId, decisionVersion: 1,
       findings: resolvedFindings([finding("plastic_bottle"), finding("plastic_bottle"), finding("paper_bag")]),
@@ -135,7 +146,14 @@ function emptyFindings(): WorkerFindings {
 }
 
 function finding(resolution: WorkerFinding["resolution"], eligibility: WorkerFinding["eligibility"] = "eligible"): WorkerFinding {
-  return { objectId: `${resolution}-${Math.random()}`, resolution, eligibility, box: null, evidence: { modelIds: ["model-a"], rawLabel: resolution }, confidence: 0.9 };
+  return {
+    objectId: `${resolution}-${Math.random()}`,
+    resolution,
+    eligibility,
+    box: { x1: 0.1, y1: 0.1, x2: 0.4, y2: 0.4 },
+    evidence: { modelIds: ["waste-detection-0momv/6"], rawLabel: resolution },
+    confidence: 0.9,
+  };
 }
 
 async function resetForSecondScenario(): Promise<void> {

@@ -126,7 +126,7 @@ export class FirestoreSettlementStore implements SettlementStore {
         id: notificationRef.id, recipientUid: String(job.ownerId), batchId,
         outcome, pointsAwarded: plan.pointsAwarded, state: "pending", createdAt: input.now,
       }, { merge: true });
-      if (plan.acceptedCount !== null && plan.acceptedCount > 0) {
+      if (plan.status === "verified" && plan.acceptedCount !== null && plan.acceptedCount > 0) {
         const wallet = requireData(walletSnapshot.data(), "Resident wallet does not exist");
         const stats = requireData(statsSnapshot.data(), "Resident stats do not exist");
         const balance = Number(wallet.balance ?? 0);
