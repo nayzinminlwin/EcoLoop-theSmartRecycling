@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 
 import '../domain/models/account_security_info.dart';
@@ -176,12 +177,14 @@ class FirebaseAccountRepository implements AccountRepository {
     required this._google,
     required this._commandClient,
     this.beforeSignOut,
-  });
+    AppLogger? logger,
+  }) : _logger = logger ?? AppLogger();
 
   final FirebaseAuthGateway _auth;
   final GoogleAuthGateway _google;
   final CommandClient Function(String uid) _commandClient;
   final Future<void> Function()? beforeSignOut;
+  final AppLogger _logger;
   final _authChanges = StreamController<AuthState>.broadcast();
   final _profileChanges = StreamController<ResidentProfile?>.broadcast();
   final _preferenceChanges =
@@ -428,9 +431,34 @@ class FirebaseAccountRepository implements AccountRepository {
 
   @override
   Future<void> signOut() async {
-    await beforeSignOut?.call();
-    await _google.signOut();
+    final remoteCleanup = beforeSignOut == null
+        ? Future<void>.value()
+        : Future<void>(() async {
+            try {
+              await beforeSignOut!();
+            } catch (error, stackTrace) {
+              _logger.error('sign_out_remote_cleanup_failed', error);
+              _logger.log(
+                AppLogLevel.error,
+                'sign_out_remote_cleanup_stack',
+                fields: <String, Object?>{'stack': stackTrace.toString()},
+              );
+            }
+          });
+    final googleCleanup = Future<void>(() async {
+      try {
+        await _google.signOut();
+      } catch (error, stackTrace) {
+        _logger.error('sign_out_provider_cleanup_failed', error);
+        _logger.log(
+          AppLogLevel.error,
+          'sign_out_provider_cleanup_stack',
+          fields: <String, Object?>{'stack': stackTrace.toString()},
+        );
+      }
+    });
     await _auth.signOut();
+    await Future.wait<void>(<Future<void>>[remoteCleanup, googleCleanup]);
     _provisionedUid = null;
     _initialState = null;
   }

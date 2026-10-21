@@ -79,6 +79,28 @@ void main() {
       expect(resolved.isTerminal, isTrue);
     },
   );
+
+  test(
+    'restores the local signed-out fence independently of SDK state',
+    () async {
+      final preferences = MemoryPreferences();
+      final store = ExitIntentStore(preferences: preferences);
+      final coordinator = ExitIntentCoordinator(store: store);
+
+      coordinator.fenceSignedOut();
+      await Future<void>.delayed(Duration.zero);
+
+      final restored = ExitIntentCoordinator(store: store);
+      await restored.restore();
+      expect(restored.isLocallySignedOut, isTrue);
+
+      restored.clearSignedOutFence();
+      await Future<void>.delayed(Duration.zero);
+      final cleared = ExitIntentCoordinator(store: store);
+      await cleared.restore();
+      expect(cleared.isLocallySignedOut, isFalse);
+    },
+  );
 }
 
 class MemoryPreferences implements ExitIntentPreferences {

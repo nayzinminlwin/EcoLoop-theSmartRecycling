@@ -47,8 +47,12 @@ final appRouterProvider = Provider((ref) {
   final config = ref.watch(runtimeConfigProvider);
   return createAppRouter(
     accountRepository: ref.watch(accountRepositoryProvider),
+    exitIntentCoordinator: ref.watch(exitIntentCoordinatorProvider),
     signInBuilder: (context) => SignInScreen(
-      controller: AuthController(ref.read(accountRepositoryProvider)),
+      controller: AuthController(
+        ref.read(accountRepositoryProvider),
+        ref.read(exitIntentCoordinatorProvider),
+      ),
     ),
     resolveSessionStage: config.mode == FirebaseMode.mock
         ? (sessionId) =>

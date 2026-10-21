@@ -32,6 +32,7 @@ class ExitIntentStore {
     : _preferences = preferences ?? SharedPreferencesExitIntentPreferences();
 
   static const _key = 'ecoloop.exit_intents.v1';
+  static const _fenceKey = 'ecoloop.exit_fence.v1';
   final ExitIntentPreferences _preferences;
 
   Future<List<ExitIntent>> read() async {
@@ -61,5 +62,16 @@ class ExitIntentStore {
       _key,
       jsonEncode(intents.map((intent) => intent.toJson()).toList()),
     );
+  }
+
+  Future<bool> readFence() async =>
+      (await _preferences.read(_fenceKey)) == 'signed_out';
+
+  Future<void> writeFence(bool signedOut) async {
+    if (signedOut) {
+      await _preferences.write(_fenceKey, 'signed_out');
+    } else {
+      await _preferences.remove(_fenceKey);
+    }
   }
 }

@@ -11,6 +11,7 @@ class ExitIntentCoordinator {
     AppLogger? logger,
     DateTime Function()? now,
     String Function()? idFactory,
+    this.installationId = 'runtime',
   }) : _store = store ?? ExitIntentStore(),
        _logger = logger ?? AppLogger(),
        _now = now ?? DateTime.now,
@@ -20,12 +21,25 @@ class ExitIntentCoordinator {
   final AppLogger _logger;
   final DateTime Function() _now;
   final String Function() _idFactory;
+  final String installationId;
   final Map<String, ExitIntent> _intents = <String, ExitIntent>{};
   Future<void> _writeTail = Future<void>.value();
   bool _restored = false;
+  bool _locallySignedOut = false;
 
   List<ExitIntent> get intents => List.unmodifiable(_intents.values);
   bool get isRestored => _restored;
+  bool get isLocallySignedOut => _locallySignedOut;
+
+  void fenceSignedOut() {
+    _locallySignedOut = true;
+    _persistFence();
+  }
+
+  void clearSignedOutFence() {
+    _locallySignedOut = false;
+    _persistFence();
+  }
 
   Future<void> restore() async {
     if (_restored) return;
@@ -36,6 +50,13 @@ class ExitIntentCoordinator {
         _intents[intent.id] = intent;
       }
     }
+    _locallySignedOut =
+        await _store.readFence() ||
+        restored.any(
+          (intent) =>
+              intent.operation == ExitIntentOperation.signOut &&
+              !intent.isTerminal,
+        );
     _restored = true;
   }
 
@@ -129,12 +150,25 @@ class ExitIntentCoordinator {
 
   void _persist() {
     _writeTail = _writeTail
-        .then((_) => _store.write(_intents.values))
+        .then<void>((_) => _store.write(_intents.values))
         .catchError((Object error, StackTrace stackTrace) {
           _logger.error('exit_intent_persistence_failed', error);
           _logger.log(
             AppLogLevel.error,
             'exit_intent_persistence_stack',
+            fields: <String, Object?>{'stack': stackTrace.toString()},
+          );
+        });
+  }
+
+  void _persistFence() {
+    _writeTail = _writeTail
+        .then<void>((_) => _store.writeFence(_locallySignedOut))
+        .catchError((Object error, StackTrace stackTrace) {
+          _logger.error('exit_fence_persistence_failed', error);
+          _logger.log(
+            AppLogLevel.error,
+            'exit_fence_persistence_stack',
             fields: <String, Object?>{'stack': stackTrace.toString()},
           );
         });

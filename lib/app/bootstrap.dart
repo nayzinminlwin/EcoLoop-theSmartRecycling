@@ -16,7 +16,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final exitIntentCoordinator = ExitIntentCoordinator();
+  final pendingOperationStore = PendingOperationStore();
+  final exitIntentCoordinator = ExitIntentCoordinator(
+    installationId: await pendingOperationStore.installationId(),
+  );
   await exitIntentCoordinator.restore();
   final config = RuntimeConfig.fromEnvironment();
   if (config.mode != FirebaseMode.mock) {
@@ -28,7 +31,7 @@ Future<void> bootstrap() async {
       ),
       commandClient: (uid) => CommandClient(
         uid: uid,
-        store: PendingOperationStore(),
+        store: pendingOperationStore,
         functions: clients.functions,
       ),
     );
@@ -37,7 +40,7 @@ Future<void> bootstrap() async {
       google: FirebaseGoogleAuthGateway(),
       commandClient: (uid) => CommandClient(
         uid: uid,
-        store: PendingOperationStore(),
+        store: pendingOperationStore,
         functions: clients.functions,
       ),
       beforeSignOut: notificationService.unregisterCurrentDevice,

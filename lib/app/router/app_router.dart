@@ -21,6 +21,7 @@ import 'package:eco_loop/features/scan/presentation/screens/scan_session_screen.
 import 'package:eco_loop/features/rewards/presentation/screens/rewards_screen.dart';
 import 'package:eco_loop/features/rewards/presentation/screens/voucher_detail_screen.dart';
 import 'package:eco_loop/features/rewards/presentation/screens/vouchers_screen.dart';
+import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,10 +39,12 @@ GoRouter createAppRouter({
   WidgetBuilder? signInBuilder,
   ScanStage? Function(String sessionId)? resolveSessionStage,
   int utcOffsetMinutes = 480,
+  ExitIntentCoordinator? exitIntentCoordinator,
 }) {
   final guards = RouteGuards(
     accountRepository ??
         MockAccountRepository(api: MockApi(readDelay: Duration.zero)),
+    exitIntentCoordinator ?? ExitIntentCoordinator(),
   );
 
   GoRoute scanStageRoute({
