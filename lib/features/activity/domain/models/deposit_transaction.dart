@@ -105,7 +105,7 @@ class DepositTransaction {
         json,
         'totalDetectedObjectCount',
       ),
-      traceId: JsonReaders.string(json, 'traceId'),
+      traceId: JsonReaders.nullableString(json, 'traceId'),
       decisionVersion: _nullableInteger(json, 'decisionVersion') ?? 0,
     );
   }
