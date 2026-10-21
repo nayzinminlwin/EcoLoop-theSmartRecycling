@@ -154,9 +154,11 @@ void main() {
       await tester.tap(find.text('Continue'));
       await settle(tester);
       expect(find.text('Processing'), findsOneWidget);
+      expect(find.text('Continue using EcoLoop'), findsOneWidget);
 
-      // Leaving during processing never asks to cancel.
-      await tester.tap(find.text('Home'));
+      // Leaving during processing never asks to cancel and keeps the session
+      // available to resume from Scan.
+      await tester.tap(find.text('Continue using EcoLoop'));
       await settle(tester);
       expect(find.text('Continue session'), findsNothing);
       expect(find.text('Processing'), findsNothing);

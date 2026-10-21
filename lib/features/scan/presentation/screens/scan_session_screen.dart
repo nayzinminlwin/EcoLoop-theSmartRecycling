@@ -552,9 +552,10 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
                     ),
               expand: true,
             ),
+            ..._continueProcessingAction(),
           ];
         }
-        return const [];
+        return _continueProcessingAction();
       case ScanStage.completed:
         return [
           AppButton(
@@ -574,6 +575,26 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     ScanStage.itemDetected => 'Continue',
     _ => 'Continue',
   };
+
+  List<Widget> _continueProcessingAction() => [
+    const SizedBox(height: 8),
+    Text(
+      'Your submitted deposit will keep processing. You can find it on Home.',
+      textAlign: TextAlign.center,
+      style: AppTypography.activityMetadata.copyWith(
+        fontSize: 12,
+        height: 1.45,
+        color: AppColors.muted,
+      ),
+    ),
+    const SizedBox(height: 8),
+    AppButton(
+      label: 'Continue using EcoLoop',
+      variant: AppButtonVariant.ghost,
+      onPressed: _continueUsingEcoLoop,
+      expand: true,
+    ),
+  ];
 
   String _pendingLabel(ScanStage stage) => switch (stage) {
     ScanStage.binFound => 'Confirming session...',
@@ -881,7 +902,9 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     if (session == null || !_isPreProcessing(session.stage)) {
       if (session?.stage == ScanStage.processing ||
           session?.stage == ScanStage.completed) {
-        await _backToHome();
+        await _backToHome(
+          clearActiveSession: session?.stage != ScanStage.processing,
+        );
       }
       return;
     }
@@ -964,8 +987,14 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     }
   }
 
-  Future<void> _backToHome() async {
-    ref.read(activeScanSessionProvider.notifier).clear();
+  void _continueUsingEcoLoop() {
+    if (mounted) context.go(AppRoutes.home);
+  }
+
+  Future<void> _backToHome({bool clearActiveSession = true}) async {
+    if (clearActiveSession) {
+      ref.read(activeScanSessionProvider.notifier).clear();
+    }
     if (mounted) context.go(AppRoutes.home);
   }
 }
