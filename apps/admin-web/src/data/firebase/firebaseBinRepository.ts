@@ -527,6 +527,17 @@ export class FirebaseBinRepository implements BinsRepository {
     const locationDetail = input.locationDetail.trim();
 
     const binRef = doc(this.firestore, `bins/${id}`);
+    const binSnap = await getDoc(binRef);
+    const binData = binSnap.exists() ? binSnap.data() : {};
+    const capacitySpc = Number(binData.capacitySpc ?? 1000);
+
+    const hasExplicitPercent = input.capacityPercent !== undefined && !isNaN(Number(input.capacityPercent));
+    const fillPercent = hasExplicitPercent
+      ? Math.max(0, Math.min(100, Math.round(Number(input.capacityPercent))))
+      : Number(binData.fillPercent ?? binData.capacityPercent ?? 0);
+    const occupiedSpc = Math.round((fillPercent / 100) * capacitySpc);
+    const collectionState = fillPercent >= 85 ? "critical" : fillPercent >= 75 ? "warning" : "normal";
+
     await setDoc(
       binRef,
       {
@@ -536,6 +547,10 @@ export class FirebaseBinRepository implements BinsRepository {
         enabled: isOnline,
         isOnline,
         logicalOnline: isOnline,
+        fillPercent,
+        capacityPercent: fillPercent,
+        occupiedSpc,
+        collectionState,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -549,15 +564,73 @@ export class FirebaseBinRepository implements BinsRepository {
         locationDetail,
         enabled: isOnline,
         logicalOnline: isOnline,
+        fillPercent,
+        collectionState,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
     );
 
+    // If critical (>= 85%), ensure an alert exists for fleet dispatch visibility
+    if (fillPercent >= 85) {
+      try {
+        const alertId = `alert-${id}`;
+        const alertRef = doc(this.firestore, `adminAlertViews/${alertId}`);
+        const alertSnap = await getDoc(alertRef);
+        if (!alertSnap.exists() || alertSnap.data()?.state === "resolved") {
+          await setDoc(
+            alertRef,
+            {
+              alertId,
+              binId: id,
+              locationName,
+              locationDetail,
+              currentFillPercent: fillPercent,
+              thresholdPercent: 85,
+              state: "triggered",
+              triggeredAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          const capAlertRef = doc(this.firestore, `capacityAlerts/${alertId}`);
+          await setDoc(
+            capAlertRef,
+            {
+              alertId,
+              binId: id,
+              locationName,
+              currentFillPercent: fillPercent,
+              state: "triggered",
+              triggeredAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          const alertVerRef = doc(this.firestore, "adminReadVersions/alerts");
+          await setDoc(alertVerRef, {
+            topic: "alerts",
+            version: Date.now(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch {}
+    }
+
     try {
       const verRef = doc(this.firestore, "adminReadVersions/bins");
       await setDoc(verRef, {
         topic: "bins",
+        version: Date.now(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch {}
+
+    try {
+      const dashRef = doc(this.firestore, "adminReadVersions/dashboard");
+      await setDoc(dashRef, {
+        topic: "dashboard",
         version: Date.now(),
         updatedAt: serverTimestamp(),
       });
@@ -626,7 +699,7 @@ export class FirebaseBinRepository implements BinsRepository {
         locationDetail: input.locationDetail,
         enabled: input.isOnline !== false,
       });
-      return await this.get(id);
+      return await this.directFirestoreUpdateBin(id, input);
     } catch (err) {
       try {
         return await this.directFirestoreUpdateBin(id, input);

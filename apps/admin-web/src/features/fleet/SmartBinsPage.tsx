@@ -42,7 +42,7 @@ import "./fleet.css";
 
 type BinFormErrors = Partial<
   Record<
-    "id" | "locationName" | "locationDetail" | "capacitySpc",
+    "id" | "locationName" | "locationDetail" | "capacitySpc" | "capacityPercent",
     string
   >
 >;
@@ -52,6 +52,7 @@ interface BinFormState {
   locationName: string;
   locationDetail: string;
   capacitySpc: string;
+  capacityPercent: string;
   isOnline: boolean;
 }
 
@@ -60,6 +61,7 @@ const INITIAL_FORM: BinFormState = {
   locationName: "",
   locationDetail: "",
   capacitySpc: "1000",
+  capacityPercent: "0",
   isOnline: true
 };
 
@@ -159,6 +161,7 @@ export function SmartBinsPage(): React.ReactElement {
       locationName: bin.locationName,
       locationDetail: bin.locationDetail,
       capacitySpc: "1000",
+      capacityPercent: String(bin.capacityPercent ?? 0),
       isOnline: bin.isOnline
     });
     setFormErrors({});
@@ -220,6 +223,11 @@ export function SmartBinsPage(): React.ReactElement {
       if (isNaN(cap) || !Number.isInteger(cap) || cap < 50 || cap > 5000) {
         errors.capacitySpc = "Capacity must be an integer between 50 and 5000 spc.";
       }
+    } else {
+      const pct = Number(formState.capacityPercent);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        errors.capacityPercent = "Fill percentage must be a number between 0% and 100%.";
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -233,7 +241,9 @@ export function SmartBinsPage(): React.ReactElement {
     const input: BinInput = {
       locationName: formState.locationName.trim(),
       locationDetail: formState.locationDetail.trim(),
-      capacityPercent: editingBin ? editingBin.capacityPercent : 0,
+      capacityPercent: editingBin
+        ? Math.max(0, Math.min(100, Math.round(Number(formState.capacityPercent))))
+        : 0,
       capacitySpc: Number(formState.capacitySpc),
       acceptedMaterials: ["plastic", "aluminium", "glass", "paper"],
       isOnline: formState.isOnline
@@ -528,17 +538,24 @@ export function SmartBinsPage(): React.ReactElement {
             />
 
             {editingBin ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--text)" }}>
-                  Current Fill & Physical Capacity
-                </label>
-                <div style={{ padding: "8px 12px", background: "var(--surface-muted, #f3f5f3)", borderRadius: "var(--radius-control)", border: "1px solid var(--line)", fontSize: "13px" }}>
-                  <strong>{editingBin.capacityPercent}%</strong> fill level
-                </div>
-                <small style={{ color: "var(--muted)", fontSize: "11px" }}>
-                  Capacity is immutable post-registration. Fill percentage is derived from physical occupancy.
-                </small>
-              </div>
+              <TextInput
+                id="bin-form-capacity-percent"
+                label="Fill Level Percentage (%)"
+                type="number"
+                min={0}
+                max={100}
+                value={formState.capacityPercent}
+                onChange={(val) => {
+                  setFormState((prev) => ({ ...prev, capacityPercent: val }));
+                  if (formErrors.capacityPercent) {
+                    setFormErrors((prev) => ({ ...prev, capacityPercent: undefined }));
+                  }
+                }}
+                required
+                disabled={saveMutation.pending}
+                error={formErrors.capacityPercent}
+                hint="Admin fill level override (0% - 100%). Updates alerts & fleet status in real-time."
+              />
             ) : (
               <TextInput
                 id="bin-form-capacity"
