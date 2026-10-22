@@ -6,7 +6,7 @@
 import QRCode from "qrcode";
 import type {
   AuthState, RewardCategory, Reward, RewardDocument, MaterialType,
-  DepositTransaction, SmartBin
+  DepositTransaction, SmartBin, ResidentVoucher
 } from "../contracts/shared.ts";
 import type {
   AdminSession, AdminIdentity, AdminLoginRequest, DashboardSummary,
@@ -25,7 +25,8 @@ import {
   type Observer,
   type Unsubscribe,
   type OperationName,
-  type BinQrCode
+  type BinQrCode,
+  type VoucherListQuery
 } from "./repositories.ts";
 import { createSeedState, MOCK_NOW, MOCK_LOGIN, type MockSeedState } from "./mockSeeds.ts";
 
@@ -1459,6 +1460,41 @@ export function createMockRepositories(options?: {
 
       state.rewards.splice(index, 1);
       notifyCommit();
+    },
+    async listVouchers(query: VoucherListQuery): Promise<Page<ResidentVoucher>> {
+      await wait(readDelay);
+      checkFailure("rewards.list");
+      requireAdmin();
+      let list = clone(state.vouchers);
+      if (query.search && query.search.trim()) {
+        const q = query.search.trim().toLowerCase();
+        list = list.filter(v => v.code.toLowerCase().includes(q) || v.title.toLowerCase().includes(q) || v.residentId.toLowerCase().includes(q));
+      }
+      if (query.status && query.status !== "all") {
+        list = list.filter(v => v.status === query.status);
+      }
+      const total = list.length;
+      const pageSize = query.pageSize;
+      const start = (query.page - 1) * pageSize;
+      const items = list.slice(start, start + pageSize);
+      return { items, total, page: query.page, pageSize };
+    },
+    watchVouchers(query: VoucherListQuery): Observable<Page<ResidentVoucher>> {
+      return createObservable("rewards.list", () => {
+        let list = clone(state.vouchers);
+        if (query.search && query.search.trim()) {
+          const q = query.search.trim().toLowerCase();
+          list = list.filter(v => v.code.toLowerCase().includes(q) || v.title.toLowerCase().includes(q) || v.residentId.toLowerCase().includes(q));
+        }
+        if (query.status && query.status !== "all") {
+          list = list.filter(v => v.status === query.status);
+        }
+        const total = list.length;
+        const pageSize = query.pageSize;
+        const start = (query.page - 1) * pageSize;
+        const items = list.slice(start, start + pageSize);
+        return { items, total, page: query.page, pageSize };
+      });
     },
   };
 

@@ -3,7 +3,7 @@
 // Phase 3 — SDK-free; asynchronous Promise + Observable contracts
 // =============================================================================
 
-import type { AuthState, RewardCategory, Reward } from "../contracts/shared.ts";
+import type { AuthState, RewardCategory, Reward, ResidentVoucher, VoucherStatus } from "../contracts/shared.ts";
 import type {
   AdminSession, AdminIdentity, AdminLoginRequest, DashboardSummary,
   BinListQuery, Page, SmartBinRow, BinInput, AlertListQuery, AlertPage,
@@ -114,6 +114,13 @@ export interface VerificationRepository {
   decide(id: string, decision: "approve" | "reject", idempotencyKey: string): Promise<VerificationDecisionResult>;
 }
 
+export interface VoucherListQuery {
+  search?: string;
+  status?: VoucherStatus | "all";
+  page: number;
+  pageSize: 5 | 10 | 20;
+}
+
 export interface AdminRewardsRepository {
   list(query: RewardListQuery): Promise<Page<Reward>>;
   watchList(query: RewardListQuery): Observable<Page<Reward>>;
@@ -124,6 +131,8 @@ export interface AdminRewardsRepository {
   create(input: RewardInput): Promise<Reward>;
   update(id: string, input: RewardInput): Promise<Reward>;
   delete(id: string, expectedVersion?: number): Promise<void>;
+  listVouchers?(query: VoucherListQuery): Promise<Page<ResidentVoucher>>;
+  watchVouchers?(query: VoucherListQuery): Observable<Page<ResidentVoucher>>;
 }
 
 export interface SettingsRepository {

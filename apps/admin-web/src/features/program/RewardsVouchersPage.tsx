@@ -6,7 +6,7 @@
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
 import { services, useObservableQuery, useMutation } from "../../app/services.ts";
-import type { Reward } from "../../contracts/shared.ts";
+import type { Reward, ResidentVoucher, VoucherStatus } from "../../contracts/shared.ts";
 import type {
   RewardInput,
   RewardSortKey,
@@ -101,7 +101,19 @@ export function RewardsVouchersPage(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const query: RewardListQuery = parseRewardQuery(searchParams);
 
-  // Observable list query
+  // Active Tab
+  const activeTab = searchParams.get("tab") === "vouchers" ? "vouchers" : "catalog";
+  const setActiveTab = (tab: "catalog" | "vouchers") => {
+    setSearchParams(
+      patchQuery(searchParams, {
+        tab: tab === "catalog" ? null : "vouchers",
+        page: "1",
+        search: null,
+      })
+    );
+  };
+
+  // Observable list query for rewards catalog
   const listKey = `rewards:${searchParams.toString()}`;
   const listQuery = useObservableQuery(listKey, () =>
     services.repositories.rewards.watchList(query)
@@ -112,6 +124,63 @@ export function RewardsVouchersPage(): React.ReactElement {
     services.repositories.rewards.watchCategories()
   );
   const categories = categoriesQuery.data ?? [];
+
+  // Observable vouchers query
+  const voucherStatus = (searchParams.get("voucherStatus") as VoucherStatus | "all") || "all";
+  const voucherSearch = searchParams.get("voucherSearch") || "";
+  const voucherPage = Math.max(1, Number(searchParams.get("voucherPage") || "1"));
+  const voucherPageSize = (Number(searchParams.get("voucherPageSize") || "10") as 5 | 10 | 20) || 10;
+
+  const vouchersKey = `rewards.vouchers:${voucherStatus}:${voucherSearch}:${voucherPage}:${voucherPageSize}`;
+  const vouchersQuery = useObservableQuery(vouchersKey, () => {
+    if (services.repositories.rewards.watchVouchers) {
+      return services.repositories.rewards.watchVouchers({
+        search: voucherSearch,
+        status: voucherStatus,
+        page: voucherPage,
+        pageSize: voucherPageSize,
+      });
+    }
+    return {
+      subscribe: (obs) => {
+        obs.next({ items: [], total: 0, page: 1, pageSize: 10 });
+        return () => {};
+      },
+    };
+  });
+
+  const handleVoucherSearchChange = (search: string) => {
+    setSearchParams(patchQuery(searchParams, { voucherSearch: search || null, voucherPage: "1" }));
+  };
+
+  const handleVoucherFilterChange = (id: FilterId, value: string) => {
+    if (id === "status") {
+      setSearchParams(
+        patchQuery(searchParams, {
+          voucherStatus: value === "all" ? null : value,
+          voucherPage: "1",
+        })
+      );
+    }
+  };
+
+  const handleResetVoucherFilters = () => {
+    setSearchParams(
+      patchQuery(searchParams, {
+        voucherSearch: null,
+        voucherStatus: null,
+        voucherPage: "1",
+      })
+    );
+  };
+
+  const handleVoucherPageChange = (nextPage: number) => {
+    setSearchParams(patchQuery(searchParams, { voucherPage: String(nextPage) }));
+  };
+
+  const handleVoucherPageSizeChange = (nextSize: number) => {
+    setSearchParams(patchQuery(searchParams, { voucherPageSize: String(nextSize), voucherPage: "1" }));
+  };
 
   // Mutations
   const formMutation = useMutation();
@@ -409,14 +478,31 @@ export function RewardsVouchersPage(): React.ReactElement {
       header: "Reward & Merchant",
       sortKey: "title",
       cell: (r) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 700 }}>{r.title}</span>
-            {r.tag && <Badge tone="gray">{r.tag}</Badge>}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {r.imageUrl && (
+            <img
+              src={r.imageUrl}
+              alt={r.title}
+              style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "8px",
+                objectFit: "cover",
+                border: "1px solid var(--line)",
+                flexShrink: 0
+              }}
+              onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }}
+            />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontWeight: 700 }}>{r.title}</span>
+              {r.tag && <Badge tone="gray">{r.tag}</Badge>}
+            </div>
+            <small style={{ color: "var(--muted)", fontSize: "12px" }}>
+              {r.merchantName} · {r.description}
+            </small>
           </div>
-          <small style={{ color: "var(--muted)", fontSize: "12px" }}>
-            {r.merchantName} · {r.description}
-          </small>
         </div>
       )
     },
@@ -492,7 +578,118 @@ export function RewardsVouchersPage(): React.ReactElement {
     }
   ];
 
+  const [voucherSort, setVoucherSort] = React.useState<{ key: "issuedAt"; direction: "asc" | "desc" }>({
+    key: "issuedAt",
+    direction: "desc",
+  });
+
+  const voucherColumns: Column<ResidentVoucher, "issuedAt">[] = [
+    {
+      id: "code",
+      header: "Voucher Code",
+      cell: (v) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <code
+            style={{
+              fontFamily: "monospace",
+              fontSize: "12px",
+              fontWeight: 700,
+              padding: "4px 8px",
+              background: "#f0f4f0",
+              borderRadius: "6px",
+              border: "1px solid #d4ded4",
+              color: "var(--text)"
+            }}
+          >
+            {v.code}
+          </code>
+        </div>
+      ),
+    },
+    {
+      id: "reward",
+      header: "Reward Offer & Merchant",
+      cell: (v) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+          <span style={{ fontWeight: 700 }}>{v.title}</span>
+          <small style={{ color: "var(--muted)", fontSize: "12px" }}>
+            {v.merchantName}
+          </small>
+        </div>
+      ),
+    },
+    {
+      id: "residentId",
+      header: "Resident ID",
+      cell: (v) => (
+        <span
+          title={v.residentId}
+          style={{
+            fontFamily: "monospace",
+            fontSize: "12px",
+            color: "var(--muted)",
+            background: "var(--surface-sunken)",
+            padding: "2px 6px",
+            borderRadius: "4px"
+          }}
+        >
+          {v.residentId.length > 16 ? `${v.residentId.slice(0, 14)}…` : v.residentId}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (v) => (
+        <Badge tone={v.status === "available" ? "green" : v.status === "used" ? "gray" : "red"}>
+          {v.status === "available" ? "Available" : v.status === "used" ? "Used" : "Expired"}
+        </Badge>
+      ),
+    },
+    {
+      id: "issuedAt",
+      header: "Issued Date",
+      sortKey: "issuedAt",
+      cell: (v) => <span>{formatDate(v.issuedAt)}</span>,
+    },
+    {
+      id: "expiresAt",
+      header: "Expiry Date",
+      cell: (v) => {
+        const isExpired = new Date(v.expiresAt).getTime() <= Date.now();
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span>{formatDate(v.expiresAt)}</span>
+            {isExpired && v.status === "available" && <Badge tone="red">Expired</Badge>}
+          </div>
+        );
+      },
+    },
+    {
+      id: "usedAt",
+      header: "Used Date",
+      cell: (v) => <span>{v.usedAt ? formatDate(v.usedAt) : "—"}</span>,
+    },
+  ];
+
+  const voucherStatusOptions = [
+    { value: "all", label: "All Statuses" },
+    { value: "available", label: "Available" },
+    { value: "used", label: "Used" },
+    { value: "expired", label: "Expired" },
+  ];
+
+  const voucherFilterFields: FilterField[] = [
+    {
+      id: "status",
+      label: "Status",
+      value: voucherStatus,
+      options: voucherStatusOptions,
+    },
+  ];
+
   const rows = listQuery.data?.items ?? [];
+  const voucherRows = vouchersQuery.data?.items ?? [];
 
   return (
     <div className="rewards-layout">
@@ -502,11 +699,37 @@ export function RewardsVouchersPage(): React.ReactElement {
         title="Rewards & vouchers"
         description="Manage the township resident redemption catalog, points costs, and merchant voucher availability."
         actions={
-          <Button variant="primary" onClick={handleOpenCreate}>
-            <Icon name="plus" size={16} /> Create offer
-          </Button>
+          activeTab === "catalog" ? (
+            <Button variant="primary" onClick={handleOpenCreate}>
+              <Icon name="plus" size={16} /> Create offer
+            </Button>
+          ) : undefined
         }
       />
+
+      {/* Tabs Switcher */}
+      <div className="tabs" role="tablist" aria-label="Program sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "catalog"}
+          className={activeTab === "catalog" ? "active" : ""}
+          onClick={() => setActiveTab("catalog")}
+        >
+          <span>Rewards Catalog</span>
+          <span className="tab-badge">{listQuery.data?.total ?? 0}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "vouchers"}
+          className={activeTab === "vouchers" ? "active" : ""}
+          onClick={() => setActiveTab("vouchers")}
+        >
+          <span>Issued Vouchers</span>
+          <span className="tab-badge">{vouchersQuery.data?.total ?? 0}</span>
+        </button>
+      </div>
 
       {pageFeedback && (
         <Feedback kind="success" onDismiss={() => setPageFeedback(null)}>
@@ -520,39 +743,80 @@ export function RewardsVouchersPage(): React.ReactElement {
         </Feedback>
       )}
 
-      {/* Filter and Search Bar */}
-      <SearchFilterBar
-        search={query.search}
-        searchLabel="Search rewards by title, merchant or description…"
-        onSearchChange={handleSearchChange}
-        filters={filterFields}
-        onFilterChange={handleFilterChange}
-        onReset={handleResetFilters}
-      />
+      {activeTab === "catalog" ? (
+        <>
+          {/* Filter and Search Bar for Rewards */}
+          <SearchFilterBar
+            search={query.search}
+            searchLabel="Search rewards by title, merchant or description…"
+            onSearchChange={handleSearchChange}
+            filters={filterFields}
+            onFilterChange={handleFilterChange}
+            onReset={handleResetFilters}
+          />
 
-      {/* Data Table */}
-      <DataTable
-        caption="Rewards Catalog Table"
-        rows={rows}
-        columns={columns}
-        getRowId={(r) => r.id}
-        sort={query.sort}
-        onSortChange={handleSortChange}
-        loading={listQuery.loading}
-        error={listQuery.error}
-        onRetry={listQuery.reload}
-        emptyTitle="No rewards found in this view"
-      />
+          {/* Data Table */}
+          <DataTable
+            caption="Rewards Catalog Table"
+            rows={rows}
+            columns={columns}
+            getRowId={(r) => r.id}
+            sort={query.sort}
+            onSortChange={handleSortChange}
+            loading={listQuery.loading}
+            error={listQuery.error}
+            onRetry={listQuery.reload}
+            emptyTitle="No rewards found in this view"
+          />
 
-      {/* Pagination */}
-      {listQuery.data && (
-        <Pagination
-          page={listQuery.data.page}
-          pageSize={listQuery.data.pageSize}
-          total={listQuery.data.total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
+          {/* Pagination */}
+          {listQuery.data && (
+            <Pagination
+              page={listQuery.data.page}
+              pageSize={listQuery.data.pageSize}
+              total={listQuery.data.total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {/* Filter and Search Bar for Vouchers */}
+          <SearchFilterBar
+            search={voucherSearch}
+            searchLabel="Search vouchers by code, reward title, resident ID or merchant…"
+            onSearchChange={handleVoucherSearchChange}
+            filters={voucherFilterFields}
+            onFilterChange={handleVoucherFilterChange}
+            onReset={handleResetVoucherFilters}
+          />
+
+          {/* Vouchers Data Table */}
+          <DataTable
+            caption="Issued Resident Vouchers Table"
+            rows={voucherRows}
+            columns={voucherColumns}
+            getRowId={(v) => v.id}
+            sort={voucherSort}
+            onSortChange={setVoucherSort}
+            loading={vouchersQuery.loading}
+            error={vouchersQuery.error}
+            onRetry={vouchersQuery.reload}
+            emptyTitle="No resident vouchers found matching your query"
+          />
+
+          {/* Vouchers Pagination */}
+          {vouchersQuery.data && (
+            <Pagination
+              page={vouchersQuery.data.page}
+              pageSize={vouchersQuery.data.pageSize}
+              total={vouchersQuery.data.total}
+              onPageChange={handleVoucherPageChange}
+              onPageSizeChange={handleVoucherPageSizeChange}
+            />
+          )}
+        </>
       )}
 
       {/* Create / Edit Modal Dialog */}

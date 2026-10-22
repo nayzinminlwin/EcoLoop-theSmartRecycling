@@ -9,7 +9,54 @@
 .rewards-layout {
   display: flex;
   flex-direction: column;
+  gap: 20px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
   gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+
+.tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 12px 4px;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tabs button:hover {
+  color: var(--text);
+}
+
+.tabs button.active {
+  color: var(--green);
+  border-color: var(--green);
+  font-weight: 700;
+}
+
+.tab-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef2ed;
+  color: var(--muted);
+}
+
+.tabs button.active .tab-badge {
+  background: var(--mint);
+  color: var(--green);
 }
 
 .table-action {

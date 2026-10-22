@@ -55,13 +55,13 @@ service cloud.firestore {
     }
 
     match /rewards/{rewardId} {
-      allow read: if canReadCatalog();
-      allow write: if false;
+      allow read: if canReadCatalog() || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /rewardCategories/{categoryId} {
-      allow read: if canReadCatalog();
-      allow write: if false;
+      allow read: if canReadCatalog() || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /guideContent/{contentId} {
@@ -119,6 +119,11 @@ service cloud.firestore {
 
     match /depositResults/{receiptId} {
       allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /vouchers/{voucherId} {
+      allow read: if (signedIn() && resource.data.residentId == request.auth.uid) || isAdmin();
       allow write: if isAdmin();
     }
 
@@ -188,13 +193,11 @@ service cloud.firestore {
     }
 
     match /adminRewardViews/{rewardId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminRewardCategoryViews/{categoryId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminReadVersions/{topic} {
