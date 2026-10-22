@@ -3,6 +3,7 @@
 // Phase 3 — SDK-free; asynchronous Promise + Observable implementation
 // =============================================================================
 
+import QRCode from "qrcode";
 import type {
   AuthState, RewardCategory, Reward, RewardDocument, MaterialType,
   DepositTransaction, SmartBin
@@ -630,7 +631,16 @@ export function createMockRepositories(options?: {
       requireAdmin();
       const qrId = `qr-${id}`;
       const qrPayload = `ecoloop://bin/${qrId}`;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" font-size="10">${qrPayload}</text></svg>`;
+      let svg: string;
+      try {
+        svg = await QRCode.toString(qrPayload, {
+          type: "svg",
+          margin: 2,
+          errorCorrectionLevel: "M",
+        });
+      } catch {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" font-size="10">${qrPayload}</text></svg>`;
+      }
       const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
       return {
         binId: id,

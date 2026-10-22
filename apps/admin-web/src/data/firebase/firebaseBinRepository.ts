@@ -274,6 +274,13 @@ export class FirebaseBinRepository implements BinsRepository {
       const res = await callable({ binId: id });
       return res.data;
     } catch (err) {
+      if (this.fallbackBinsRepo) {
+        try {
+          return await this.fallbackBinsRepo.getQrCode(id);
+        } catch {
+          // ignore fallback error and throw mapped original error
+        }
+      }
       throw this.commandClient.mapFirebaseError(err, "getAdminBinQr");
     }
   }
