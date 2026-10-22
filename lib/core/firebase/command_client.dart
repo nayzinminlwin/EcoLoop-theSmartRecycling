@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../data/app_failure.dart';
 import '../data/pending_operation_store.dart';
+import '../diagnostics/app_logger.dart';
 import 'backend_envelope.dart';
 
 typedef CallableTransport = Future<Object?> Function(
@@ -19,15 +20,18 @@ class CommandClient {
     CallableTransport? transport,
     FirebaseFunctions? functions,
     String Function()? requestIdFactory,
+    AppLogger? logger,
   }) : _transport =
            transport ??
            _firebaseTransport(functions ?? FirebaseFunctions.instance),
-       _requestIdFactory = requestIdFactory ?? _newRequestId;
+       _requestIdFactory = requestIdFactory ?? _newRequestId,
+       _logger = logger ?? AppLogger();
 
   final String uid;
   final PendingOperationStore store;
   final CallableTransport _transport;
   final String Function() _requestIdFactory;
+  final AppLogger _logger;
   static final Map<String, Future<void>> _uidLocks = <String, Future<void>>{};
 
   static const _durableOperations = <String>{
@@ -160,16 +164,22 @@ class CommandClient {
       if (envelope.requestId != requestId) {
         throw const FormatException('Callable response request ID mismatch');
       }
-if (envelope.isError) {
+      if (envelope.isError) {
         final error = envelope.error!;
-        print('[CommandClient._call] scanBinQr callable returned error envelope');
-        print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-        print('[CommandClient._call]   envelope.requestId: ${envelope.requestId}');
-        print('[CommandClient._call]   envelope.traceId: ${envelope.traceId}');
-        print('[CommandClient._call]   envelope.error.code: ${error.code}');
-        print('[CommandClient._call]   envelope.error.message: ${error.message}');
-        print('[CommandClient._call]   envelope.error.retryable: ${error.retryable}');
-        print('[CommandClient._call]   envelope.error.details: ${error.details}');
+        _logger.log(
+          AppLogLevel.error,
+          'command.call_error_envelope',
+          fields: <String, Object?>{
+            'operation': operation,
+            'requestId': requestId,
+            'envelopeRequestId': envelope.requestId,
+            'traceId': envelope.traceId,
+            'errorCode': error.code,
+            'errorMessage': error.message,
+            'retryable': error.retryable,
+            'details': error.details,
+          },
+        );
         throw AppFailure(
           code: _mapErrorCode(error.code),
           messageKey: 'backend.${error.code}',
@@ -178,24 +188,42 @@ if (envelope.isError) {
           traceId: envelope.traceId,
         );
       }
-      print('[CommandClient._call] $operation callable succeeded');
-      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-      print('[CommandClient._call]   envelope.requestId: ${envelope.requestId}');
-      print('[CommandClient._call]   envelope.traceId: ${envelope.traceId}');
+      _logger.log(
+        AppLogLevel.debug,
+        'command.call_succeeded',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'envelopeRequestId': envelope.requestId,
+          'traceId': envelope.traceId,
+        },
+      );
       return envelope;
-} on AppFailure catch (error) {
-      print('[CommandClient._call] scanBinQr callable threw AppFailure (rethrow)');
-      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-      print('[CommandClient._call]   appFailure.code: ${error.code}');
-      print('[CommandClient._call]   appFailure.messageKey: ${error.messageKey}');
-      print('[CommandClient._call]   appFailure.retryable: ${error.retryable}');
-      print('[CommandClient._call]   appFailure.requestId: ${error.requestId}');
-      print('[CommandClient._call]   appFailure.traceId: ${error.traceId}');
+    } on AppFailure catch (error) {
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_app_failure',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'errorCode': error.code,
+          'messageKey': error.messageKey,
+          'retryable': error.retryable,
+          'errorRequestId': error.requestId,
+          'traceId': error.traceId,
+        },
+      );
       rethrow;
     } on FormatException catch (error) {
-      print('[CommandClient._call] scanBinQr callable failed (FormatException)');
-      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-      print('[CommandClient._call]   formatException.message: ${error.message}');
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_invalid_response',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'message': error.message,
+        },
+      );
       throw AppFailure(
         code: AppFailureCodes.invalidData,
         messageKey: 'backendContract.${error.message}',
@@ -209,16 +237,23 @@ if (envelope.isError) {
       final domainCode = details['code'] is String
           ? details['code']! as String
           : error.code.replaceAll('-', '_');
-      print('[CommandClient._call] scanBinQr callable failed (FirebaseFunctionsException)');
-      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-      print('[CommandClient._call]   functionsException.code: ${error.code}');
-      print('[CommandClient._call]   functionsException.message: ${error.message}');
-      print('[CommandClient._call]   functionsException.details: $details');
-      print('[CommandClient._call]   mapped domainCode: $domainCode');
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_firebase_failure',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'firebaseCode': error.code,
+          'message': error.message,
+          'details': details,
+          'domainCode': domainCode,
+        },
+      );
       throw AppFailure(
         code: _mapErrorCode(domainCode),
         messageKey: 'backend.$domainCode',
-        retryable: details['retryable'] == true ||
+        retryable:
+            details['retryable'] == true ||
             error.code == 'unavailable' ||
             error.code == 'deadline-exceeded' ||
             error.code == 'internal',
@@ -230,10 +265,14 @@ if (envelope.isError) {
             : null,
       );
     } catch (error) {
-      print('[CommandClient._call] scanBinQr callable failed (unknown error)');
-      print('[CommandClient._call]   operation: $operation, requestId: $requestId');
-      print('[CommandClient._call]   error type: ${error.runtimeType}');
-      print('[CommandClient._call]   error: $error');
+      _logger.error(
+        'command.call_unknown_failure',
+        error,
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+        },
+      );
       throw AppFailure(
         code: AppFailureCodes.unavailable,
         messageKey: 'backend.transportUnavailable',
