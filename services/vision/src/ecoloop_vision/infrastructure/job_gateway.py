@@ -34,6 +34,7 @@ class JobClaim:
     batch_id: str
     attempt_id: str
     deadline_at: str
+    lease_expires_at: str
     asset_id: str
     asset_version: str
     content_sha256: str
@@ -41,6 +42,9 @@ class JobClaim:
     artifact_prefix: str
     trace_id: str
     state: str
+    storage_path: str | None = None
+    storage_generation: str | None = None
+    mime_type: str | None = None
 
 
 class JobGateway:
@@ -67,9 +71,13 @@ class JobGateway:
             batch_id=_string(claim, "batchId"),
             attempt_id=_string(claim, "attemptId"),
             deadline_at=_string(claim, "deadlineAt"),
+            lease_expires_at=_string(claim, "leaseExpiresAt"),
             asset_id=_string(_mapping(claim["source"]), "assetId"),
             asset_version=_string(_mapping(claim["source"]), "assetVersion"),
             content_sha256=_string(_mapping(claim["source"]), "contentSha256"),
+            storage_path=_optional_string(_mapping(claim["source"]), "storagePath"),
+            storage_generation=_optional_string(_mapping(claim["source"]), "storageGeneration"),
+            mime_type=_optional_string(_mapping(claim["source"]), "mimeType"),
             configuration_version=_string(claim, "configurationVersion"),
             artifact_prefix=_string(claim, "artifactPrefix"),
             trace_id=_string(claim, "traceId"),
@@ -82,6 +90,22 @@ class JobGateway:
             "attemptId": claim.attempt_id,
             "stage": stage,
             "outputReference": output_reference,
+        })
+
+    def progress(
+        self,
+        claim: JobClaim,
+        *,
+        phase: str,
+        activity: str,
+        completed_stages: list[str],
+    ) -> Mapping[str, Any]:
+        return self._call("progress", {
+            "jobId": claim.job_id,
+            "attemptId": claim.attempt_id,
+            "phase": phase,
+            "activity": activity,
+            "completedStages": completed_stages,
         })
 
     def complete(self, claim: JobClaim, findings: Mapping[str, Any], references: list[str]) -> Mapping[str, Any]:
@@ -140,4 +164,13 @@ def _string(value: Mapping[str, Any], key: str) -> str:
     item = value.get(key)
     if not isinstance(item, str) or not item:
         raise GatewayError(f"Worker gateway payload is missing {key}", retryable=False)
+    return item
+
+
+def _optional_string(value: Mapping[str, Any], key: str) -> str | None:
+    item = value.get(key)
+    if item is None:
+        return None
+    if not isinstance(item, str) or not item:
+        raise GatewayError(f"Worker gateway payload has invalid {key}", retryable=False)
     return item

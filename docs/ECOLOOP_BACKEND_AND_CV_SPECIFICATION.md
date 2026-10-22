@@ -1031,6 +1031,40 @@ The following are verification/configuration inputs, not unresolved product pref
 
 Implementation MUST record these values and their evidence. It MUST NOT invent a Firebase project, introduce training or model-weight deployment, mix hosted-version metrics, silently weaken acceptance targets, or treat the RM50 target as a measured quote.
 
+## 20. Demo delivery addendum — 2026-10-20
+
+This dated addendum links the developer-authorized delivery direction in
+[the demo refactor plan](ECOLOOP_DEMO_REFACTOR_PLAN.md) and is limited to the
+first demonstrable Firebase release. The historical acceptance requirements
+above remain authoritative for any measured accuracy or production claim.
+
+For this release:
+
+1. Demonstration acceptance and independent rehearsal replace frozen-dataset
+   measurement as the delivery gate. No precision, counting, coverage,
+   throughput, or all-in-cost statistic is claimed without its required
+   measurement.
+2. Low-confidence, conflicting, missing, or incomplete YOLO findings are sent
+   to `gemini-3.8-flash`. Gemini uncertainty or failure refers the whole
+   transaction to admin review without partial points. No training, fine-tuning,
+   dataset upload, or manual labeling is part of this release.
+3. The H1 Android debug sideload does not use App Check enforcement, per the
+   developer's explicit confirmation. Firebase services remain configured, but
+   this path is not a production attestation claim. HTTPS web may use its
+   configured production-suitable provider if that scope is enabled later.
+4. The verified physical mapping is project
+   `ecoloop-thesmartrecycling`, Firestore database `ecoloop-db`, resident and
+   gateway callables in `us-central1`, and vision/Tasks/scheduled work in
+   `asia-southeast1`. The Storage bucket is
+   `ecoloop-thesmartrecycling.firebasestorage.app`.
+
+Intentional aliases and boundaries are preserved explicitly: `residentId` and
+`displayName` are the Firestore account writer fields while the resident
+profile DTO exposes `id` and `fullName`; legacy `excluded` is read as the
+canonical zero-credit `rejected` outcome; and the US/Singapore region split is
+not a client-region default. These aliases are read/migration compatibility,
+not duplicate sources of truth.
+
 If a model, budget, or accuracy gate cannot be met, the resulting model/deployment/scope change must be explicitly resolved and reflected in a versioned specification/configuration update. The full agreed scope remains the seven-day delivery target; completion is determined by evidence, not by a calendar label.
 
 The later implementation plan MUST reference this document, map work and checks to its requirements, and contain the phases/milestones separately. Changes to the accepted product behavior require updating this source of truth before a conflicting plan is executed.

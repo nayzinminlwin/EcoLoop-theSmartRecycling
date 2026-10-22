@@ -84,7 +84,7 @@ void main() {
             .where((reward) => reward.isActive)
             .map((reward) => reward.pointsCost)
             .toList(),
-        [100, 200, 350, 500],
+        [10, 25, 50, 75],
       );
       expect((wallet['wallet'] as Map)['balance'], 245);
     },

@@ -139,9 +139,23 @@ export class FirestoreInspectionStore implements InspectionStore {
         resultId,
         submittedAt: now,
         updatedAt: now,
+        progress: {
+          phase: "queued",
+          activity: "Request received — waiting for verification to start",
+          revision: 0,
+          attemptNumber: 0,
+          completedStages: [],
+          submissionAt: now,
+          stageStartedAt: now,
+          updatedAt: now,
+          deadlineAt,
+        },
       };
+      const residentRef = this.firestore.doc(`residents/${identity.uid}`);
       transaction.create(batchRef, {
-        id: batchId, ownerId: identity.uid, sessionId, binId: session.binId, cycleId: bin.cycleId,
+        id: batchId, ownerId: identity.uid, sessionId, binId: session.binId,
+        binLocation: String(bin.locationName ?? bin.displayName ?? session.binId),
+        cycleId: bin.cycleId,
         assetId, assetVersion, assetContentSha256: asset.contentSha256, policyVersion: policy.id ?? policy.version,
         status: "processing", totalDetectedObjectCount: null, pointsAwarded: null,
         spaceContributionSpc: 0, decisionVersion: 0, createdAt: now,
@@ -149,12 +163,15 @@ export class FirestoreInspectionStore implements InspectionStore {
       transaction.create(jobRef, {
         id: jobId, batchId, sessionId, ownerId: identity.uid, source: {
           assetId, assetVersion, contentSha256: asset.contentSha256,
+          storagePath: String(asset.storagePath),
+          mimeType: String(asset.mimeType),
+          ...(typeof asset.storageGeneration === "string" ? { storageGeneration: asset.storageGeneration } : {}),
         },
         policyVersion: policy.id ?? policy.version, cycleId: bin.cycleId, state: "queued",
         submittedAt: now, deadlineAt, dispatchState: "pending", traceId,
         configurationVersion: String(processing.providerMode === "gemini_only"
           ? "inspection-gemini-only"
-          : process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "inspection-v1"),
+          : process.env.ECOLOOP_INSPECTION_CONFIGURATION ?? "demo-vision-v1"),
         providerMode: processing.providerMode === "gemini_only" ? "gemini_only" : "standard",
         attemptCount: 0, workerSubject: configuredWorkerSubject(), workerIssuer: configuredWorkerIssuer(),
         createdAt: now,
@@ -165,6 +182,17 @@ export class FirestoreInspectionStore implements InspectionStore {
         explanation: "Your image is being checked.", createdAt: now,
       });
       updateDocument(transaction, sessionRef, updatedSession);
+      transaction.set(residentRef, {
+        latestSubmittedDeposit: {
+          sessionId,
+          batchId,
+          resultId,
+          decisionVersion: 0,
+          submittedAt: now,
+          updatedAt: now,
+        },
+        updatedAt: now,
+      }, { merge: true });
       transaction.update(actualReservationRef, {
         phase: "processing", simulatedAccess: "closed", updatedAt: now,
       });

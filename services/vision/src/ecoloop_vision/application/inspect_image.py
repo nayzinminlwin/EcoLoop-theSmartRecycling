@@ -4,7 +4,8 @@ import hashlib
 import json
 import math
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from contextvars import copy_context
+from concurrent.futures import ThreadPoolExecutor
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -28,9 +29,12 @@ class InspectionConfig:
     max_gemini_crops: int = 4
     max_full_image_objects: int = 12
     max_detector_calls: int = 2
-    total_budget_ms: int = 30_000
+    total_budget_ms: int = 90_000
     call_timeout_ms: int = 15_000
     max_retries: int = 1
+    max_parallel_provider_calls: int = 4
+    detector_models: tuple[str, str] = ("waste-detection-0momv/6", "yolo-waste-detection/1")
+    specialist_model: str = "waste-classification-rjo28/2"
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,15 @@ class FallbackEvidence:
     mode: str
     object_id: str | None
     result: GeminiResult
+
+
+@dataclass(frozen=True)
+class ProviderAttempt:
+    stage: str
+    attempt: int
+    status: str
+    error_type: str | None = None
+    latency_ms: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -51,9 +64,13 @@ class InspectionResult:
     fallbacks: tuple[FallbackEvidence, ...]
     raw_responses: Mapping[str, Any]
     outcomes: tuple[StageOutcome, ...] = ()
+    attempts: tuple[ProviderAttempt, ...] = ()
 
     @property
     def inventory_state(self) -> str:
+        if any(outcome.status in {"provider_error", "invalid_response", "budget_exhausted", "review_required"}
+               for outcome in self.outcomes):
+            return "uncertain"
         if self.objects:
             return "resolved"
         return "uncertain" if self.fallbacks else "empty"
@@ -74,6 +91,7 @@ def inspect_image(
 ) -> InspectionResult:
     raw_responses: dict[str, Any] = {}
     outcomes: list[StageOutcome] = []
+    attempts: list[ProviderAttempt] = []
     started_at = time.monotonic()
     emit_structured(level=20, event="vision.inspection_started", fields={
         "inputSha256": image.sha256,
@@ -81,20 +99,41 @@ def inspect_image(
     })
     detector_results: dict[str, NormalizedResult] = {}
     candidates: list[DetectionCandidate] = []
-    for role, model_id in (
-        ("A", "waste-detection-0momv/6"),
-        ("B", "yolo-waste-detection/1"),
-    ):
-        if len(detector_results) >= config.max_detector_calls or _budget_exhausted(started_at, config):
-            outcomes.append(StageOutcome("detectors", "budget_exhausted", "detector_call_budget"))
-            break
+    detector_specs = (
+        ("A", config.detector_models[0]),
+        ("B", config.detector_models[1]),
+    )[:config.max_detector_calls]
+    def run_detector(role: str, model_id: str) -> tuple[str, str, Any, Exception | None]:
+        if _budget_exhausted(started_at, config):
+            return role, model_id, None, RuntimeError("budget_exhausted")
         try:
-            raw = _invoke_provider(
-                detector_provider, (model_id, image), "detector", started_at, config, outcomes
-            )
+            return role, model_id, _invoke_provider(
+                detector_provider, (model_id, image), "detector", started_at, config, attempts
+            ), None
         except Exception as error:
-            outcomes.append(_provider_outcome("detector", error))
-            detector_results[role] = NormalizedResult(model_id=model_id, model_version=None, error=type(error).__name__)
+            return role, model_id, None, error
+
+    detector_started_at = time.perf_counter()
+    detector_runs: list[tuple[str, str, Any, Exception | None]] = []
+    if detector_specs:
+        with ThreadPoolExecutor(max_workers=min(2, len(detector_specs))) as executor:
+            futures = [
+                executor.submit(copy_context().run, run_detector, *spec)
+                for spec in detector_specs
+            ]
+            detector_runs = [future.result() for future in futures]
+    emit_structured(level=20, event="vision.stage_completed", fields={
+        "stage": "detectors",
+        "durationMs": round((time.perf_counter() - detector_started_at) * 1000, 2),
+        "roles": [role for role, _model_id in detector_specs],
+    })
+    for role, model_id, raw, provider_error in detector_runs:
+        if provider_error is not None:
+            outcomes.append(_provider_outcome("detector", provider_error))
+            detector_results[role] = NormalizedResult(model_id=model_id, model_version=None, error=type(provider_error).__name__)
+            continue
+        if raw is None:
+            outcomes.append(StageOutcome("detectors", "budget_exhausted", "detector_call_budget"))
             continue
         raw_responses[role] = raw
         try:
@@ -124,42 +163,67 @@ def inspect_image(
         "unresolvedCount": sum(item.eligibility == "unresolved" for item in objects),
     })
     specialist_results: list[NormalizedResult] = []
+    specialist_by_group: dict[str, NormalizedResult] = {}
     if specialist_provider is not None:
-        for group in groups[:config.max_specialist_crops]:
-            if not _needs_specialist(group, objects):
-                continue
-            crop, _ = crop_candidate(image, object_id=group.group_id, box=group.box)
-            try:
-                raw = _invoke_provider(
-                    specialist_provider, (crop, group.group_id), "specialist", started_at, config, outcomes
-                )
-            except Exception as error:
-                outcomes.append(_provider_outcome("specialist", error))
+        specialist_started_at = time.perf_counter()
+        specialist_groups = [
+            group for group in groups[:config.max_specialist_crops]
+            if _needs_specialist(group, objects)
+        ]
+        specialist_runs = _run_parallel_provider_calls(
+            specialist_groups,
+            lambda group: (
+                crop_candidate(image, object_id=group.group_id, box=group.box)[0],
+                group.group_id,
+            ),
+            specialist_provider,
+            "specialist",
+            started_at,
+            config,
+        )
+        for group, raw, provider_error, provider_attempts in specialist_runs:
+            attempts.extend(provider_attempts)
+            if provider_error is not None:
+                outcomes.append(_provider_outcome("specialist", provider_error))
                 continue
             raw_responses[f"D:{group.group_id}"] = raw
             try:
-                specialist_results.append(normalize_specialist_response(
-                    raw,
-                    model_id="waste-classification-rjo28/2",
-                ))
+                normalized_specialist = normalize_specialist_response(raw, model_id=config.specialist_model)
+                specialist_results.append(normalized_specialist)
+                specialist_by_group[group.group_id] = normalized_specialist
             except (TypeError, ValueError) as error:
                 outcomes.append(StageOutcome("specialist", "invalid_response", "normalization_failed", type(error).__name__))
+        emit_structured(level=20, event="vision.stage_completed", fields={
+            "stage": "specialist",
+            "durationMs": round((time.perf_counter() - specialist_started_at) * 1000, 2),
+            "candidateCount": len(specialist_by_group),
+        })
+        objects = _apply_specialist_evidence(objects, specialist_by_group)
 
     fallbacks: list[FallbackEvidence] = []
     if gemini_provider is not None:
+        gemini_started_at = time.perf_counter()
         uncertain_groups = [
             (group, item)
             for group, item in zip(groups, objects)
-            if item.eligibility == "unresolved"
+            if item.eligibility == "unresolved" or item.confidence < 0.85
         ][:config.max_gemini_crops]
-        for group, _ in uncertain_groups:
-            crop, _ = crop_candidate(image, object_id=group.group_id, box=group.box)
-            try:
-                raw = _invoke_provider(
-                    gemini_provider, (crop, "crop", group.group_id), "gemini_crop", started_at, config, outcomes
-                )
-            except Exception as error:
-                outcomes.append(_provider_outcome("gemini_crop", error))
+        gemini_runs = _run_parallel_provider_calls(
+            [group for group, _ in uncertain_groups],
+            lambda group: (
+                crop_candidate(image, object_id=group.group_id, box=group.box)[0],
+                "crop",
+                group.group_id,
+            ),
+            gemini_provider,
+            "gemini_crop",
+            started_at,
+            config,
+        )
+        for group, raw, provider_error, provider_attempts in gemini_runs:
+            attempts.extend(provider_attempts)
+            if provider_error is not None:
+                outcomes.append(_provider_outcome("gemini_crop", provider_error))
                 continue
             raw_responses[f"Gemini:crop:{group.group_id}"] = raw
             evidence = FallbackEvidence(
@@ -176,10 +240,16 @@ def inspect_image(
                 outcomes.append(StageOutcome("gemini_crop", "review_required", evidence.result.reason_code))
             if evidence.result.status == "resolved":
                 objects = _apply_crop_fallback(objects, evidence.result, group.group_id, image.width, image.height)
-        if not groups and not detector_results["A"].candidates and not detector_results["B"].candidates:
+        if (
+            not groups
+            and not detector_results["A"].candidates
+            and not detector_results["B"].candidates
+            and detector_results["A"].error is None
+            and detector_results["B"].error is None
+        ):
             try:
                 raw = _invoke_provider(
-                    gemini_provider, (image, "full_image", None), "gemini_full_image", started_at, config, outcomes
+                    gemini_provider, (image, "full_image", None), "gemini_full_image", started_at, config, attempts
                 )
             except Exception as error:
                 outcomes.append(_provider_outcome("gemini_full_image", error))
@@ -196,6 +266,7 @@ def inspect_image(
                     fallbacks=tuple(fallbacks),
                     raw_responses=raw_responses,
                     outcomes=tuple(outcomes),
+                    attempts=tuple(attempts),
                 )
                 emit_structured(level=20, event="vision.inspection_completed", fields={
                     "inputSha256": image.sha256,
@@ -220,6 +291,11 @@ def inspect_image(
                 outcomes.append(StageOutcome("gemini_full_image", "review_required", evidence.result.reason_code))
             if evidence.result.status == "resolved":
                 objects = _materialize_full_image(evidence.result, image.width, image.height)
+        emit_structured(level=20, event="vision.stage_completed", fields={
+                "stage": "gemini",
+                "durationMs": round((time.perf_counter() - gemini_started_at) * 1000, 2),
+                "fallbackCount": len(fallbacks),
+        })
     return InspectionResult(
         input_sha256=image.sha256,
         config_id=config.config_id,
@@ -230,12 +306,50 @@ def inspect_image(
         fallbacks=tuple(fallbacks),
         raw_responses=raw_responses,
         outcomes=tuple(outcomes),
+        attempts=tuple(attempts),
     )
 
 
 def _needs_specialist(group: CandidateGroup, objects: tuple[ResolvedObject, ...]) -> bool:
-    object_index = int(group.group_id.rsplit("-", 1)[-1]) - 1
-    return 0 <= object_index < len(objects) and objects[object_index].eligibility == "unresolved"
+    item = next((item for item in objects if item.object_id == group.group_id), None)
+    return item is not None and item.confidence < 0.85
+
+
+def _apply_specialist_evidence(
+    objects: tuple[ResolvedObject, ...],
+    specialist_results: Mapping[str, NormalizedResult],
+) -> tuple[ResolvedObject, ...]:
+    updated: list[ResolvedObject] = []
+    for item in objects:
+        result = specialist_results.get(item.object_id)
+        vector = None if result is None else result.score_vector
+        if vector is None:
+            updated.append(item)
+            continue
+        candidates = sorted(vector.scores.items(), key=lambda pair: (-pair[1], pair[0]))
+        if not candidates or candidates[0][1] < 0.85:
+            updated.append(item)
+            continue
+        label = classify_label(candidates[0][0])
+        if label.canonical is None or label.specificity != "specific":
+            updated.append(item)
+            continue
+        eligibility = "eligible" if label.canonical in {
+            "plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag"
+        } else "excluded"
+        updated.append(ResolvedObject(
+            object_id=item.object_id,
+            resolution=label.canonical,
+            eligibility=eligibility,
+            box=item.box,
+            normalized_box=item.normalized_box,
+            model_ids=item.model_ids + (vector.model_id,),
+            raw_labels=item.raw_labels + (candidates[0][0],),
+            confidence=item.confidence,
+            rule_id="rule.specialist_existing_candidate",
+            reason_code="specialist_evidence",
+        ))
+    return tuple(updated)
 
 
 def _apply_crop_fallback(
@@ -321,6 +435,7 @@ def configuration_fingerprint(config: InspectionConfig) -> str:
         "totalBudgetMs": config.total_budget_ms,
         "callTimeoutMs": config.call_timeout_ms,
         "maxRetries": config.max_retries,
+        "maxParallelProviderCalls": config.max_parallel_provider_calls,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -353,27 +468,73 @@ def _invoke_provider(
     stage: str,
     started_at: float,
     config: InspectionConfig,
-    outcomes: list[StageOutcome],
+    attempts: list[ProviderAttempt],
 ) -> Any:
     last_error: Exception | None = None
     for attempt in range(config.max_retries + 1):
+        attempt_started = time.monotonic()
         remaining_ms = min(
             config.call_timeout_ms,
             max(0, config.total_budget_ms - int((time.monotonic() - started_at) * 1000)),
         )
         if remaining_ms <= 0:
             raise RuntimeError("budget_exhausted")
-        executor = ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(provider, *args)
         try:
-            return future.result(timeout=remaining_ms / 1000)
-        except FutureTimeoutError as error:
-            last_error = error
-            outcomes.append(StageOutcome(stage, "budget_exhausted", "call_timeout"))
+            result = provider(*args)
+            attempts.append(ProviderAttempt(
+                stage, attempt + 1, "success",
+                latency_ms=round((time.monotonic() - attempt_started) * 1000, 2),
+            ))
+            return result
         except Exception as error:
             last_error = error
-            if attempt >= config.max_retries:
+            attempts.append(ProviderAttempt(
+                stage, attempt + 1, "error", type(error).__name__,
+                round((time.monotonic() - attempt_started) * 1000, 2),
+            ))
+            if not _is_transient(error) or attempt >= config.max_retries:
                 raise
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
     raise last_error or RuntimeError("provider_call_failed")
+
+
+def _run_parallel_provider_calls(
+    items: list[Any],
+    args_for: Callable[[Any], tuple[Any, ...]],
+    provider: Callable[..., Any],
+    stage: str,
+    started_at: float,
+    config: InspectionConfig,
+) -> list[tuple[Any, Any, Exception | None, list[ProviderAttempt]]]:
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=min(config.max_parallel_provider_calls, len(items))) as executor:
+        futures = [
+            executor.submit(_run_one_provider_call, item, args_for, provider, stage, started_at, config)
+            for item in items
+        ]
+        return [future.result() for future in futures]
+
+
+def _run_one_provider_call(
+    item: Any,
+    args_for: Callable[[Any], tuple[Any, ...]],
+    provider: Callable[..., Any],
+    stage: str,
+    started_at: float,
+    config: InspectionConfig,
+) -> tuple[Any, Any, Exception | None, list[ProviderAttempt]]:
+    attempts: list[ProviderAttempt] = []
+    try:
+        return item, _invoke_provider(provider, args_for(item), stage, started_at, config, attempts), None, attempts
+    except Exception as error:
+        return item, None, error, attempts
+
+
+def _is_transient(error: Exception) -> bool:
+    return isinstance(error, (TimeoutError, ConnectionError)) or type(error).__name__ in {
+        "TransientProviderError",
+        "ReadTimeout",
+        "ConnectTimeout",
+        "ServiceUnavailable",
+        "InternalServerError",
+    }

@@ -12,6 +12,7 @@ class AppButton extends StatelessWidget {
     this.leadingIcon,
     this.trailingIcon,
     this.isLoading = false,
+    this.pendingLabel,
     this.expand = false,
   });
 
@@ -21,6 +22,7 @@ class AppButton extends StatelessWidget {
   final IconData? leadingIcon;
   final IconData? trailingIcon;
   final bool isLoading;
+  final String? pendingLabel;
   final bool expand;
 
   @override
@@ -31,9 +33,10 @@ class AppButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: .45),
+          disabledBackgroundColor: AppColors.grayBackground,
+          disabledForegroundColor: AppColors.grayText,
         ),
-        child: _content(),
+        child: _content(loadingColor: AppColors.primary),
       ),
       AppButtonVariant.secondary => OutlinedButton(
         onPressed: isLoading ? null : onPressed,
@@ -41,7 +44,7 @@ class AppButton extends StatelessWidget {
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary),
         ),
-        child: _content(),
+        child: _content(loadingColor: AppColors.primary),
       ),
       AppButtonVariant.danger => ElevatedButton(
         onPressed: isLoading ? null : onPressed,
@@ -49,7 +52,7 @@ class AppButton extends StatelessWidget {
           backgroundColor: AppColors.red,
           foregroundColor: Colors.white,
         ),
-        child: _content(),
+        child: _content(loadingColor: AppColors.primary),
       ),
       AppButtonVariant.ghost => TextButton(
         onPressed: isLoading ? null : onPressed,
@@ -71,7 +74,7 @@ class AppButton extends StatelessWidget {
     );
   }
 
-  Widget _content() {
+  Widget _content({Color loadingColor = Colors.white}) {
     final labelContent = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -89,12 +92,23 @@ class AppButton extends StatelessWidget {
       children: [
         Opacity(opacity: isLoading ? 0 : 1, child: labelContent),
         if (isLoading)
-          const SizedBox.square(
-            dimension: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Colors.white,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: loadingColor,
+                ),
+              ),
+              if (pendingLabel != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(pendingLabel!, textAlign: TextAlign.center),
+                ),
+              ],
+            ],
           ),
       ],
     );

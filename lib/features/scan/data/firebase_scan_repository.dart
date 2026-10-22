@@ -41,10 +41,7 @@ class FirestoreScanReadTransport implements ScanReadTransport {
       });
 
   @override
-  Stream<Map<String, Object?>> watchOwner(
-    String collection,
-    String ownerId,
-  ) =>
+  Stream<Map<String, Object?>> watchOwner(String collection, String ownerId) =>
       _firestore
           .collection(collection)
           .where('ownerId', isEqualTo: ownerId)
@@ -57,11 +54,14 @@ class FirestoreScanReadTransport implements ScanReadTransport {
 
   @override
   Stream<List<Map<String, Object?>>> watchCollection(String collection) =>
-      _firestore.collection(collection).snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((document) => Map<String, Object?>.from(document.data()))
-            .toList(growable: false),
-      );
+      _firestore
+          .collection(collection)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((document) => Map<String, Object?>.from(document.data()))
+                .toList(growable: false),
+          );
 }
 
 class FirebaseScanRepository implements ScanRepository {
@@ -78,11 +78,15 @@ class FirebaseScanRepository implements ScanRepository {
   final CommandClient commandClient;
   final ScanReadTransport _reads;
   final Map<String, DepositSession> _observedSessions = {};
+  final Map<String, SmartBin> _observedBins = {};
   bool _disposed = false;
 
   @override
-  Future<ScanInstructions> getInstructions() =>
-      throw StateError('Scan instructions are not wired for Firebase yet');
+  Future<ScanInstructions> getInstructions() async {
+    _ensureActive();
+    final json = await _requiredRead('scanContent', 'default');
+    return ScanInstructions.fromJson(json);
+  }
 
   @override
   Future<String> getDemoQrPayload() =>
@@ -107,14 +111,13 @@ class FirebaseScanRepository implements ScanRepository {
     String requestId,
   ) async {
     _ensureActive();
-    final envelope = await commandClient.execute(
-      'scanBinQr',
-      {'qrPayload': qrPayload},
-      requestId: requestId,
-    );
+    final envelope = await commandClient.execute('scanBinQr', {
+      'qrPayload': qrPayload,
+    }, requestId: requestId);
     final session = BackendScanMapper.sessionFromEnvelope(envelope);
     final bin = BackendScanMapper.binFromEnvelope(envelope);
     _observe(session);
+    if (bin != null) _observedBins[bin.id] = bin;
     return ScanCommandResult(
       session: session,
       bin: bin,
@@ -126,7 +129,9 @@ class FirebaseScanRepository implements ScanRepository {
   Future<SmartBin> getBin(String binId) async {
     _ensureActive();
     final json = await _requiredRead('bins', binId);
-    return BackendScanMapper.binFromJson(json);
+    final bin = BackendScanMapper.binFromJson(json);
+    _observedBins[bin.id] = bin;
+    return bin;
   }
 
   Future<SimulationAsset> getAsset(String assetId) async {
@@ -219,18 +224,18 @@ class FirebaseScanRepository implements ScanRepository {
 
   @override
   Future<InspectionSubmission> submitInspection({
-      required String sessionId,
-      required String assetId,
-      required String assetVersion,
-      required int expectedVersion,
-    }) async {
-      _ensureActive();
-      final envelope = await commandClient.execute('submitInspection', {
-        'sessionId': sessionId,
-        'assetId': assetId,
-        'assetVersion': assetVersion,
-        'expectedVersion': expectedVersion,
-      });
+    required String sessionId,
+    required String assetId,
+    required String assetVersion,
+    required int expectedVersion,
+  }) async {
+    _ensureActive();
+    final envelope = await commandClient.execute('submitInspection', {
+      'sessionId': sessionId,
+      'assetId': assetId,
+      'assetVersion': assetVersion,
+      'expectedVersion': expectedVersion,
+    });
     final data = envelope.data;
     if (data == null ||
         data['batchId'] is! String ||
@@ -259,12 +264,35 @@ class FirebaseScanRepository implements ScanRepository {
   Stream<DepositSession?> watchSession(String sessionId) async* {
     _ensureActive();
     final initial = await _readOptional('depositSessions', sessionId);
-    if (initial != null) yield _observe(BackendScanMapper.sessionFromJson(initial));
-    yield* _reads.watch('depositSessions', sessionId).map((json) {
-      _assertJsonOwner(json);
-      final session = BackendScanMapper.sessionFromJson(json);
-      return _observe(session);
-    }).where((session) => session != null);
+    if (initial != null) {
+      yield _observe(BackendScanMapper.sessionFromJson(initial));
+    }
+    yield* _reads
+        .watch('depositSessions', sessionId)
+        .map((json) {
+          _assertJsonOwner(json);
+          final session = BackendScanMapper.sessionFromJson(json);
+          return _observe(session);
+        })
+        .where((session) => session != null);
+  }
+
+  @override
+  Future<DepositSession?> getResidentWork() async {
+    _ensureActive();
+    final resident = await _reads.read('residents', uid);
+    final activeSessionId =
+        resident?['activeSessionId'] ??
+        (resident?['latestSubmittedDeposit'] is Map
+            ? (resident!['latestSubmittedDeposit'] as Map)['sessionId']
+            : null);
+    if (activeSessionId is! String || activeSessionId.isEmpty) return null;
+    return getSession(activeSessionId);
+  }
+
+  @override
+  Stream<DepositSession?> watchResidentWork() async* {
+    yield await getResidentWork();
   }
 
   @override
@@ -283,9 +311,21 @@ class FirebaseScanRepository implements ScanRepository {
   }
 
   @override
-  Stream<SmartBin?> watchBin(String binId) => _reads
-      .watch('bins', binId)
-      .map(BackendScanMapper.binFromJson);
+  Stream<SmartBin?> watchBin(String binId) async* {
+    final initial = _observedBins[binId];
+    var hasAuthoritativeValue = initial != null;
+    if (initial != null) yield initial;
+    try {
+      await for (final json in _reads.watch('bins', binId)) {
+        final bin = BackendScanMapper.binFromJson(json);
+        _observedBins[bin.id] = bin;
+        hasAuthoritativeValue = true;
+        yield bin;
+      }
+    } on Object {
+      if (!hasAuthoritativeValue && _observedBins[binId] == null) rethrow;
+    }
+  }
 
   @override
   Future<DepositSession> startVerification(String sessionId) =>
@@ -302,6 +342,7 @@ class FirebaseScanRepository implements ScanRepository {
   void dispose() {
     _disposed = true;
     _observedSessions.clear();
+    _observedBins.clear();
   }
 
   Future<DepositSession> _sessionCommand(
@@ -325,7 +366,11 @@ class FirebaseScanRepository implements ScanRepository {
 
   DepositSession? _observe(DepositSession session) {
     final previous = _observedSessions[session.id];
-    if (previous != null && session.sessionVersion < previous.sessionVersion) {
+    if (previous != null &&
+        (session.sessionVersion < previous.sessionVersion ||
+            (session.sessionVersion == previous.sessionVersion &&
+                (session.progress?.revision ?? 0) <
+                    (previous.progress?.revision ?? 0)))) {
       return null;
     }
     _observedSessions[session.id] = session;
@@ -343,7 +388,10 @@ class FirebaseScanRepository implements ScanRepository {
     String id,
   ) async {
     final json = await _reads.read(collection, id);
-    if (json != null && collection != 'bins' && collection != 'simulationAssets') {
+    if (json != null &&
+        collection != 'bins' &&
+        collection != 'simulationAssets' &&
+        collection != 'scanContent') {
       final owner = json['ownerId'];
       if (owner is! String || owner != uid) throw _permissionDenied();
     }

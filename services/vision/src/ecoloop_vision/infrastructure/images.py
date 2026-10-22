@@ -99,8 +99,8 @@ def original_box(
     values = (x, y, width, height)
     if any(not isinstance(value, (int, float)) or not float(value) == float(value) for value in values):
         raise ValueError("Detection geometry must be finite")
-    if width < 0 or height < 0 or source_width < 1 or source_height < 1:
-        raise ValueError("Detection geometry must be non-negative")
+    if width <= 0 or height <= 0 or source_width < 1 or source_height < 1:
+        raise ValueError("Detection geometry must have positive area")
     if letterbox is None:
         scale_x = original_width / source_width
         scale_y = original_height / source_height
@@ -112,8 +112,17 @@ def original_box(
         scale = letterbox.get("scale")
         pad_x = letterbox.get("pad_x", 0.0)
         pad_y = letterbox.get("pad_y", 0.0)
-        if not isinstance(scale, (int, float)) or scale <= 0:
+        if (
+            not isinstance(scale, (int, float))
+            or not float(scale) == float(scale)
+            or scale <= 0
+        ):
             raise ValueError("Letterbox scale must be positive")
+        if any(
+            not isinstance(value, (int, float)) or not float(value) == float(value)
+            for value in (pad_x, pad_y)
+        ):
+            raise ValueError("Letterbox padding must be finite")
         left = (x - pad_x) / scale
         top = (y - pad_y) / scale
         right = (x + width - pad_x) / scale
@@ -124,6 +133,6 @@ def original_box(
         max(0.0, min(float(original_width), right)),
         max(0.0, min(float(original_height), bottom)),
     )
-    if result[0] > result[2] or result[1] > result[3]:
-        raise ValueError("Detection geometry is outside the image")
+    if result[0] >= result[2] or result[1] >= result[3]:
+        raise ValueError("Detection geometry has no visible area")
     return result

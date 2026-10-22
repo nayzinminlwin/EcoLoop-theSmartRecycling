@@ -89,7 +89,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                       const AppIcon('leaf', size: 16, color: AppColors.primary),
                       const SizedBox(width: 6),
                       Text(
-                        '${value.balance} pts',
+                        '${value?.balance ?? 0} pts',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -140,11 +140,13 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
               loading: () =>
                   const AppLoadingView(message: 'Loading your points'),
               error: (_, _) => const Text('Your wallet could not be loaded.'),
-              data: (balance) => _RewardGrid(
-                rewards: items,
-                balance: balance.balance,
-                onRedeem: _openRedemption,
-              ),
+              data: (balance) => balance == null
+                  ? const Text('Your wallet could not be loaded.')
+                  : _RewardGrid(
+                      rewards: items,
+                      balance: balance.balance,
+                      onRedeem: _openRedemption,
+                    ),
             ),
           ),
           const SizedBox(height: 28),
@@ -197,18 +199,22 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
       builder: (_) => StatefulBuilder(
         builder: (context, setDialogState) => RewardRedemptionDialog(
           reward: reward,
-          balance: ref.read(walletSnapshotProvider).value?.balance ?? 0,
+          balance: ref.read(walletSnapshotProvider).valueOrNull?.balance ?? 0,
           error: _redemptionError,
           isLoading: _redeeming,
-          onConfirm: () => _redeem(setDialogState),
+          onConfirm: () => _redeem(context, setDialogState),
         ),
       ),
     );
   }
 
-  Future<void> _redeem(void Function(void Function()) setDialogState) async {
+  Future<void> _redeem(
+    BuildContext dialogContext,
+    void Function(void Function()) setDialogState,
+  ) async {
     final reward = _pendingReward;
     if (reward == null || _redeeming) return;
+    final dialogNavigator = Navigator.of(dialogContext);
     setState(() => _redeeming = true);
     setDialogState(() {});
     try {
@@ -220,11 +226,10 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
             offerVersion: reward.offerVersion,
             displayedCost: reward.pointsCost,
           );
-      if (!mounted) return;
+      if (!mounted || !dialogNavigator.mounted) return;
       _redeeming = false;
-      Navigator.pop(context);
+      dialogNavigator.pop();
       ref
-        ..invalidate(walletSnapshotProvider)
         ..invalidate(rewardsProvider)
         ..invalidate(vouchersProvider(null));
       setState(() {
@@ -270,21 +275,41 @@ class _CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: 8,
+    spacing: 16,
+    runSpacing: 12,
     children: [
-      ChoiceChip(
-        label: const Text('All rewards'),
+      _chip(
+        label: 'All rewards',
         selected: selected == null,
         onSelected: (_) => onSelected(null),
       ),
       ...categories.map(
-        (category) => ChoiceChip(
-          label: Text(category.label),
+        (category) => _chip(
+          label: category.label,
           selected: selected == category.id,
           onSelected: (_) => onSelected(category.id),
         ),
       ),
     ],
+  );
+
+  ChoiceChip _chip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) => ChoiceChip(
+    label: Text(label),
+    labelStyle: AppTypography.textTheme.labelMedium!.copyWith(
+      color: selected ? AppColors.primaryDark : AppColors.text,
+    ),
+    selected: selected,
+    selectedColor: AppColors.sage,
+    backgroundColor: AppColors.mint,
+    checkmarkColor: AppColors.primaryDark,
+    side: selected
+        ? const BorderSide(color: AppColors.primaryDark)
+        : BorderSide.none,
+    onSelected: onSelected,
   );
 }
 

@@ -14,7 +14,7 @@ validation, and demo sign-out/resume behavior.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`
 - `.agent/developer/agent.md`
 - `.agent/tester/agent.md`

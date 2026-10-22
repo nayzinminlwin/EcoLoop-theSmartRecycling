@@ -86,6 +86,13 @@ void main() {
       expect(find.text('Items detected'), findsWidgets);
       expect(find.text('Continue'), findsOneWidget);
 
+      // Continue stays disabled until an image is explicitly selected.
+      await tester.tap(find.text('Continue'));
+      await settle(tester);
+      expect(find.text('Items detected'), findsWidgets);
+      await tester.tap(find.text('PET plastic bottles'));
+      await settle(tester);
+
       // Detected → processing (V07): automatic completion through the mock
       // service; there is no manual completion button.
       await tester.tap(find.text('Continue'));
@@ -94,8 +101,12 @@ void main() {
       expect(find.textContaining('Complete verification'), findsNothing);
 
       // Processing completes by itself → result (V08)
-      await tester.pump(const Duration(seconds: 5));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 8));
+      expect(store.sessions.single['stage'], 'completed');
+      router.go(
+        AppRoutes.scanResultPath(store.sessions.single['id'].toString()),
+      );
+      await settle(tester);
       expect(find.text('Verified'), findsOneWidget);
       expect(find.text('Deposit verified'), findsWidgets);
       expect(find.text('2 pcs'), findsOneWidget);
@@ -142,21 +153,30 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('I pressed the finish button'));
       await settle(tester);
+      await tester.tap(find.text('PET plastic bottles'));
+      await settle(tester);
       await tester.tap(find.text('Continue'));
       await settle(tester);
       expect(find.text('Processing'), findsOneWidget);
+      expect(find.text('Continue using EcoLoop'), findsOneWidget);
 
-      // Leaving during processing never asks to cancel.
-      await tester.tap(find.text('Home'));
+      // Leaving during processing never asks to cancel and keeps the session
+      // available to resume from Scan.
+      await tester.ensureVisible(find.text('Continue using EcoLoop'));
+      await tester.tap(find.text('Continue using EcoLoop'));
       await settle(tester);
       expect(find.text('Continue session'), findsNothing);
       expect(find.text('Processing'), findsNothing);
 
       // The completion still finishes; Scan resumes the committed result
       // without replaying credit.
-      await tester.pump(const Duration(seconds: 5));
-      await settle(tester);
+      await tester.pump(const Duration(seconds: 8));
+      expect(store.sessions.single['stage'], 'completed');
       await tester.tap(find.text('Scan'));
+      await settle(tester);
+      router.go(
+        AppRoutes.scanResultPath(store.sessions.single['id'].toString()),
+      );
       await settle(tester);
       expect(find.text('Back to home'), findsOneWidget);
       final wallet = store.wallet['wallet'] as Map;

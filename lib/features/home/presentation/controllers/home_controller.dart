@@ -6,7 +6,16 @@ import 'package:eco_loop/features/activity/domain/models/deposit_filter.dart';
 import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
 import 'package:eco_loop/features/activity/domain/models/recycling_summary.dart';
 import 'package:eco_loop/features/wallet/domain/models/wallet_snapshot.dart';
+import 'package:eco_loop/features/rewards/domain/models/reward.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+enum RewardProgressState {
+  loading,
+  error,
+  ready,
+  allHigherLevelsUnlocked,
+  noEligibleOffer,
+}
 
 class HomeViewData {
   const HomeViewData({
@@ -14,12 +23,14 @@ class HomeViewData {
     required this.wallet,
     required this.summary,
     required this.recentDeposits,
+    this.rewardProgressState = RewardProgressState.loading,
   });
 
   final ResidentProfile profile;
   final WalletSnapshot wallet;
   final RecyclingSummary summary;
   final List<DepositTransaction> recentDeposits;
+  final RewardProgressState rewardProgressState;
 
   double get rewardProgress {
     final next = wallet.nextRewardCost;
@@ -31,6 +42,17 @@ class HomeViewData {
     final next = wallet.nextRewardCost;
     return next == null ? null : (next - wallet.balance).clamp(0, next);
   }
+
+  HomeViewData copyWith({
+    WalletSnapshot? wallet,
+    RewardProgressState? rewardProgressState,
+  }) => HomeViewData(
+    profile: profile,
+    wallet: wallet ?? this.wallet,
+    summary: summary,
+    recentDeposits: recentDeposits,
+    rewardProgressState: rewardProgressState ?? this.rewardProgressState,
+  );
 }
 
 final homeControllerProvider =
@@ -38,8 +60,10 @@ final homeControllerProvider =
 
 final homeProfileStreamProvider = accountProfileProvider;
 
-final homeWalletStreamProvider = StreamProvider<WalletSnapshot?>(
-  (ref) => ref.read(walletRepositoryProvider).watchWallet(),
+final homeWalletStreamProvider = walletSnapshotProvider;
+
+final homeRewardsStreamProvider = StreamProvider<List<Reward>>(
+  (ref) => ref.watch(rewardsRepositoryProvider).watchRewards(),
 );
 
 final homeSummaryStreamProvider = StreamProvider<RecyclingSummary>((
@@ -56,8 +80,27 @@ final homeRecentDepositsStreamProvider =
     });
 
 class HomeController extends AsyncNotifier<HomeViewData> {
+  AsyncValue<List<Reward>>? _pendingRewardsState;
+
   @override
   Future<HomeViewData> build() async {
+    ref.listen(homeWalletStreamProvider, (_, next) {
+      final wallet = next.valueOrNull;
+      final current = state.valueOrNull;
+      if (wallet != null &&
+          current != null &&
+          wallet.version > current.wallet.version) {
+        state = AsyncData(current.copyWith(wallet: wallet));
+      }
+    });
+    ref.listen(homeRewardsStreamProvider, (_, next) {
+      final current = state.valueOrNull;
+      if (current == null) {
+        _pendingRewardsState = next;
+        return;
+      }
+      state = AsyncData(_withRewardProgress(current, next));
+    });
     final profile = await ref.watch(homeProfileStreamProvider.future);
     final wallet = await ref.watch(homeWalletStreamProvider.future);
     final summary = await ref.watch(homeSummaryStreamProvider.future);
@@ -71,11 +114,80 @@ class HomeController extends AsyncNotifier<HomeViewData> {
         retryable: true,
       );
     }
-    return HomeViewData(
+    final data = HomeViewData(
       profile: profile,
       wallet: wallet,
       summary: summary,
       recentDeposits: List.unmodifiable(recentDeposits),
+    );
+    return _withRewardProgress(
+      data,
+      _pendingRewardsState ?? ref.read(homeRewardsStreamProvider),
+    );
+  }
+
+  HomeViewData _withRewardProgress(
+    HomeViewData current,
+    AsyncValue<List<Reward>> rewardsState,
+  ) {
+    if (rewardsState.hasError) {
+      return current.copyWith(
+        rewardProgressState: current.wallet.nextRewardCost == null
+            ? RewardProgressState.error
+            : RewardProgressState.ready,
+      );
+    }
+    final rewards = rewardsState.valueOrNull;
+    if (rewards == null) {
+      return current.copyWith(
+        rewardProgressState: current.wallet.nextRewardCost == null
+            ? RewardProgressState.loading
+            : RewardProgressState.ready,
+      );
+    }
+    if (rewards.isEmpty && current.wallet.nextRewardCost != null) {
+      return current.copyWith(rewardProgressState: RewardProgressState.ready);
+    }
+    final now = ref.read(appClockProvider).now;
+    final eligible = rewards
+        .where((reward) => reward.isActive && !reward.isExpiredAt(now))
+        .where(
+          (reward) =>
+              reward.residentRedemptionCount < reward.maxRedemptionsPerResident,
+        )
+        .toList();
+    final higher =
+        eligible
+            .where((reward) => reward.pointsCost > current.wallet.balance)
+            .toList()
+          ..sort((a, b) => a.pointsCost.compareTo(b.pointsCost));
+    if (higher.isEmpty) {
+      if (current.wallet.nextRewardCost != null && eligible.isNotEmpty) {
+        return current.copyWith(rewardProgressState: RewardProgressState.ready);
+      }
+      return current.copyWith(
+        wallet: WalletSnapshot(
+          residentId: current.wallet.residentId,
+          balance: current.wallet.balance,
+          nextRewardCost: null,
+          updatedAt: current.wallet.updatedAt,
+          version: current.wallet.version,
+        ),
+        rewardProgressState: eligible.isEmpty
+            ? RewardProgressState.noEligibleOffer
+            : RewardProgressState.allHigherLevelsUnlocked,
+      );
+    }
+    final next = higher.first.pointsCost;
+    return current.copyWith(
+      wallet: WalletSnapshot(
+        residentId: current.wallet.residentId,
+        balance: current.wallet.balance,
+        nextRewardCost: next,
+        updatedAt: current.wallet.updatedAt,
+        version: current.wallet.version,
+      ),
+      rewardProgressState: RewardProgressState.ready,
     );
   }
 

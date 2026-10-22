@@ -86,7 +86,7 @@ def _config_from_manifest(value: Any) -> InspectionConfig:
         "max_gemini_crops": value.get("maxGeminiCrops", 4),
         "max_full_image_objects": value.get("maxFullImageObjects", 12),
         "max_detector_calls": value.get("maxDetectorCalls", 2),
-        "total_budget_ms": value.get("totalBudgetMs", 30_000),
+        "total_budget_ms": value.get("totalBudgetMs", 90_000),
         "call_timeout_ms": value.get("callTimeoutMs", 15_000),
         "max_retries": value.get("maxRetries", 1),
     }

@@ -121,6 +121,7 @@ class _VoucherDetailState extends ConsumerState<_VoucherDetail> {
           const SizedBox(height: 12),
           AppButton(
             label: 'Simulate voucher use',
+            pendingLabel: 'Marking voucher as used...',
             isLoading: _using,
             onPressed: _using ? null : _use,
           ),

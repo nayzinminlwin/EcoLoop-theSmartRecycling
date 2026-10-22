@@ -4,7 +4,7 @@
 **Agent:** GLM (opencode/glm-5.3-flash)
 **Moderator:** Alex
 **Status:** Completed
-**Fix Type:** Refactor (Phase 3 of `docs/FLUTTER_UI_REFACTOR_PLAN.md`)
+**Fix Type:** Refactor (Phase 3 of `docs/archive/FLUTTER_UI_REFACTOR_PLAN.md`)
 
 ---
 

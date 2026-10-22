@@ -16,6 +16,7 @@
     "seed:emulator": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run seed:emulator:runner\"",
     "seed:emulator:runner": "tsx tools/seed.ts --mode=emulator",
     "inspect": "tsx tools/inspect.ts",
+    "rebuild:resident-material-counts": "tsx tools/rebuild_resident_material_counts.ts",
     "test:seed": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run test:seed:runner\"",
     "test:seed:runner": "vitest run --config vitest.seed.config.ts",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-ecoloop \"npm run test:rules:runner\"",
@@ -42,6 +43,7 @@
   },
   "dependencies": {
     "@google-cloud/tasks": "5.5.0",
+    "google-auth-library": "10.4.0",
     "ajv-formats": "3.0.1",
     "firebase-admin": "13.5.0",
     "firebase-functions": "6.6.0",

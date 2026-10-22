@@ -34,7 +34,7 @@ def test_detector_normalization_converts_provider_pixels_to_original_pixels():
     candidate = result.candidates[0]
     assert candidate.raw_label == "Pet_Bottle"
     assert candidate.source_id == "inference-1"
-    assert candidate.box == (287.0, 174.0, 387.0, 254.0)
+    assert candidate.box == (237.0, 134.0, 337.0, 214.0)
     assert candidate.score == pytest.approx(0.7411)
 
 
@@ -54,6 +54,57 @@ def test_invalid_geometry_and_letterbox_are_rejected_or_inverted():
     with pytest.raises(ValueError):
         original_box(x=0, y=0, width=-1, height=2, source_width=10, source_height=10,
                      original_width=10, original_height=10)
-    assert original_box(x=20, y=30, width=20, height=20, source_width=100, source_height=100,
-                        original_width=10, original_height=10,
-                        letterbox={"scale": 2, "pad_x": 10, "pad_y": 10}) == (5.0, 10.0, 10.0, 10.0)
+    assert original_box(x=20, y=30, width=20, height=30, source_width=100, source_height=100,
+                        original_width=20, original_height=20,
+                        letterbox={"scale": 2, "pad_x": 10, "pad_y": 10}) == (5.0, 10.0, 15.0, 20.0)
+
+    with pytest.raises(ValueError):
+        original_box(x=0, y=0, width=0, height=2, source_width=10, source_height=10,
+                     original_width=10, original_height=10)
+    with pytest.raises(ValueError):
+        original_box(x=20, y=20, width=1, height=1, source_width=10, source_height=10,
+                     original_width=10, original_height=10)
+
+
+@pytest.mark.parametrize(
+    ("prediction", "expected"),
+    [
+        (
+            {"x": 357.5, "y": 214.5, "width": 715, "height": 429},
+            (0.0, 0.0, 715.0, 429.0),
+        ),
+        (
+            {"x": 481.5, "y": 219.5, "width": 117, "height": 389},
+            (423.0, 25.0, 540.0, 414.0),
+        ),
+    ],
+)
+def test_detector_normalization_uses_center_coordinates_and_clips(
+    prediction, expected
+):
+    result = normalize_detector_response(
+        {
+            "image": {"width": 715, "height": 429},
+            "predictions": [{**prediction, "class": "Pet_Bottle", "confidence": 0.9}],
+        },
+        model_id="waste-detection-0momv/6",
+        original_width=715,
+        original_height=429,
+    )
+    assert result.candidates[0].box == expected
+
+
+def test_detector_normalization_rejects_non_finite_geometry():
+    with pytest.raises(ValueError, match="finite"):
+        normalize_detector_response(
+            {
+                "image": {"width": 10, "height": 10},
+                "predictions": [{
+                    "x": float("nan"), "y": 5, "width": 2, "height": 2,
+                    "class": "Pet_Bottle", "confidence": 0.9,
+                }],
+            },
+            model_id="A",
+            original_width=10,
+            original_height=10,
+        )

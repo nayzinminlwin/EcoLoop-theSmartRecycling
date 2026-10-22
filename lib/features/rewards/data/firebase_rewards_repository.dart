@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eco_loop/core/data/json_readers.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
@@ -11,8 +13,10 @@ import '../domain/repositories/rewards_repository.dart';
 
 abstract interface class RewardsReadTransport {
   Future<List<JsonMap>> readCollection(String collection);
+  Future<List<JsonMap>> readOwnerVouchers(String uid);
   Future<JsonMap?> readDocument(String collection, String id);
   Stream<List<JsonMap>> watchCollection(String collection);
+  Stream<List<JsonMap>> watchOwnerVouchers(String uid);
   Stream<JsonMap?> watchDocument(String collection, String id);
 }
 
@@ -37,6 +41,16 @@ class FirestoreRewardsReadTransport
           .toList(growable: false);
 
   @override
+  Future<List<JsonMap>> readOwnerVouchers(String uid) async =>
+      (await firestore
+              .collection('vouchers')
+              .where('residentId', isEqualTo: uid)
+              .get())
+          .docs
+          .map((doc) => <String, Object?>{'id': doc.id, ...doc.data()})
+          .toList(growable: false);
+
+  @override
   Future<JsonMap?> readDocument(String collection, String id) async {
     final snapshot = await firestore.collection(collection).doc(id).get();
     final data = snapshot.data();
@@ -46,6 +60,17 @@ class FirestoreRewardsReadTransport
   @override
   Stream<List<JsonMap>> watchCollection(String collection) => firestore
       .collection(collection)
+      .snapshots()
+      .map(
+        (snapshot) => snapshot.docs
+            .map((doc) => <String, Object?>{'id': doc.id, ...doc.data()})
+            .toList(growable: false),
+      );
+
+  @override
+  Stream<List<JsonMap>> watchOwnerVouchers(String uid) => firestore
+      .collection('vouchers')
+      .where('residentId', isEqualTo: uid)
       .snapshots()
       .map(
         (snapshot) => snapshot.docs
@@ -137,11 +162,13 @@ class FirebaseRewardsRepository implements RewardsRepository {
     String? offerVersion,
     int? displayedCost,
   }) async {
-    final reward = await getReward(rewardId);
+    final displayedOffer = offerVersion != null && displayedCost != null
+        ? null
+        : await getReward(rewardId);
     final envelope = await commandClient.execute('redeemReward', {
-      'rewardId': reward.id,
-      'offerVersion': offerVersion ?? reward.offerVersion,
-      'displayedCost': displayedCost ?? reward.pointsCost,
+      'rewardId': rewardId,
+      'offerVersion': offerVersion ?? displayedOffer!.offerVersion,
+      'displayedCost': displayedCost ?? displayedOffer!.pointsCost,
     }, requestId: idempotencyKey);
     final data = envelope.data!;
     final redeemedAt = data['redeemedAt'] == null
@@ -154,11 +181,11 @@ class FirebaseRewardsRepository implements RewardsRepository {
     final voucher = ResidentVoucher(
       id: JsonReaders.string(data, 'voucherId'),
       residentId: uid,
-      rewardId: reward.id,
-      title: (data['title'] as String?) ?? reward.title,
-      merchantName: (data['merchant'] as String?) ?? reward.merchantName,
+      rewardId: rewardId,
+      title: JsonReaders.string(data, 'title'),
+      merchantName: JsonReaders.string(data, 'merchant'),
       code: JsonReaders.string(data, 'voucherCode'),
-      terms: (data['terms'] as String?) ?? reward.description,
+      terms: JsonReaders.string(data, 'terms'),
       issuedAt: issuedAt,
       expiresAt: expiresAt,
       status: VoucherStatus.available,
@@ -170,7 +197,7 @@ class FirebaseRewardsRepository implements RewardsRepository {
     final redemption = RewardRedemption(
       id: JsonReaders.string(data, 'redemptionId'),
       residentId: uid,
-      rewardId: reward.id,
+      rewardId: rewardId,
       idempotencyKey: idempotencyKey,
       pointsSpent: cost,
       redeemedAt: redeemedAt,
@@ -221,8 +248,7 @@ class FirebaseRewardsRepository implements RewardsRepository {
 
   @override
   Future<List<ResidentVoucher>> getVouchers(VoucherStatus? status) async {
-    final items = (await _reads.readCollection('vouchers'))
-        .where((item) => item['residentId'] == uid)
+    final items = (await _reads.readOwnerVouchers(uid))
         .map(ResidentVoucher.fromJson)
         .where((item) => status == null || item.statusAt(_now()) == status)
         .toList();
@@ -294,10 +320,9 @@ class FirebaseRewardsRepository implements RewardsRepository {
 
   @override
   Stream<List<ResidentVoucher>> watchVouchers({VoucherStatus? status}) => _reads
-      .watchCollection('vouchers')
+      .watchOwnerVouchers(uid)
       .map(
         (items) => items
-            .where((item) => item['residentId'] == uid)
             .map(ResidentVoucher.fromJson)
             .where((item) => status == null || item.statusAt(_now()) == status)
             .toList(growable: false),
@@ -314,6 +339,10 @@ class FirebaseRewardsRepository implements RewardsRepository {
     final catalogExpiry = data['catalogExpiresAt'] ?? data['expiresAt'];
     return Reward.fromJson({
       ...data,
+      'maxRedemptionsPerResident': math.max(
+        3,
+        (data['maxRedemptionsPerResident'] as num?)?.toInt() ?? 1,
+      ),
       'merchantName': data['merchantName'] ?? data['merchant'],
       'description': data['description'] ?? '',
       'expiresAt': catalogExpiry,

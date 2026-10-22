@@ -1,5 +1,6 @@
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
+import 'package:eco_loop/features/scan/domain/models/deposit_result.dart';
 import 'package:eco_loop/features/scan/domain/models/simulation_asset.dart';
 import 'package:eco_loop/features/scan/domain/models/smart_bin.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,17 @@ void main() {
       'batchId': 'batch-1',
       'jobId': 'job-1',
       'jobSubstage': 'settled',
+      'progress': {
+        'phase': 'finalizing',
+        'activity': 'Saving your result',
+        'revision': 7,
+        'attemptNumber': 1,
+        'completedStages': ['validating', 'detecting'],
+        'submissionAt': '2026-10-19T04:00:00Z',
+        'stageStartedAt': '2026-10-19T04:01:00Z',
+        'updatedAt': '2026-10-19T04:01:00Z',
+        'deadlineAt': '2026-10-19T04:05:00Z',
+      },
       'deadlineAt': '2026-10-19T04:05:00Z',
       'reservationExpiresAt': null,
       'resultId': 'result-1',
@@ -59,6 +71,8 @@ void main() {
     expect(session.committedAssetSha256, 'a' * 64);
     expect(session.jobSubstage, 'settled');
     expect(session.deadlineAt, isNotNull);
+    expect(session.progress?.revision, 7);
+    expect(session.progress?.phase, 'finalizing');
   });
 
   test('parses immutable asset metadata and nullable digest', () {
@@ -78,6 +92,23 @@ void main() {
 
     expect(asset.contentSha256, 'a' * 64);
     expect(asset.width, 1200);
+  });
+
+  test('parses a processing result without final-only fields', () {
+    final result = DepositResult.fromBackendJson({
+      'id': 'result-1',
+      'sessionId': 'session-1',
+      'batchId': 'deposit-1',
+      'outcome': 'processing',
+      'pointsAwarded': null,
+      'explanation': 'Your image is being checked.',
+      'createdAt': '2026-10-21T03:00:00Z',
+    });
+
+    expect(result.outcome, DepositOutcome.processing);
+    expect(result.pointsAwarded, isNull);
+    expect(result.policyVersion, isNull);
+    expect(result.traceId, isNull);
   });
 
   test('unsupported backend snapshots fail safely', () {

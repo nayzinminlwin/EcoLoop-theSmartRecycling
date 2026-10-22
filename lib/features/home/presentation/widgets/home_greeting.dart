@@ -22,6 +22,11 @@ class HomeGreeting extends StatelessWidget {
   Widget build(BuildContext context) {
     final clock = this.clock ?? AppClock();
     final date = clock.toDisplay(clock.now);
+    final greeting = switch (date.hour) {
+      >= 5 && < 12 => 'morning',
+      >= 12 && < 18 => 'afternoon',
+      _ => 'night',
+    };
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -35,7 +40,7 @@ class HomeGreeting extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               Text(
-                'Good morning, $name',
+                'Good $greeting, $name',
                 style: AppTypography.homeGreeting.copyWith(
                   color: AppColors.text,
                 ),

@@ -1,9 +1,11 @@
-import 'dart:math';
+import 'dart:async';
+import 'dart:math' hide log;
 
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../data/app_failure.dart';
 import '../data/pending_operation_store.dart';
+import '../diagnostics/app_logger.dart';
 import 'backend_envelope.dart';
 
 typedef CallableTransport = Future<Object?> Function(
@@ -18,15 +20,19 @@ class CommandClient {
     CallableTransport? transport,
     FirebaseFunctions? functions,
     String Function()? requestIdFactory,
+    AppLogger? logger,
   }) : _transport =
            transport ??
            _firebaseTransport(functions ?? FirebaseFunctions.instance),
-       _requestIdFactory = requestIdFactory ?? _newRequestId;
+       _requestIdFactory = requestIdFactory ?? _newRequestId,
+       _logger = logger ?? AppLogger();
 
   final String uid;
   final PendingOperationStore store;
   final CallableTransport _transport;
   final String Function() _requestIdFactory;
+  final AppLogger _logger;
+  static final Map<String, Future<void>> _uidLocks = <String, Future<void>>{};
 
   static const _durableOperations = <String>{
     'scanBinQr',
@@ -45,7 +51,7 @@ class CommandClient {
     String operation,
     Map<String, Object?> payload, {
     String? requestId,
-  }) async {
+  }) => _synchronized(() async {
     final durable = _durableOperations.contains(operation);
     final existing = durable ? await store.read(uid) : null;
     if (existing != null) {
@@ -77,6 +83,21 @@ class CommandClient {
       }
       if (durable) await store.clear(uid);
       rethrow;
+    }
+  }, uid);
+
+  Future<T> _synchronized<T>(Future<T> Function() action, String key) async {
+    final previous = _uidLocks[key] ?? Future<void>.value();
+    final gate = Completer<void>();
+    _uidLocks[key] = gate.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      gate.complete();
+      if (identical(_uidLocks[key], gate.future)) {
+        _uidLocks.remove(key);
+      }
     }
   }
 
@@ -114,7 +135,9 @@ class CommandClient {
       await store.clear(uid);
       return envelope;
     } on AppFailure catch (error) {
-      if (!error.retryable) {
+      if (!error.retryable &&
+          error.code != 'not-found' &&
+          error.code != 'not_found') {
         await store.clear(uid);
         rethrow;
       }
@@ -143,6 +166,20 @@ class CommandClient {
       }
       if (envelope.isError) {
         final error = envelope.error!;
+        _logger.log(
+          AppLogLevel.error,
+          'command.call_error_envelope',
+          fields: <String, Object?>{
+            'operation': operation,
+            'requestId': requestId,
+            'envelopeRequestId': envelope.requestId,
+            'traceId': envelope.traceId,
+            'errorCode': error.code,
+            'errorMessage': error.message,
+            'retryable': error.retryable,
+            'details': error.details,
+          },
+        );
         throw AppFailure(
           code: _mapErrorCode(error.code),
           messageKey: 'backend.${error.code}',
@@ -151,17 +188,91 @@ class CommandClient {
           traceId: envelope.traceId,
         );
       }
+      _logger.log(
+        AppLogLevel.debug,
+        'command.call_succeeded',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'envelopeRequestId': envelope.requestId,
+          'traceId': envelope.traceId,
+        },
+      );
       return envelope;
-    } on AppFailure {
+    } on AppFailure catch (error) {
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_app_failure',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'errorCode': error.code,
+          'messageKey': error.messageKey,
+          'retryable': error.retryable,
+          'errorRequestId': error.requestId,
+          'traceId': error.traceId,
+        },
+      );
       rethrow;
     } on FormatException catch (error) {
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_invalid_response',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'message': error.message,
+        },
+      );
       throw AppFailure(
         code: AppFailureCodes.invalidData,
         messageKey: 'backendContract.${error.message}',
         retryable: false,
         requestId: requestId,
       );
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details is Map
+          ? Map<String, Object?>.from(error.details as Map)
+          : const <String, Object?>{};
+      final domainCode = details['code'] is String
+          ? details['code']! as String
+          : error.code.replaceAll('-', '_');
+      _logger.log(
+        AppLogLevel.error,
+        'command.call_firebase_failure',
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+          'firebaseCode': error.code,
+          'message': error.message,
+          'details': details,
+          'domainCode': domainCode,
+        },
+      );
+      throw AppFailure(
+        code: _mapErrorCode(domainCode),
+        messageKey: 'backend.$domainCode',
+        retryable:
+            details['retryable'] == true ||
+            error.code == 'unavailable' ||
+            error.code == 'deadline-exceeded' ||
+            error.code == 'internal',
+        requestId: details['requestId'] is String
+            ? details['requestId']! as String
+            : requestId,
+        traceId: details['traceId'] is String
+            ? details['traceId']! as String
+            : null,
+      );
     } catch (error) {
+      _logger.error(
+        'command.call_unknown_failure',
+        error,
+        fields: <String, Object?>{
+          'operation': operation,
+          'requestId': requestId,
+        },
+      );
       throw AppFailure(
         code: AppFailureCodes.unavailable,
         messageKey: 'backend.transportUnavailable',

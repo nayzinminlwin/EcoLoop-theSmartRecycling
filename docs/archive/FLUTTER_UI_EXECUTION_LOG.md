@@ -280,7 +280,7 @@ Detailed implementation notes are recorded in
 - Added a device-runnable resident journey integration test covering Home,
   guide, all scan stages, verified result, wallet refresh, Settings, and
   Profile.
-- Added [`docs/FLUTTER_UI_ACCEPTANCE.md`](FLUTTER_UI_ACCEPTANCE.md) with
+- Added [`docs/archive/FLUTTER_UI_ACCEPTANCE.md`](FLUTTER_UI_ACCEPTANCE.md) with
   resident route coverage, visual review boundaries, commands, and deferred
   backend work.
 - Added [`docs/FLUTTER_MOCK_CONTRACTS.md`](FLUTTER_MOCK_CONTRACTS.md) with

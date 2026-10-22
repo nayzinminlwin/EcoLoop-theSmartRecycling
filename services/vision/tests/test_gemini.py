@@ -13,6 +13,18 @@ def test_crop_response_labels_existing_candidate_once():
     assert result.findings[0].count == 1
 
 
+def test_crop_ignores_provider_geometry_because_crop_coordinates_are_not_used():
+    result = validate_gemini_response(
+        {"objects": [{"label": "plastic_bottle", "count": 1, "confidence": 0.95,
+                      "candidateId": "object-0001",
+                      "box": {"x1": 12, "y1": 18, "x2": 96, "y2": 120}}]},
+        mode="crop",
+        candidate_id="object-0001",
+    )
+    assert result.status == "resolved"
+    assert result.findings[0].box is None
+
+
 def test_full_image_inventory_expands_distinct_objects_without_detector_agreement():
     result = validate_gemini_response(
         {"objects": [

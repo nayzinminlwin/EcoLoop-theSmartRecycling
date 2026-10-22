@@ -18,7 +18,7 @@ documents, and update canonical resident data exactly once after verification.
   scan callbacks
 - `EcoLoop_AI_Figma_Design_Artifacts/src/index.css` — scanner, bin, loading,
   success, and warning surfaces
-- `docs/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–5 decisions
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–5 decisions
 - `.agent/templates/dev_log_template.md` — documentation format
 
 ## 3. Changes Made

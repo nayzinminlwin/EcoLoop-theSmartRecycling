@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,11 +39,17 @@ class ActiveScanSession {
     required this.sessionId,
     required this.stage,
     required this.sessionVersion,
+    this.session,
+    this.result,
+    this.resultSeen = false,
   });
 
   final String sessionId;
   final ScanStage stage;
   final int sessionVersion;
+  final DepositSession? session;
+  final DepositResult? result;
+  final bool resultSeen;
 
   bool get isUnfinished =>
       stage != ScanStage.completed && stage != ScanStage.cancelled;
@@ -50,10 +60,50 @@ class ActiveScanSession {
 }
 
 class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
+  StreamSubscription<DepositSession?>? _sessionSubscription;
+  StreamSubscription<DepositResult?>? _resultSubscription;
+  String? _observedSessionId;
+  String? _observedResultId;
+  String? _residentId;
+
   @override
-  ActiveScanSession? build() => null;
+  ActiveScanSession? build() {
+    final authSubscription = ref
+        .read(accountRepositoryProvider)
+        .watchAuthState()
+        .listen(
+          (authState) {
+            final uid = authState.uid;
+            if (!authState.isSignedIn || uid == null) {
+              _residentId = null;
+              clear();
+            } else if (_residentId != uid) {
+              _residentId = uid;
+              unawaited(_restoreForResident());
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work auth observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+    ref.onDispose(() async {
+      await authSubscription.cancel();
+      await _sessionSubscription?.cancel();
+      await _resultSubscription?.cancel();
+    });
+    return null;
+  }
 
   void track(DepositSession session) {
+    if (session.stage == ScanStage.cancelled) {
+      clearIf(session.id);
+      return;
+    }
     final current = state;
     if (current != null &&
         current.sessionId == session.id &&
@@ -64,14 +114,236 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
       sessionId: session.id,
       stage: session.stage,
       sessionVersion: session.sessionVersion,
+      session: session,
+      result: current?.sessionId == session.id ? current?.result : null,
+      resultSeen: current?.sessionId == session.id
+          ? current?.resultSeen ?? false
+          : false,
+    );
+    if (_residentId != null &&
+        (session.submittedAt != null ||
+            session.batchId != null ||
+            session.resultId != null)) {
+      unawaited(_persistReference(_residentId!, session));
+    }
+  }
+
+  Future<void> _restoreForResident() async {
+    final residentId = _residentId;
+    if (residentId == null ||
+        ref.read(exitIntentCoordinatorProvider).isLocallySignedOut) {
+      return;
+    }
+
+    final store = ref.read(residentWorkStoreProvider);
+    final reference = await store.readReference(residentId);
+    if (reference != null &&
+        !ref
+            .read(exitIntentCoordinatorProvider)
+            .isSessionAbandoned(reference.sessionId)) {
+      observe(reference.sessionId);
+    }
+    try {
+      final serverSession = await ref
+          .read(scanRepositoryProvider)
+          .getResidentWork();
+      if (serverSession != null) {
+        _acceptRestoredSession(serverSession);
+      }
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        'Resident work restore failed',
+        name: 'ecoloop.flutter.resident_work',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> restore() => _restoreForResident();
+
+  void _acceptRestoredSession(DepositSession session) {
+    if (ref
+        .read(exitIntentCoordinatorProvider)
+        .isSessionAbandoned(session.id)) {
+      clearIf(session.id);
+      return;
+    }
+    track(session);
+    observe(session.id);
+    unawaited(_restoreSeenState(session));
+  }
+
+  Future<void> _restoreSeenState(DepositSession session) async {
+    final residentId = _residentId;
+    final resultId = session.resultId;
+    if (residentId == null ||
+        resultId == null ||
+        state?.sessionId != session.id) {
+      return;
+    }
+    final seen = await ref
+        .read(residentWorkStoreProvider)
+        .isSeen(residentId, resultId, state?.result?.decisionVersion);
+    final current = state;
+    if (current == null || current.sessionId != session.id) return;
+    state = ActiveScanSession(
+      sessionId: current.sessionId,
+      stage: current.stage,
+      sessionVersion: current.sessionVersion,
+      session: current.session,
+      result: current.result,
+      resultSeen: seen,
     );
   }
 
-  void clearIf(String sessionId) {
-    if (state?.sessionId == sessionId) state = null;
+  Future<void> _persistReference(
+    String residentId,
+    DepositSession session,
+  ) async {
+    try {
+      await ref
+          .read(residentWorkStoreProvider)
+          .writeReference(
+            residentId,
+            ResidentWorkReference(
+              sessionId: session.id,
+              submittedAt:
+                  session.submittedAt ??
+                  session.progress?.submissionAt ??
+                  session.updatedAt,
+              batchId: session.batchId,
+              resultId: session.resultId,
+              decisionVersion: state?.result?.decisionVersion,
+            ),
+          );
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        'Resident work reference persistence failed',
+        name: 'ecoloop.flutter.resident_work',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
-  void clear() => state = null;
+  void markResultSeen() {
+    final residentId = _residentId;
+    final current = state;
+    final result = current?.result;
+    if (residentId == null || current == null || result == null) return;
+    state = ActiveScanSession(
+      sessionId: current.sessionId,
+      stage: current.stage,
+      sessionVersion: current.sessionVersion,
+      session: current.session,
+      result: result,
+      resultSeen: true,
+    );
+    unawaited(
+      ref
+          .read(residentWorkStoreProvider)
+          .markSeen(residentId, result.id, result.decisionVersion),
+    );
+  }
+
+  void observe(String sessionId) {
+    if (_observedSessionId == sessionId && _sessionSubscription != null) {
+      return;
+    }
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = sessionId;
+    _sessionSubscription = ref
+        .read(scanRepositoryProvider)
+        .watchSession(sessionId)
+        .listen(
+          (session) {
+            if (session == null) {
+              clearIf(sessionId);
+              return;
+            }
+            track(session);
+            _observeResult(session);
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work session observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+  }
+
+  void _observeResult(DepositSession session) {
+    final resultId = session.resultId;
+    if (resultId == null) {
+      unawaited(_resultSubscription?.cancel());
+      _resultSubscription = null;
+      _observedResultId = null;
+      return;
+    }
+    if (_resultSubscription != null && _observedResultId == resultId) {
+      return;
+    }
+    unawaited(_resultSubscription?.cancel());
+    _observedResultId = resultId;
+    _resultSubscription = ref
+        .read(scanRepositoryProvider)
+        .watchResult(resultId)
+        .listen(
+          (result) {
+            final current = state;
+            if (current == null ||
+                current.sessionId != session.id ||
+                result == null) {
+              return;
+            }
+            state = ActiveScanSession(
+              sessionId: current.sessionId,
+              stage: current.stage,
+              sessionVersion: current.sessionVersion,
+              session: current.session,
+              result: result,
+              resultSeen: current.resultSeen,
+            );
+            unawaited(_restoreSeenState(current.session ?? session));
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            developer.log(
+              'Resident work result observation failed',
+              name: 'ecoloop.flutter.resident_work',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+  }
+
+  void clearIf(String sessionId) {
+    if (state?.sessionId != sessionId) return;
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _sessionSubscription = null;
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = null;
+    state = null;
+  }
+
+  void clear() {
+    unawaited(_sessionSubscription?.cancel());
+    unawaited(_resultSubscription?.cancel());
+    _sessionSubscription = null;
+    _resultSubscription = null;
+    _observedResultId = null;
+    _observedSessionId = null;
+    state = null;
+  }
 }
 
 final activeScanSessionProvider =
@@ -119,7 +391,35 @@ final scanCompletionProvider =
 /// Maps repository failure identities to resident-facing copy.
 String scanFailureCopy(Object error) {
   final messageKey = error is AppFailure ? error.messageKey : '';
+
+  // Prefix matches for contract validation errors
+  if (messageKey.startsWith('backendContract.')) {
+    return 'The scan service returned an invalid response. Try again.';
+  }
+
   return switch (messageKey) {
+    'backend.invalid_qr' => 'That QR code is not a valid EcoLoop bin.',
+    'backend.bin_full' => 'This bin is full right now. Please try another bin.',
+    'backend.bin_busy' =>
+      'This bin is currently in use. Please try again later.',
+    'backend.bin_unavailable' => 'This bin is unavailable right now.',
+    'backend.active_session_exists' => 'You already have an active scan. Return to it or cancel it before scanning another bin.',
+    'backend.unauthenticated' => 'Please sign in again before scanning.',
+    'backend.permission_denied' =>
+      'This scan is not permitted for the current account.',
+    'backend.failed-precondition' =>
+      'The selected image is no longer available. Please choose it again.',
+    'backend.aborted' =>
+      'The scan session changed. Please try the image again.',
+    'backend.already-exists' => 'This scan has already been submitted.',
+    'backend.transportUnavailable' =>
+      'The scan service is temporarily unavailable. Try again.',
+    'backend.not_found' =>
+      'The scan service is not available. Check deployment.',
+    'backend.unavailable' =>
+      'The scan service is temporarily unavailable. Try again.',
+    'backend.deadline_exceeded' => 'The scan request timed out. Try again.',
+    'backend.internal' => 'The scan service had an internal error. Try again.',
     'scan.invalidQr' => 'That QR code is not a valid EcoLoop bin.',
     'scan.binFull' => 'This bin is full right now. Please try another bin.',
     'scan.binOffline' => 'This bin is offline. Please try again later.',

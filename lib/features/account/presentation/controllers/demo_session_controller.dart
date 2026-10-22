@@ -18,7 +18,11 @@ class DemoSessionController extends AsyncNotifier<DemoSession> {
     state = const AsyncLoading<DemoSession>().copyWithPrevious(previous);
     state = await AsyncValue.guard(() async {
       await ref.read(accountRepositoryProvider).signOut();
-      return ref.read(accountRepositoryProvider).getDemoSession();
+      final session = previous.value;
+      if (session == null) {
+        throw StateError('Demo session is unavailable after sign out.');
+      }
+      return session.copyWith(isSignedIn: false);
     });
   }
 

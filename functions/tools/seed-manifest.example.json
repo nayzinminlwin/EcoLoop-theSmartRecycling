@@ -101,7 +101,7 @@
       "merchant": "EcoLoop Cafe",
       "categoryId": "plastic",
       "pointsCost": 10,
-      "maxRedemptionsPerResident": 1,
+      "maxRedemptionsPerResident": 3,
       "isActive": true,
       "demoOnly": true,
       "catalogExpiresAt": "2027-12-31T23:59:59.000Z"

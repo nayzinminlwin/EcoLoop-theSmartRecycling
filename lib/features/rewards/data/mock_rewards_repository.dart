@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
@@ -164,7 +165,8 @@ class MockRewardsRepository implements RewardsRepository {
       );
     }
 
-    if (reward.residentRedemptionCount >= reward.maxRedemptionsPerResident) {
+    if (reward.residentRedemptionCount >=
+        math.max(3, reward.maxRedemptionsPerResident)) {
       throw const AppFailure(
         code: AppFailureCodes.conflict,
         messageKey: 'rewards.limitReached',

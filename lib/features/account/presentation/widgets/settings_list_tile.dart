@@ -18,34 +18,37 @@ class SettingsListTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary, size: 21),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.body.copyWith(
-                    fontWeight: FontWeight.w600,
+  Widget build(BuildContext context) => Material(
+    type: MaterialType.transparency,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 21),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                if (subtitle != null)
-                  Text(subtitle!, style: AppTypography.textTheme.bodySmall),
-              ],
+                  if (subtitle != null)
+                    Text(subtitle!, style: AppTypography.textTheme.bodySmall),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.muted),
-        ],
+            const Icon(Icons.chevron_right, color: AppColors.muted),
+          ],
+        ),
       ),
     ),
   );

@@ -43,6 +43,8 @@ abstract interface class ScanRepository {
   });
   Stream<SmartBin?> watchBin(String binId);
   Stream<DepositSession?> watchSession(String sessionId);
+  Future<DepositSession?> getResidentWork();
+  Stream<DepositSession?> watchResidentWork();
   Stream<DepositResult?> watchResult(String resultId);
 
   /// Synchronous store-backed peek used by route redirects to canonicalize

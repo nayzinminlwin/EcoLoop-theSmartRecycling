@@ -81,31 +81,32 @@ class MockActivityRepository implements ActivityRepository {
           item.residentId == _residentId &&
           item.status == DepositStatus.verified,
     );
+    final acceptedItemCounts = <MaterialType, int>{
+      for (final type in MaterialType.values) type: 0,
+    };
+    for (final item in verified) {
+      if (item.lines.isEmpty) {
+        acceptedItemCounts[item.materialType] =
+            (acceptedItemCounts[item.materialType] ?? 0) + item.acceptedItemCount;
+        continue;
+      }
+      for (final line in item.lines) {
+        if (!line.eligible) continue;
+        acceptedItemCounts[line.materialType] =
+            (acceptedItemCounts[line.materialType] ?? 0) + line.acceptedCount;
+      }
+    }
+    final verifiedWeightKg = acceptedItemCounts.entries.fold<double>(
+      0,
+      (sum, entry) => sum + MaterialWeightConstants.getWeightKg(
+        entry.key,
+        entry.value,
+      ),
+    );
     return RecyclingSummary(
       verifiedDepositCount: verified.length,
-      verifiedWeightKg: verified.fold<double>(
-        0,
-        (sum, item) =>
-            sum +
-            MaterialWeightConstants.getWeightKg(
-              item.materialType,
-              item.acceptedItemCount,
-            ),
-      ),
-      acceptedItemCounts: {
-        for (final type in MaterialType.values)
-          type: verified.fold<int>(
-            0,
-            (sum, item) =>
-                sum +
-                item.lines
-                    .where((line) => line.materialType == type && line.eligible)
-                    .fold<int>(
-                      0,
-                      (lineSum, line) => lineSum + line.acceptedCount,
-                    ),
-          ),
-      },
+      verifiedWeightKg: verifiedWeightKg,
+      acceptedItemCounts: acceptedItemCounts,
     );
   }
 

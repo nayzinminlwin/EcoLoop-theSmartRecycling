@@ -17,7 +17,7 @@ restoration, and recoverable route failures.
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` — Phase 9 route table,
   shell requirements, guard behavior, and cross-feature invalidation contract
-- `docs/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–8 decisions and
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` — completed Phases 1–8 decisions and
   verification history
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx` — `ResidentApp` navigation,
   header, bottom navigation, and resident page behavior
@@ -45,7 +45,7 @@ restoration, and recoverable route failures.
   - `lib/app/router/app_router.dart`
   - `lib/app/presentation/bootstrap_screen.dart`
   - `test/features/scan/scan_flow_test.dart`
-  - `docs/FLUTTER_UI_EXECUTION_LOG.md`
+  - `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - **Impact to other modules:** The application now receives its router from
   the account repository provider so route guards observe the shared mock auth
   stream. Existing feature callbacks continue to navigate through the single
@@ -106,4 +106,4 @@ restoration, and recoverable route failures.
   - `flutter build web`
   - protected Android SHA-256 checksums unchanged
 - The unrelated untracked file
-  `docs/recycle_bin_multi_model_orchestrator_plan.md` was not modified.
+  `docs/archive/recycle_bin_multi_model_orchestrator_plan.md` was not modified.

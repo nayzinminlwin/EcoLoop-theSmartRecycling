@@ -49,6 +49,11 @@ class MockWalletRepository implements WalletRepository {
         .map((item) => item['pointsCost'])
         .whereType<num>()
         .map((e) => e.toInt());
+    final fallbackCosts = (envelope['rewardCosts'] as List?)
+        ?.whereType<num>()
+        .map((cost) => cost.toInt())
+        .where((cost) => cost > document.balance)
+        .toList();
     int? next;
     for (final cost in costs) {
       if (cost > document.balance) {
@@ -56,6 +61,7 @@ class MockWalletRepository implements WalletRepository {
         break;
       }
     }
+    next ??= fallbackCosts?.isEmpty == false ? fallbackCosts!.first : null;
     return WalletSnapshot(
       residentId: document.residentId,
       balance: document.balance,

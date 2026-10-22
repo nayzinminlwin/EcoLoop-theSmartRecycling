@@ -9,6 +9,7 @@ import 'package:eco_loop/features/activity/domain/repositories/activity_reposito
 import 'package:eco_loop/features/wallet/data/mock_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/data/firebase_wallet_repository.dart';
 import 'package:eco_loop/features/wallet/domain/repositories/wallet_repository.dart';
+import 'package:eco_loop/features/wallet/domain/models/wallet_snapshot.dart';
 import 'package:eco_loop/features/recycling_guide/data/mock_recycling_guide_repository.dart';
 import 'package:eco_loop/features/recycling_guide/data/firebase_recycling_guide_repository.dart';
 import 'package:eco_loop/features/recycling_guide/domain/repositories/recycling_guide_repository.dart';
@@ -27,6 +28,8 @@ import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
+import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
+import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
@@ -45,8 +48,12 @@ final appRouterProvider = Provider((ref) {
   final config = ref.watch(runtimeConfigProvider);
   return createAppRouter(
     accountRepository: ref.watch(accountRepositoryProvider),
+    exitIntentCoordinator: ref.watch(exitIntentCoordinatorProvider),
     signInBuilder: (context) => SignInScreen(
-      controller: AuthController(ref.read(accountRepositoryProvider)),
+      controller: AuthController(
+        ref.read(accountRepositoryProvider),
+        ref.read(exitIntentCoordinatorProvider),
+      ),
     ),
     resolveSessionStage: config.mode == FirebaseMode.mock
         ? (sessionId) =>
@@ -64,6 +71,12 @@ final systemAppClockProvider = Provider<AppClock>(
 );
 final leaveDecisionProvider = Provider<LeaveDecisionCoordinator>(
   (ref) => LeaveDecisionCoordinator(),
+);
+final exitIntentCoordinatorProvider = Provider<ExitIntentCoordinator>(
+  (ref) => ExitIntentCoordinator(),
+);
+final residentWorkStoreProvider = Provider<ResidentWorkStore>(
+  (ref) => ResidentWorkStore(),
 );
 final mockScenarioProvider = Provider<MockScenarioState>(
   (ref) => MockScenarioState.fromEnvironment(),
@@ -179,8 +192,8 @@ final residentProfileProvider = FutureProvider(
   (ref) => ref.watch(accountRepositoryProvider).getProfile(),
 );
 
-final walletSnapshotProvider = FutureProvider(
-  (ref) => ref.watch(walletRepositoryProvider).getWallet(),
+final walletSnapshotProvider = StreamProvider<WalletSnapshot?>(
+  (ref) => ref.watch(walletRepositoryProvider).watchWallet(),
 );
 
 final scanRepositoryProvider = Provider<ScanRepository>((ref) {

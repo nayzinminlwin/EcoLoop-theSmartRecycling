@@ -1,6 +1,8 @@
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
+import 'package:eco_loop/core/theme/app_spacing.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
+import 'package:eco_loop/shared/widgets/app_card.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
@@ -60,10 +62,10 @@ class _GuideContent extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const AppIcon(
-                'recycle',
-                size: 42,
-                color: Color(0xFF176B45),
+              child: Image.asset(
+                'assets/icons/recycle-symbol.png',
+                width: 42,
+                height: 42,
               ),
             ),
             const SizedBox(height: 12),
@@ -87,18 +89,32 @@ class _GuideContent extends StatelessWidget {
                   MediaQuery.textScalerOf(context).scale(1) < 1.35
               ? 2
               : 1;
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: data.materials.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              mainAxisExtent: columns == 2 ? 132 : 105,
-            ),
-            itemBuilder: (context, index) =>
-                MaterialGuideCard(material: data.materials[index]),
+          final cardWidth = columns == 2
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+          const cardHeight = 200.0;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: data.materials.isEmpty
+                ? [
+                    const SizedBox(
+                      width: double.infinity,
+                      child: AppCard(
+                        child: Text(
+                          'No supported materials are currently configured.',
+                        ),
+                      ),
+                    ),
+                  ]
+                : [
+                    for (final material in data.materials)
+                      SizedBox(
+                        width: cardWidth,
+                        height: cardHeight,
+                        child: MaterialGuideCard(material: material),
+                      ),
+                  ],
           );
         },
       ),
@@ -132,15 +148,31 @@ class _GuideContent extends StatelessWidget {
         ),
       ],
       if (data.steps.isNotEmpty) ...[
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xxl),
         _sectionTitle(context, 'Using the smart bin'),
+        const SizedBox(height: AppSpacing.lg),
         RecyclingStepsList(steps: data.steps),
       ],
       if (data.rates.isNotEmpty) ...[
         const SizedBox(height: 24),
         _sectionTitle(context, 'EcoPoints per item'),
         const SizedBox(height: 12),
-        MaterialRatesTable(rates: data.rates, examples: data.rateExamples),
+        SizedBox(
+          width: double.infinity,
+          child: MaterialRatesTable(
+            rates: data.rates,
+            examples: data.rateExamples,
+          ),
+        ),
+      ] else ...[
+        const SizedBox(height: 24),
+        _sectionTitle(context, 'EcoPoints per item'),
+        const SizedBox(height: 12),
+        const AppCard(
+          child: Text(
+            'EcoPoints rates are currently unavailable. Please try again later.',
+          ),
+        ),
       ],
       const SizedBox(height: 12),
       Text(data.pointsDisclaimer, style: Theme.of(context).textTheme.bodySmall),

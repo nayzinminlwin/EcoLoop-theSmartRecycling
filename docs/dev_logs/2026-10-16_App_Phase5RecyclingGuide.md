@@ -17,7 +17,7 @@ network, emulator, or external service integrations.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - `.agent/developer/agent.md`
 - `.agent/templates/dev_log_template.md`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`
@@ -45,7 +45,7 @@ network, emulator, or external service integrations.
   - `lib/app/router/app_router.dart`
   - `lib/core/presentation/app_copy.dart`
   - `pubspec.yaml`
-  - `docs/FLUTTER_UI_EXECUTION_LOG.md`
+  - `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - **Impact to other modules:**
   - Registered `/guide` and connected the existing Home guide action.
   - Added a shared repository/provider seam for later scan classification.

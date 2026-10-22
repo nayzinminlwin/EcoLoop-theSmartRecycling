@@ -10,9 +10,9 @@
 
 ## 1. Triggered By
 
-- **QA Report:** `docs/FLUTTER_UI_REFACTOR_PLAN.md` Phase 2 acceptance gate and
+- **QA Report:** `docs/archive/FLUTTER_UI_REFACTOR_PLAN.md` Phase 2 acceptance gate and
   the V01–V03 rows of the screenshot-derived gap register in
-  `docs/FLUTTER_UI_IMPLEMENTATION_AUDIT.md` (F07, F08, F12, F14, F15).
+  `docs/archive/FLUTTER_UI_IMPLEMENTATION_AUDIT.md` (F07, F08, F12, F14, F15).
 - **Error Summary:** The resident shell rendered a plain "EcoLoop" heading with
   a Material bell, the Home wallet card was white with a green CTA inversion,
   recent activity rendered as repeated overflowing ListTiles with duplicated
@@ -74,7 +74,7 @@ pending-URI preservation across startup auth restoration.
   `test/features/activity/history_screen_test.dart`.
 - **Files Created:** `lib/app/router/leave_decision_coordinator.dart`,
   `test/refactor_visuals/phase2_capture_test.dart`,
-  `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`,
+  `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`,
   `docs/refactor_visuals/phase2/*.png`.
 - **Files Deleted:** none.
 

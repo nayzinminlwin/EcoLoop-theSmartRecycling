@@ -14,7 +14,7 @@ UI-acceptance documentation, and explicit backend handoff boundaries.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/index.css`
 - `.agent/developer/agent.md`
@@ -25,14 +25,14 @@ UI-acceptance documentation, and explicit backend handoff boundaries.
 - **Files Created:**
   - `integration_test/resident_journey_test.dart`
   - `test/fixtures/mock_fixture_integrity_test.dart`
-  - `docs/FLUTTER_UI_ACCEPTANCE.md`
+  - `docs/archive/FLUTTER_UI_ACCEPTANCE.md`
   - `docs/FLUTTER_MOCK_CONTRACTS.md`
 - **Files Modified:**
   - `lib/core/mock/mock_api.dart`
   - `lib/core/mock/mock_scenario.dart`
   - `test/widget_test.dart`
   - `README.md`
-  - `docs/FLUTTER_UI_EXECUTION_LOG.md`
+  - `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - **Impact to other modules:** Added one-shot, pre-mutation write failures
   for classification, profile save, and redemption so retry behavior can be
   exercised through injected mock repository scenarios. No production Firebase
@@ -46,7 +46,7 @@ UI-acceptance documentation, and explicit backend handoff boundaries.
   web build as an integration-test pass. Flutter integration tests do not run
   on the available web targets, and Windows desktop support is not configured.
 - Preserved the unrelated pre-existing untracked
-  `docs/recycle_bin_multi_model_orchestrator_plan.md` file.
+  `docs/archive/recycle_bin_multi_model_orchestrator_plan.md` file.
 - The Phase 10 acceptance documents refer to the existing shared Firebase
   project without inventing a project ID or activating Firebase SDKs.
 

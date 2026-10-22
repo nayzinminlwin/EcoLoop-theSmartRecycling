@@ -46,7 +46,7 @@ router composition.
   - `assets/fonts/Inter-ExtraBold.ttf`
   - `assets/fonts/OFL.txt`
   - `assets/icons/*.svg`
-  - `docs/FLUTTER_UI_EXECUTION_LOG.md`
+  - `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
   - `docs/dev_logs/2026-10-15_App_Phase1BootstrapAndAppTheme.md`
 - **Files Modified:**
   - `lib/main.dart`
@@ -67,7 +67,7 @@ router composition.
   resident feature screens are introduced in later phases.
 - Bundled Inter locally under its SIL Open Font License to keep startup
   offline.
-- Preserved the plan-required `docs/FLUTTER_UI_EXECUTION_LOG.md` as the
+- Preserved the plan-required `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` as the
   implementation handoff, while this file is the development log required by
   `.agent/developer/agent.md` and its template.
 - No deviation from the Phase 1 architecture or mock-only Firebase boundary.

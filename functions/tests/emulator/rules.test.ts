@@ -48,13 +48,25 @@ beforeAll(async () => {
       displayName: 'Other',
       pointsBalance: 10,
     });
-    await firestore.doc('batches/batch-owner').set({
+    await firestore.doc('deposits/batch-owner').set({
       ownerId,
       status: 'verified',
+    });
+    await firestore.doc('vouchers/voucher-owner').set({
+      residentId: ownerId,
+      title: 'Owner voucher',
+    });
+    await firestore.doc('vouchers/voucher-other').set({
+      residentId: otherResidentId,
+      title: 'Other voucher',
     });
     await firestore.doc('bins/bin-1').set({
       enabled: true,
       capacitySpc: 2000,
+    });
+    await firestore.doc('scanContent/default').set({
+      id: 'default',
+      scannerTitle: 'Scan a smart bin',
     });
     await context
       .storage()
@@ -70,17 +82,29 @@ afterAll(async () => {
 describe('Firestore access boundaries', () => {
   it('allows an owner to read their profile and receipt data', async () => {
     await assertSucceeds(ownerFirestore.doc(`residents/${ownerId}`).get());
-    await assertSucceeds(ownerFirestore.doc('batches/batch-owner').get());
+    await assertSucceeds(ownerFirestore.doc('deposits/batch-owner').get());
+  });
+
+  it('restricts private voucher queries to the authenticated resident', async () => {
+    await assertSucceeds(
+      ownerFirestore.collection('vouchers').where('residentId', '==', ownerId).get(),
+    );
+    await assertFails(
+      ownerFirestore.collection('vouchers').where('residentId', '==', otherResidentId).get(),
+    );
+    await assertFails(otherFirestore.doc('vouchers/voucher-owner').get());
   });
 
   it('denies signed-out and cross-resident private reads', async () => {
     await assertFails(unauthenticatedFirestore.doc('bins/bin-1').get());
     await assertFails(otherFirestore.doc(`residents/${ownerId}`).get());
-    await assertFails(otherFirestore.doc('batches/batch-owner').get());
+    await assertFails(otherFirestore.doc('deposits/batch-owner').get());
   });
 
   it('allows authenticated catalog reads but denies forged direct mutations', async () => {
     await assertSucceeds(ownerFirestore.doc('bins/bin-1').get());
+    await assertSucceeds(ownerFirestore.doc('scanContent/default').get());
+    await assertFails(unauthenticatedFirestore.doc('scanContent/default').get());
     await assertFails(
       ownerFirestore.doc(`residents/${ownerId}`).set({
         displayName: 'Forged',
@@ -88,7 +112,7 @@ describe('Firestore access boundaries', () => {
       }),
     );
     await assertFails(
-      ownerFirestore.doc('batches/batch-owner').set({
+      ownerFirestore.doc('deposits/batch-owner').set({
         ownerId,
         status: 'verified',
         pointsAwarded: 999999,

@@ -126,6 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Expanded(
                 child: AppButton(
                   label: 'Save',
+                  pendingLabel: 'Saving changes...',
                   onPressed: () => _save(profile.avatarUrl),
                   isLoading: saving,
                 ),
@@ -200,7 +201,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _leaveToSettings() async {
-    if (await _confirmDiscard() && mounted) context.go(AppRoutes.settings);
+    if (await _confirmDiscard() && mounted) {
+      if (GoRouter.of(context).canPop()) {
+        context.pop();
+      } else {
+        context.go(AppRoutes.settings);
+      }
+    }
   }
 }
 

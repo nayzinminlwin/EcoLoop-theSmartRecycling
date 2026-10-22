@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eco_loop/core/data/json_readers.dart';
+import 'package:eco_loop/core/domain/material_type.dart';
 
 import '../domain/models/material_rate.dart';
 import '../domain/models/recycling_guide.dart';
@@ -58,16 +61,36 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
   }
 
   @override
-  Stream<RecyclingGuide> watchGuide() async* {
-    final pointer = await _required('policyPointers', 'active');
-    final policyId = JsonReaders.string(pointer, 'policyId');
-    final content = await _required('guideContent', policyId);
-    final materials = await _readList('guideMaterials', policyId);
-    final steps = await _readList('guideSteps', policyId);
-    await for (final policy in _reads.watch('policies', policyId)) {
-      yield _compose(policyId, policy, content, materials, steps);
+  Stream<RecyclingGuide> watchGuide() => Stream.multi((controller) {
+    StreamSubscription<Map<String, Object?>>? pointerSubscription;
+    StreamSubscription<Map<String, Object?>>? policySubscription;
+    var generation = 0;
+
+    Future<void> subscribeToPolicy(String policyId) async {
+      final currentGeneration = ++generation;
+      final content = await _required('guideContent', policyId);
+      final materials = await _readList('guideMaterials', policyId);
+      final steps = await _readList('guideSteps', policyId);
+      await policySubscription?.cancel();
+      if (controller.isClosed || currentGeneration != generation) return;
+      policySubscription = _reads.watch('policies', policyId).listen((policy) {
+        if (!controller.isClosed && currentGeneration == generation) {
+          controller.add(_compose(policyId, policy, content, materials, steps));
+        }
+      }, onError: controller.addError);
     }
-  }
+
+    pointerSubscription = _reads.watch('policyPointers', 'active').listen((
+      pointer,
+    ) {
+      final policyId = JsonReaders.string(pointer, 'policyId');
+      subscribeToPolicy(policyId).catchError(controller.addError);
+    }, onError: controller.addError);
+    controller.onCancel = () async {
+      await pointerSubscription?.cancel();
+      await policySubscription?.cancel();
+    };
+  });
 
   Future<Map<String, Object?>> _required(String collection, String id) async {
     final value = await _reads.read(collection, id);
@@ -95,33 +118,17 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
     List<Map<String, Object?>> materials,
     List<Map<String, Object?>> steps,
   ) {
-    final accepted =
-        (policy['acceptedClasses'] as List?)?.whereType<String>().toSet() ??
-        const <String>{};
-    final rates =
-        (policy['rates'] as List?)
-            ?.map((item) => Map<String, Object?>.from(item as Map))
-            .map(
-              (item) => MaterialRate(
-                materialType: MaterialRate.fromJson(item).materialType,
-                displayName: JsonReaders.string(item, 'displayName'),
-                pointsPerItem: JsonReaders.integer(item, 'pointsPerItem'),
-                eligible: accepted.contains(JsonReaders.string(item, 'class')),
-              ),
-            )
-            .toList(growable: false) ??
-        const <MaterialRate>[];
+    final policyData = _policyData(policy);
+    final accepted = policyData.acceptedClasses;
+    final rates = policyData.rates;
     final guideContent = RecyclingGuideContent.fromJson(content);
-    final parsedMaterials = materials
-        .map(RecyclingMaterial.fromJson)
-        .where(
-          (material) =>
-              accepted.contains('${material.type.wireValue}_bottle') ||
-              accepted.contains('${material.type.wireValue}_can') ||
-              accepted.contains('${material.type.wireValue}_item') ||
-              accepted.contains(material.type.wireValue),
-        )
-        .toList(growable: false);
+    final parsedMaterials =
+        materials
+            .map(RecyclingMaterial.fromJson)
+            .where((material) => _isAcceptedMaterial(material, accepted))
+            .toList()
+          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    final displayMaterials = _combinePaperMaterials(parsedMaterials);
     return RecyclingGuide.compose(
       content: RecyclingGuideContent(
         heroTitle: guideContent.heroTitle,
@@ -132,9 +139,151 @@ class FirebaseRecyclingGuideRepository implements RecyclingGuideRepository {
         rateExamples: guideContent.rateExamples,
         id: policyId,
       ),
-      materials: parsedMaterials,
+      materials: displayMaterials,
       steps: steps.map(RecyclingStep.fromJson).toList(growable: false),
       rates: rates,
     );
   }
+
+  _PolicyData _policyData(Map<String, Object?> policy) {
+    final hasCategoryContract =
+        policy.containsKey('acceptedObjectClasses') ||
+        policy.containsKey('rewardCategoryByClass') ||
+        policy.containsKey('pointsPerItemByCategory');
+    if (hasCategoryContract) {
+      final acceptedClasses = _stringSet(policy, 'acceptedObjectClasses');
+      final categoryByClass = JsonReaders.map(
+        policy['rewardCategoryByClass'],
+        'rewardCategoryByClass',
+      );
+      final pointsByCategory = JsonReaders.map(
+        policy['pointsPerItemByCategory'],
+        'pointsPerItemByCategory',
+      );
+      final categories = <String>[];
+      for (final canonicalClass in acceptedClasses) {
+        final category = categoryByClass[canonicalClass];
+        if (category is String &&
+            category.isNotEmpty &&
+            !categories.contains(category)) {
+          categories.add(category);
+        }
+      }
+      categories.sort((left, right) {
+        final leftIndex = _categoryOrder.indexOf(left);
+        final rightIndex = _categoryOrder.indexOf(right);
+        if (leftIndex == -1 && rightIndex == -1) return left.compareTo(right);
+        if (leftIndex == -1) return 1;
+        if (rightIndex == -1) return -1;
+        return leftIndex.compareTo(rightIndex);
+      });
+      final rates = categories
+          .map((category) {
+            final points = pointsByCategory[category];
+            if (points is! num ||
+                points != points.roundToDouble() ||
+                points < 0) {
+              throw JsonReaders.invalid('pointsPerItemByCategory.$category');
+            }
+            return MaterialRate(
+              materialType: MaterialType.fromWire(category),
+              displayName: _displayName(category),
+              pointsPerItem: points.toInt(),
+              eligible: true,
+            );
+          })
+          .where((rate) => rate.materialType != MaterialType.unknown)
+          .toList(growable: false);
+      return _PolicyData(acceptedClasses: acceptedClasses, rates: rates);
+    }
+
+    final accepted = _stringSet(policy, 'acceptedClasses');
+    final rates =
+        (policy['rates'] as List?)
+            ?.map((item) => JsonReaders.map(item, 'rates'))
+            .map(
+              (item) => MaterialRate(
+                materialType: MaterialRate.fromJson(item).materialType,
+                displayName: JsonReaders.string(item, 'displayName'),
+                pointsPerItem: JsonReaders.integer(item, 'pointsPerItem'),
+                eligible: accepted.contains(JsonReaders.string(item, 'class')),
+              ),
+            )
+            .toList(growable: false) ??
+        const <MaterialRate>[];
+    return _PolicyData(acceptedClasses: accepted, rates: rates);
+  }
+
+  Set<String> _stringSet(Map<String, Object?> json, String field) {
+    final value = json[field];
+    if (value is List && value.every((item) => item is String)) {
+      return value.cast<String>().toSet();
+    }
+    throw JsonReaders.invalid(field);
+  }
+
+  bool _isAcceptedMaterial(
+    RecyclingMaterial material,
+    Set<String> acceptedClasses,
+  ) {
+    final canonicalClass = material.canonicalClass;
+    if (canonicalClass != null) return acceptedClasses.contains(canonicalClass);
+    final candidates = switch (material.type) {
+      MaterialType.plastic => const ['plastic_bottle'],
+      MaterialType.aluminium => const ['aluminium_can'],
+      MaterialType.glass => const ['glass_bottle'],
+      MaterialType.paper => const ['paper_item', 'paper_bag'],
+      MaterialType.unknown => const <String>[],
+    };
+    return candidates.any(acceptedClasses.contains);
+  }
+
+  List<RecyclingMaterial> _combinePaperMaterials(
+    List<RecyclingMaterial> materials,
+  ) {
+    final paperMaterials = materials
+        .where(
+          (material) =>
+              material.canonicalClass == 'paper_item' ||
+              material.canonicalClass == 'paper_bag' ||
+              material.id == 'paper-items' ||
+              material.id == 'paper-bags',
+        )
+        .toList();
+    if (paperMaterials.length < 2) return List.unmodifiable(materials);
+
+    final firstPaperIndex = materials.indexOf(paperMaterials.first);
+    final combinedTip = paperMaterials
+        .map((material) => material.preparationTip)
+        .toSet()
+        .join(' ');
+    final combined = RecyclingMaterial(
+      id: 'paper-items-and-bags',
+      type: MaterialType.paper,
+      title: 'Paper items & bags',
+      preparationTip: combinedTip,
+      iconKey: paperMaterials.first.iconKey,
+      sortOrder: paperMaterials.first.sortOrder,
+    );
+    final displayMaterials = [
+      for (var index = 0; index < materials.length; index++) ...[
+        if (index == firstPaperIndex) combined,
+        if (!paperMaterials.contains(materials[index])) materials[index],
+      ],
+    ];
+    return List.unmodifiable(displayMaterials);
+  }
+
+  String _displayName(String category) => category.isEmpty
+      ? category
+      : '${category[0].toUpperCase()}${category.substring(1)}';
+
+  static const _categoryOrder = ['plastic', 'aluminium', 'paper', 'glass'];
+}
+
+class _PolicyData {
+  const _PolicyData({required this.acceptedClasses, required this.rates});
+
+  final Set<String> acceptedClasses;
+  final List<MaterialRate> rates;
 }
