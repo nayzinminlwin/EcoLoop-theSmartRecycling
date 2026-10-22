@@ -175,12 +175,9 @@ export function OverviewPage(): React.ReactElement {
   ];
 
   // Arrange weekly activity starting with Monday through Sunday (Mon -> Sun)
-  const sortedActivity = React.useMemo(() => {
-    if (!summary?.activity) return [];
-    return [...summary.activity].sort((a, b) => {
-      return getMondayToSundayIndex(a.date) - getMondayToSundayIndex(b.date);
-    });
-  }, [summary?.activity]);
+  const sortedActivity = [...summary.activity].sort((a, b) => {
+    return getMondayToSundayIndex(a.date) - getMondayToSundayIndex(b.date);
+  });
 
   // Bar chart scale calculation
   const maxActivity = Math.max(
