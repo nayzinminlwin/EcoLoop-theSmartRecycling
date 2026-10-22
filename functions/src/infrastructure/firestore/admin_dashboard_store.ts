@@ -34,6 +34,7 @@ export interface AdminAttentionBinRecord {
   readonly locationName: string;
   readonly fillPercent: number;
   readonly collectionState: "normal" | "warning" | "critical" | "collection_pending";
+  readonly isOnline?: boolean;
 }
 
 export interface AdminDashboardViewRecord {
@@ -148,6 +149,7 @@ export class FirestoreAdminDashboardStore {
       locationName: c.locationName,
       fillPercent: c.fillPercent,
       collectionState: c.collectionState,
+      isOnline: c.enabled !== false && c.logicalOnline !== false,
     }));
 
     // 3. Review Tickets
@@ -161,8 +163,21 @@ export class FirestoreAdminDashboardStore {
       }
     });
 
-    // 4. Batches & Material Lines
-    const batchesSnap = await this.firestore.collection("batches").get();
+    // 4. Batches / Deposits & Material Lines
+    const depositDocsMap = new Map<string, Record<string, unknown>>();
+    const depositsSnap = await this.firestore.collection("deposits").get();
+    depositsSnap.forEach((doc) => {
+      depositDocsMap.set(doc.id, doc.data());
+    });
+    if (depositDocsMap.size === 0) {
+      const batchesSnap = await this.firestore.collection("batches").get();
+      batchesSnap.forEach((doc) => {
+        if (!depositDocsMap.has(doc.id)) {
+          depositDocsMap.set(doc.id, doc.data());
+        }
+      });
+    }
+
     let totalVerifiedDeposits = 0;
     let verifiedDepositsToday = 0;
     let totalPointsIssued = 0;
@@ -181,13 +196,15 @@ export class FirestoreAdminDashboardStore {
       unknown: 0,
     };
 
-    batchesSnap.forEach((doc) => {
-      const batch = doc.data();
+    depositDocsMap.forEach((batch) => {
       const status = String(batch.status ?? "");
       // Verified or settled batches are considered finalized deposits
       if (status !== "verified" && status !== "settled") return;
 
-      const points = Number(batch.pointsAwarded ?? 0);
+      let points = Number(batch.pointsAwarded ?? 0);
+      if (!points && Array.isArray(batch.lines)) {
+        points = batch.lines.reduce((acc: number, l: Record<string, unknown>) => acc + Number(l.points ?? 0), 0);
+      }
       const occurredAt = String(batch.occurredAt ?? batch.settledAt ?? batch.createdAt ?? new Date(nowMs).toISOString());
       const batchDate = getMalaysiaDate(occurredAt);
 

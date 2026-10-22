@@ -75,10 +75,21 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       const windowDates = getSevenDayMalaysiaWindow(nowMs);
 
       // 1. Registered Bins & Attention Bins
-      let binsDocs = (await getDocs(collection(this.firestore, "adminBinViews"))).docs;
-      if (binsDocs.length === 0) {
-        binsDocs = (await getDocs(collection(this.firestore, "bins"))).docs;
-      }
+      const binMap = new Map<string, Record<string, unknown>>();
+      try {
+        const binsSnap = await getDocs(collection(this.firestore, "bins"));
+        for (const d of binsSnap.docs) {
+          binMap.set(d.id, { id: d.id, ...d.data() });
+        }
+      } catch {}
+      try {
+        const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
+        for (const d of viewsSnap.docs) {
+          const existing = binMap.get(d.id) ?? { id: d.id };
+          binMap.set(d.id, { ...existing, ...d.data() });
+        }
+      } catch {}
+      const allBins = Array.from(binMap.values());
 
       const attentionBins: Array<{
         binId: string;
@@ -88,8 +99,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         isOnline?: boolean;
       }> = [];
 
-      for (const d of binsDocs) {
-        const b = d.data();
+      for (const b of allBins) {
         const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
         const isEnabled = b.enabled !== false;
         const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
@@ -99,7 +109,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
 
         if (fill >= 75 || colState === "critical" || colState === "warning" || !isOnline) {
           attentionBins.push({
-            binId: String(b.binId ?? b.id ?? d.id),
+            binId: String(b.binId ?? b.id),
             locationName: String(b.locationName ?? "Unknown Location"),
             fillPercent: fill,
             collectionState: colState,
@@ -110,27 +120,53 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       attentionBins.sort((a, b) => b.fillPercent - a.fillPercent);
 
       // 2. Alerts
-      let alertsDocs = (await getDocs(collection(this.firestore, "adminAlertViews"))).docs;
-      if (alertsDocs.length === 0) {
-        alertsDocs = (await getDocs(collection(this.firestore, "capacityAlerts"))).docs;
-      }
-      const activeAlerts = alertsDocs.filter((d) => {
-        const state = d.data().state;
+      const alertMap = new Map<string, Record<string, unknown>>();
+      try {
+        const capSnap = await getDocs(collection(this.firestore, "capacityAlerts"));
+        for (const d of capSnap.docs) {
+          alertMap.set(d.id, { id: d.id, ...d.data() });
+        }
+      } catch {}
+      try {
+        const viewsSnap = await getDocs(collection(this.firestore, "adminAlertViews"));
+        for (const d of viewsSnap.docs) {
+          if (!alertMap.has(d.id)) {
+            alertMap.set(d.id, { id: d.id, ...d.data() });
+          }
+        }
+      } catch {}
+      const activeAlerts = Array.from(alertMap.values()).filter((a) => {
+        const state = a.state;
         return state !== "resolved" && state !== "closed";
       }).length;
 
       // 3. Review Tickets
-      const ticketsDocs = (await getDocs(collection(this.firestore, "reviewTickets"))).docs;
-      const pendingReviews = ticketsDocs.filter((d) => {
-        const state = d.data().state ?? d.data().status;
-        return state === "open" || state === "awaiting_review" || state === "awaitingReview";
-      }).length;
+      let pendingReviews = 0;
+      try {
+        const ticketsDocs = (await getDocs(collection(this.firestore, "reviewTickets"))).docs;
+        pendingReviews = ticketsDocs.filter((d) => {
+          const state = d.data().state ?? d.data().status;
+          return state === "open" || state === "awaiting_review" || state === "awaitingReview";
+        }).length;
+      } catch {}
 
       // 4. Deposits
-      let depDocs = (await getDocs(collection(this.firestore, "deposits"))).docs;
-      if (depDocs.length === 0) {
-        depDocs = (await getDocs(collection(this.firestore, "batches"))).docs;
-      }
+      const depMap = new Map<string, Record<string, unknown>>();
+      try {
+        const depSnap = await getDocs(collection(this.firestore, "deposits"));
+        for (const d of depSnap.docs) {
+          depMap.set(d.id, { id: d.id, ...d.data() });
+        }
+      } catch {}
+      try {
+        const batchSnap = await getDocs(collection(this.firestore, "batches"));
+        for (const d of batchSnap.docs) {
+          if (!depMap.has(d.id)) {
+            depMap.set(d.id, { id: d.id, ...d.data() });
+          }
+        }
+      } catch {}
+      const depDocs = Array.from(depMap.values());
 
       let totalVerifiedDeposits = 0;
       let verifiedDepositsToday = 0;
@@ -159,7 +195,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       };
 
       for (const d of depDocs) {
-        const dep = d.data();
+        const dep = d;
         const isVerified = dep.status === "verified" || dep.status === "settled";
 
         let points = Number(dep.pointsAwarded ?? 0);
@@ -248,7 +284,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       });
 
       const dashboardRecord = {
-        registeredBins: binsDocs.length,
+        registeredBins: allBins.length,
         activeAlerts,
         pendingReviews,
         verifiedDepositsToday,
@@ -279,18 +315,28 @@ export class FirebaseDashboardRepository implements DashboardRepository {
   private async enrichWithLiveFleetData(summary: DashboardSummary): Promise<void> {
     if (!this.firestore || typeof this.firestore.type !== "string") return;
     try {
-      let binsDocs = (await getDocs(collection(this.firestore, "adminBinViews"))).docs;
-      if (binsDocs.length === 0) {
-        binsDocs = (await getDocs(collection(this.firestore, "bins"))).docs;
-      }
-      if (binsDocs.length === 0) return;
+      const binMap = new Map<string, Record<string, unknown>>();
+      try {
+        const binsSnap = await getDocs(collection(this.firestore, "bins"));
+        for (const d of binsSnap.docs) {
+          binMap.set(d.id, { id: d.id, ...d.data() });
+        }
+      } catch {}
+      try {
+        const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
+        for (const d of viewsSnap.docs) {
+          const existing = binMap.get(d.id) ?? { id: d.id };
+          binMap.set(d.id, { ...existing, ...d.data() });
+        }
+      } catch {}
+      const allBins = Array.from(binMap.values());
+      if (allBins.length === 0) return;
 
       const attentionBins: SmartBinRow[] = [];
       let alertCount = 0;
 
-      for (const d of binsDocs) {
-        const b = d.data();
-        const binId = String(b.binId ?? b.id ?? d.id);
+      for (const b of allBins) {
+        const binId = String(b.binId ?? b.id);
         const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
         const isEnabled = b.enabled !== false;
         const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
@@ -351,7 +397,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       });
 
       summary.attentionBins = attentionBins;
-      summary.registeredBins = binsDocs.length;
+      summary.registeredBins = allBins.length;
       if (alertCount > 0) {
         summary.activeAlerts = Math.max(summary.activeAlerts, alertCount);
       }
@@ -489,6 +535,42 @@ export class FirebaseDashboardRepository implements DashboardRepository {
           unsubs.push(
             onSnapshot(
               binsCol,
+              () => {
+                if (isSubscribed) load();
+              },
+              () => {
+                // Silently maintain current data
+              }
+            )
+          );
+        } catch {
+          // Non-blocking
+        }
+
+        // Realtime listener on deposits to reflect verified transactions and points
+        try {
+          const depCol = collection(this.firestore, "deposits");
+          unsubs.push(
+            onSnapshot(
+              depCol,
+              () => {
+                if (isSubscribed) load();
+              },
+              () => {
+                // Silently maintain current data
+              }
+            )
+          );
+        } catch {
+          // Non-blocking
+        }
+
+        // Realtime listener on capacityAlerts to reflect fleet alert state changes
+        try {
+          const alertsCol = collection(this.firestore, "capacityAlerts");
+          unsubs.push(
+            onSnapshot(
+              alertsCol,
               () => {
                 if (isSubscribed) load();
               },
