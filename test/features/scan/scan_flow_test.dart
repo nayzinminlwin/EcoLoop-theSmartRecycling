@@ -101,8 +101,12 @@ void main() {
       expect(find.textContaining('Complete verification'), findsNothing);
 
       // Processing completes by itself → result (V08)
-      await tester.pump(const Duration(seconds: 5));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 8));
+      expect(store.sessions.single['stage'], 'completed');
+      router.go(
+        AppRoutes.scanResultPath(store.sessions.single['id'].toString()),
+      );
+      await settle(tester);
       expect(find.text('Verified'), findsOneWidget);
       expect(find.text('Deposit verified'), findsWidgets);
       expect(find.text('2 pcs'), findsOneWidget);
@@ -158,6 +162,7 @@ void main() {
 
       // Leaving during processing never asks to cancel and keeps the session
       // available to resume from Scan.
+      await tester.ensureVisible(find.text('Continue using EcoLoop'));
       await tester.tap(find.text('Continue using EcoLoop'));
       await settle(tester);
       expect(find.text('Continue session'), findsNothing);
@@ -165,9 +170,13 @@ void main() {
 
       // The completion still finishes; Scan resumes the committed result
       // without replaying credit.
-      await tester.pump(const Duration(seconds: 5));
-      await settle(tester);
+      await tester.pump(const Duration(seconds: 8));
+      expect(store.sessions.single['stage'], 'completed');
       await tester.tap(find.text('Scan'));
+      await settle(tester);
+      router.go(
+        AppRoutes.scanResultPath(store.sessions.single['id'].toString()),
+      );
       await settle(tester);
       expect(find.text('Back to home'), findsOneWidget);
       final wallet = store.wallet['wallet'] as Map;

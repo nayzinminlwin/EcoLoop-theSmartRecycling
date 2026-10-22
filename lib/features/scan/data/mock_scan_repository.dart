@@ -478,10 +478,14 @@ class MockScanRepository implements ScanRepository {
   }
 
   @override
-  Stream<DepositSession?> watchSession(String sessionId) async* {
-    yield _sessionById(sessionId);
-    yield* _stream(sessionId).map((_) => _sessionById(sessionId));
-  }
+  Stream<DepositSession?> watchSession(String sessionId) =>
+      Stream.multi((controller) {
+        controller.add(_sessionById(sessionId));
+        final subscription = _store.watchRevision().listen((_) {
+          controller.add(_sessionById(sessionId));
+        });
+        controller.onCancel = subscription.cancel;
+      });
 
   @override
   Future<DepositSession?> getResidentWork() async {
@@ -500,10 +504,14 @@ class MockScanRepository implements ScanRepository {
   }
 
   @override
-  Stream<DepositResult?> watchResult(String resultId) async* {
-    yield _resultById(resultId);
-    yield* _stream(resultId).map((_) => _resultById(resultId));
-  }
+  Stream<DepositResult?> watchResult(String resultId) =>
+      Stream.multi((controller) {
+        controller.add(_resultById(resultId));
+        final subscription = _store.watchRevision().listen((_) {
+          controller.add(_resultById(resultId));
+        });
+        controller.onCancel = subscription.cancel;
+      });
 
   @override
   ScanStage? peekSessionStage(String sessionId) =>
