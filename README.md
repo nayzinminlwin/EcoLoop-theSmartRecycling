@@ -10,14 +10,15 @@ The broader project vision includes a standalone admin dashboard for managing sm
 
 ## 📋 Table of Contents
 
-- [Project Overview](#-project-overview)
-- [Current Development Status](#-current-development-status)
-- [Resident Application Features](#-resident-application-features)
-- [Admin Dashboard Roadmap](#-admin-dashboard-roadmap)
-- [Technology Stack](#-technology-stack)
-- [Getting Started](#-getting-started)
-- [Mock Scenarios](#-mock-scenarios)
-- [Testing and Verification](#-testing-and-verification)
+- [Project Overview](#project-overview)
+- [Current Development Status](#current-development-status)
+- [Resident Application Features](#resident-application-features)
+  - [Admin Dashboard Roadmap](#admin-dashboard-roadmap)
+- [Technology Stack](#technology-stack)
+- [Getting Started](#getting-started)
+- [Mock Scenarios](#mock-scenarios)
+- [Testing and Verification](#testing-and-verification)
+- [Project Vision](#project-vision)
 
 ## 🌍 Project Overview
 
