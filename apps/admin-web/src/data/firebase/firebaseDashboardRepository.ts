@@ -19,7 +19,7 @@ import type {
   Observer,
   Unsubscribe,
 } from "../repositories.ts";
-import type { DashboardSummary } from "../../contracts/admin.ts";
+import type { DashboardSummary, SmartBinRow } from "../../contracts/admin.ts";
 import {
   decodeAdminDashboardView,
   adminDashboardViewToSummary,
@@ -89,13 +89,14 @@ export class FirebaseDashboardRepository implements DashboardRepository {
 
       for (const d of binsDocs) {
         const b = d.data();
-        const fill = Number(b.fillPercent ?? 0);
+        const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
+        const isOnline = b.logicalOnline !== false && b.enabled !== false && b.isOnline !== false;
         const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
           (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
 
-        if (fill >= 75 || colState === "critical" || colState === "warning") {
+        if (fill >= 75 || colState === "critical" || colState === "warning" || !isOnline) {
           attentionBins.push({
-            binId: String(b.binId ?? d.id),
+            binId: String(b.binId ?? b.id ?? d.id),
             locationName: String(b.locationName ?? "Unknown Location"),
             fillPercent: fill,
             collectionState: colState,
@@ -271,6 +272,74 @@ export class FirebaseDashboardRepository implements DashboardRepository {
     }
   }
 
+  private async enrichWithLiveFleetData(summary: DashboardSummary): Promise<void> {
+    if (!this.firestore || typeof this.firestore.type !== "string") return;
+    try {
+      let binsDocs = (await getDocs(collection(this.firestore, "adminBinViews"))).docs;
+      if (binsDocs.length === 0) {
+        binsDocs = (await getDocs(collection(this.firestore, "bins"))).docs;
+      }
+      if (binsDocs.length === 0) return;
+
+      const attentionBins: SmartBinRow[] = [];
+      let alertCount = 0;
+
+      for (const d of binsDocs) {
+        const b = d.data();
+        const binId = String(b.binId ?? b.id ?? d.id);
+        const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
+        const isOnline = b.logicalOnline !== false && b.enabled !== false && b.isOnline !== false;
+        const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
+          (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
+
+        if (fill >= 85 || colState === "critical") {
+          alertCount++;
+        }
+
+        const needsAttention = fill >= 75 || colState === "critical" || colState === "warning" || !isOnline;
+        if (needsAttention) {
+          const band = fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal";
+          attentionBins.push({
+            bin: {
+              id: binId,
+              locationName: String(b.locationName ?? "Unknown Location"),
+              locationDetail: String(b.locationDetail ?? "Smart Recycling Chamber"),
+              capacityPercent: fill,
+              acceptedMaterials: ["plastic", "aluminium", "paper", "glass"],
+              isOnline,
+              lastUpdatedAt: typeof b.updatedAt === "string" ? b.updatedAt : new Date().toISOString(),
+            },
+            operations: {
+              binId,
+              collectionStatus: colState === "critical" || colState === "collection_pending"
+                ? "pending"
+                : band === "warning"
+                ? "scheduled"
+                : "notScheduled",
+            },
+          });
+        }
+      }
+
+      attentionBins.sort((a, b) => {
+        const aCrit = a.bin.capacityPercent >= 85 || a.operations.collectionStatus === "pending";
+        const bCrit = b.bin.capacityPercent >= 85 || b.operations.collectionStatus === "pending";
+        if (aCrit !== bCrit) return aCrit ? -1 : 1;
+        const fillDiff = b.bin.capacityPercent - a.bin.capacityPercent;
+        if (fillDiff !== 0) return fillDiff;
+        return a.bin.id.localeCompare(b.bin.id);
+      });
+
+      summary.attentionBins = attentionBins;
+      summary.registeredBins = binsDocs.length;
+      if (alertCount > 0) {
+        summary.activeAlerts = Math.max(summary.activeAlerts, alertCount);
+      }
+    } catch {
+      // Non-blocking
+    }
+  }
+
   async getSummary(): Promise<DashboardSummary> {
     try {
       const callable = httpsCallable<Record<string, unknown>, unknown>(
@@ -279,25 +348,29 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       );
       const res = await callable({});
       const decoded = decodeAdminDashboardView(res.data);
-      return adminDashboardViewToSummary(decoded);
+      const summary = adminDashboardViewToSummary(decoded);
+      await this.enrichWithLiveFleetData(summary);
+      return summary;
     } catch {
-      // 1. Direct Firestore read on adminDashboardViews/summary
+      // 1. Direct dynamic computation from live collections first
+      const computed = await this.computeSummaryFromFirestore();
+      if (computed) {
+        return computed;
+      }
+
+      // 2. Direct Firestore read on adminDashboardViews/summary
       try {
         if (this.firestore && typeof this.firestore.type === "string") {
           const snap = await getDoc(doc(this.firestore, "adminDashboardViews", "summary"));
           if (snap.exists()) {
             const decoded = decodeAdminDashboardView(snap.data());
-            return adminDashboardViewToSummary(decoded);
+            const summary = adminDashboardViewToSummary(decoded);
+            await this.enrichWithLiveFleetData(summary);
+            return summary;
           }
         }
       } catch {
         // Fall through
-      }
-
-      // 2. Direct dynamic computation from live collections
-      const computed = await this.computeSummaryFromFirestore();
-      if (computed) {
-        return computed;
       }
 
       // 3. Fallback repository
@@ -378,6 +451,24 @@ export class FirebaseDashboardRepository implements DashboardRepository {
           unsubs.push(
             onSnapshot(
               binViewsCol,
+              () => {
+                if (isSubscribed) load();
+              },
+              () => {
+                // Silently maintain current data
+              }
+            )
+          );
+        } catch {
+          // Non-blocking
+        }
+
+        // Realtime listener on bins to reflect raw bin collection updates
+        try {
+          const binsCol = collection(this.firestore, "bins");
+          unsubs.push(
+            onSnapshot(
+              binsCol,
               () => {
                 if (isSubscribed) load();
               },
