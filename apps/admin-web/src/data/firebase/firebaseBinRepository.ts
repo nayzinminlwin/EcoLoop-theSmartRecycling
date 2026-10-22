@@ -11,8 +11,10 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
+  where,
   type Firestore,
 } from "firebase/firestore";
 import QRCode from "qrcode";
@@ -608,6 +610,102 @@ export class FirebaseBinRepository implements BinsRepository {
             { merge: true }
           );
 
+          const colStateRef = doc(this.firestore, `binCollectionState/${id}`);
+          await setDoc(
+            colStateRef,
+            {
+              binId: id,
+              activeAlertId: alertId,
+              status: "pending",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          const alertVerRef = doc(this.firestore, "adminReadVersions/alerts");
+          await setDoc(alertVerRef, {
+            topic: "alerts",
+            version: Date.now(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch {}
+    } else {
+      // If lowered below threshold (< 85%), automatically resolve active alerts for this bin
+      try {
+        let hasResolvedAlert = false;
+        const alertId = `alert-${id}`;
+        const alertRef = doc(this.firestore, `adminAlertViews/${alertId}`);
+        const alertSnap = await getDoc(alertRef);
+        if (alertSnap.exists() && alertSnap.data()?.state !== "resolved") {
+          await setDoc(
+            alertRef,
+            {
+              state: "resolved",
+              currentFillPercent: fillPercent,
+              resolvedAt: serverTimestamp(),
+              resolvedBy: "admin (capacity reset)",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+          hasResolvedAlert = true;
+        }
+
+        const capAlertRef = doc(this.firestore, `capacityAlerts/${alertId}`);
+        const capSnap = await getDoc(capAlertRef);
+        if (capSnap.exists() && capSnap.data()?.state !== "resolved") {
+          await setDoc(
+            capAlertRef,
+            {
+              state: "resolved",
+              currentFillPercent: fillPercent,
+              resolvedAt: serverTimestamp(),
+              resolvedBy: "admin (capacity reset)",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+          hasResolvedAlert = true;
+        }
+
+        // Query any other active capacityAlerts for this bin
+        try {
+          const capColl = collection(this.firestore, "capacityAlerts");
+          const qSnap = await getDocs(query(capColl, where("binId", "==", id)));
+          for (const docSnap of qSnap.docs) {
+            const data = docSnap.data();
+            if (data.state !== "resolved") {
+              await setDoc(
+                docSnap.ref,
+                {
+                  state: "resolved",
+                  currentFillPercent: fillPercent,
+                  resolvedAt: serverTimestamp(),
+                  resolvedBy: "admin (capacity reset)",
+                  updatedAt: serverTimestamp(),
+                },
+                { merge: true }
+              );
+              hasResolvedAlert = true;
+            }
+          }
+        } catch {}
+
+        // Restore operational collection status
+        const colStateRef = doc(this.firestore, `binCollectionState/${id}`);
+        await setDoc(
+          colStateRef,
+          {
+            binId: id,
+            activeAlertId: null,
+            status: "normal",
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        if (hasResolvedAlert) {
           const alertVerRef = doc(this.firestore, "adminReadVersions/alerts");
           await setDoc(alertVerRef, {
             topic: "alerts",

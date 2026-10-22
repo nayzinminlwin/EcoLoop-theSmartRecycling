@@ -462,6 +462,18 @@ export function createMockRepositories(options?: {
           state.binOperations.push({ binId: bin.id, collectionStatus: "pending" });
         }
       }
+    } else {
+      // Lower than threshold: resolve any active alerts for this bin
+      for (const alert of state.alerts) {
+        if (alert.binId === bin.id && alert.status === "active") {
+          alert.status = "resolved";
+          alert.resolvedAt = MOCK_NOW;
+        }
+      }
+      const ops = state.binOperations.find((o) => o.binId === bin.id);
+      if (ops && (ops.collectionStatus === "pending" || ops.collectionStatus === "scheduled")) {
+        ops.collectionStatus = "notScheduled";
+      }
     }
   }
 
