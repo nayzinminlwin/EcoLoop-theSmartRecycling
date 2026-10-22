@@ -85,20 +85,25 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         locationName: string;
         fillPercent: number;
         collectionState: "normal" | "warning" | "critical" | "collection_pending";
+        isOnline?: boolean;
       }> = [];
 
       for (const d of binsDocs) {
         const b = d.data();
         const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
+        const isEnabled = b.enabled !== false;
+        const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
+        const isOnline = isEnabled && isLogicalOnline;
         const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
           (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
 
-        if (fill >= 75 || colState === "critical" || colState === "warning") {
+        if (fill >= 75 || colState === "critical" || colState === "warning" || !isOnline) {
           attentionBins.push({
             binId: String(b.binId ?? b.id ?? d.id),
             locationName: String(b.locationName ?? "Unknown Location"),
             fillPercent: fill,
             collectionState: colState,
+            isOnline,
           });
         }
       }
@@ -287,7 +292,9 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         const b = d.data();
         const binId = String(b.binId ?? b.id ?? d.id);
         const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
-        const isOnline = b.logicalOnline !== false && b.enabled !== false && b.isOnline !== false;
+        const isEnabled = b.enabled !== false;
+        const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
+        const isOnline = isEnabled && isLogicalOnline;
         const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
           (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
 
@@ -295,7 +302,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
           alertCount++;
         }
 
-        const needsAttention = fill >= 75 || colState === "critical" || colState === "warning";
+        const needsAttention = fill >= 75 || colState === "critical" || colState === "warning" || !isOnline;
         if (needsAttention) {
           const band = fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal";
           attentionBins.push({
@@ -321,11 +328,25 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       }
 
       attentionBins.sort((a, b) => {
+        // Priority 1: Critical (>= 85%) or collection pending
         const aCrit = a.bin.capacityPercent >= 85 || a.operations.collectionStatus === "pending";
         const bCrit = b.bin.capacityPercent >= 85 || b.operations.collectionStatus === "pending";
         if (aCrit !== bCrit) return aCrit ? -1 : 1;
+
+        // Priority 2: Warning (>= 75%)
+        const aWarn = a.bin.capacityPercent >= 75;
+        const bWarn = b.bin.capacityPercent >= 75;
+        if (aWarn !== bWarn) return aWarn ? -1 : 1;
+
+        // Priority 3: Offline / disabled
+        const aOffline = !a.bin.isOnline;
+        const bOffline = !b.bin.isOnline;
+        if (aOffline !== bOffline) return aOffline ? -1 : 1;
+
+        // Then by fill percentage descending
         const fillDiff = b.bin.capacityPercent - a.bin.capacityPercent;
         if (fillDiff !== 0) return fillDiff;
+
         return a.bin.id.localeCompare(b.bin.id);
       });
 

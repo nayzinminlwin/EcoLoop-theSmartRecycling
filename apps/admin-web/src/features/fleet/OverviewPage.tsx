@@ -366,7 +366,7 @@ export function OverviewPage(): React.ReactElement {
         <div className="panel-head">
           <div>
             <h2>Attention Bins</h2>
-            <p>Smart bins approaching or exceeding capacity threshold (≥ 75%)</p>
+            <p>Smart bins approaching capacity thresholds or offline/disabled status</p>
           </div>
           <NavLink to="/bins">
             <Button variant="ghost">

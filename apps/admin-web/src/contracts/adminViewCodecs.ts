@@ -714,6 +714,7 @@ export interface AdminAttentionBinView {
   readonly locationName: string;
   readonly fillPercent: number;
   readonly collectionState: "normal" | "warning" | "critical" | "collection_pending";
+  readonly isOnline?: boolean;
 }
 
 export interface AdminDashboardView {
@@ -781,11 +782,17 @@ export function decodeAdminDashboardView(raw: unknown): AdminDashboardView {
         const collectionState = (["normal", "warning", "critical", "collection_pending"].includes(rawState)
           ? rawState
           : "normal") as AdminAttentionBinView["collectionState"];
+        const isOnline = item.isOnline !== undefined
+          ? Boolean(item.isOnline)
+          : item.logicalOnline !== undefined && item.enabled !== undefined
+          ? Boolean(item.logicalOnline && item.enabled)
+          : true;
         return {
           binId: String(item.binId ?? ""),
           locationName: String(item.locationName ?? "Unknown Location"),
           fillPercent: Math.min(100, Math.max(0, Number(item.fillPercent ?? 0))),
           collectionState,
+          isOnline,
         };
       })
     : [];
@@ -870,6 +877,7 @@ export function adminDashboardViewToSummary(
     }
 
     const band = b.fillPercent >= 85 ? "critical" : b.fillPercent >= 75 ? "warning" : "normal";
+    const isOnline = b.isOnline !== undefined ? b.isOnline : true;
     return {
       bin: {
         id: b.binId,
@@ -877,7 +885,7 @@ export function adminDashboardViewToSummary(
         locationDetail: "Smart Recycling Chamber",
         capacityPercent: b.fillPercent,
         acceptedMaterials: ["plastic", "aluminium", "paper", "glass"],
-        isOnline: true,
+        isOnline,
         lastUpdatedAt: view.lastCalculatedAt,
       },
       operations: {
