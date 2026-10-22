@@ -233,6 +233,15 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         };
       });
 
+      // Sort Monday to Sunday
+      dailyActivity.sort((a, b) => {
+        const da = new Date(a.date);
+        const db = new Date(b.date);
+        const ia = isNaN(da.getTime()) ? 0 : (da.getDay() + 6) % 7;
+        const ib = isNaN(db.getTime()) ? 0 : (db.getDay() + 6) % 7;
+        return ia - ib;
+      });
+
       const dashboardRecord = {
         registeredBins: binsDocs.length,
         activeAlerts,

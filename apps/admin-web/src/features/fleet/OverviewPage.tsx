@@ -49,6 +49,28 @@ const weekdayFormatter = new Intl.DateTimeFormat("en-MY", {
   weekday: "short"
 });
 
+const DAY_ORDER: Record<string, number> = {
+  mon: 0, monday: 0,
+  tue: 1, tuesday: 1,
+  wed: 2, wednesday: 2,
+  thu: 3, thursday: 3,
+  fri: 4, friday: 4,
+  sat: 5, saturday: 5,
+  sun: 6, sunday: 6
+};
+
+function getMondayToSundayIndex(dateStr: string): number {
+  const lower = dateStr.toLowerCase().trim();
+  for (const [key, idx] of Object.entries(DAY_ORDER)) {
+    if (lower.startsWith(key)) return idx;
+  }
+  const dateObj = new Date(dateStr);
+  if (!isNaN(dateObj.getTime())) {
+    return (dateObj.getDay() + 6) % 7;
+  }
+  return 0;
+}
+
 // ---------------------------------------------------------------------------
 // 2. OverviewPage Component
 // ---------------------------------------------------------------------------
@@ -152,10 +174,18 @@ export function OverviewPage(): React.ReactElement {
     }
   ];
 
+  // Arrange weekly activity starting with Monday through Sunday (Mon -> Sun)
+  const sortedActivity = React.useMemo(() => {
+    if (!summary?.activity) return [];
+    return [...summary.activity].sort((a, b) => {
+      return getMondayToSundayIndex(a.date) - getMondayToSundayIndex(b.date);
+    });
+  }, [summary?.activity]);
+
   // Bar chart scale calculation
   const maxActivity = Math.max(
     1,
-    ...summary.activity.map((a) => a.verifiedDepositCount)
+    ...sortedActivity.map((a) => a.verifiedDepositCount)
   );
 
   // Donut chart conic-gradient calculation
@@ -272,7 +302,7 @@ export function OverviewPage(): React.ReactElement {
             </div>
 
             <div className="bars">
-              {summary.activity.map((item) => {
+              {sortedActivity.map((item) => {
                 const dateObj = new Date(item.date);
                 const dayLabel = isNaN(dateObj.getTime())
                   ? item.date
