@@ -201,13 +201,11 @@ service cloud.firestore {
     }
 
     match /adminDashboard/{dashboardId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminDashboardViews/{dashboardId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /notificationEvents/{eventId} {
