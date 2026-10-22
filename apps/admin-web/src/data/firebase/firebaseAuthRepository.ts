@@ -63,7 +63,17 @@ export class FirebaseAuthRepository implements AuthRepository {
 
     const tokenResult = await user.getIdTokenResult();
     const roleClaim = tokenResult.claims.role;
-    const role = roleClaim === "admin" ? "admin" : "user";
+    let role: "admin" | "user" = roleClaim === "admin" ? "admin" : "user";
+
+    if (role !== "admin" && this.firestore) {
+      try {
+        const docRef = doc(this.firestore, "adminAccounts", user.uid);
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().role === "admin" && snap.data().enabled !== false) {
+          role = "admin";
+        }
+      } catch {}
+    }
 
     return {
       uid: user.uid,
@@ -91,12 +101,24 @@ export class FirebaseAuthRepository implements AuthRepository {
             try {
               const tokenResult = await user.getIdTokenResult();
               const roleClaim = tokenResult.claims.role;
-              const role = roleClaim === "admin" ? "admin" : "user";
+              let role: "admin" | "user" = roleClaim === "admin" ? "admin" : "user";
+              let adminName = user.displayName || "Administrator";
+
+              if (role !== "admin" && this.firestore) {
+                try {
+                  const docRef = doc(this.firestore, "adminAccounts", user.uid);
+                  const snap = await getDoc(docRef);
+                  if (snap.exists() && snap.data().role === "admin" && snap.data().enabled !== false) {
+                    role = "admin";
+                    if (snap.data().displayName) adminName = String(snap.data().displayName);
+                  }
+                } catch {}
+              }
 
               if (role === "admin") {
                 this.currentIdentity = {
                   id: user.uid,
-                  fullName: user.displayName || "Administrator",
+                  fullName: adminName,
                   email: user.email || "",
                 };
               } else {
@@ -144,7 +166,19 @@ export class FirebaseAuthRepository implements AuthRepository {
     }
 
     const tokenResult = await user.getIdTokenResult();
-    if (tokenResult.claims.role !== "admin") {
+    let isAdmin = tokenResult.claims.role === "admin";
+
+    if (!isAdmin && this.firestore) {
+      try {
+        const docRef = doc(this.firestore, "adminAccounts", user.uid);
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().role === "admin" && snap.data().enabled !== false) {
+          isAdmin = true;
+        }
+      } catch {}
+    }
+
+    if (!isAdmin) {
       throw new RepositoryError({
         code: "permissionDenied",
         message: "Active account lacks administrator role",
@@ -277,36 +311,40 @@ export class FirebaseAuthRepository implements AuthRepository {
         input.password
       );
 
-      // Verify custom claims
+      // Verify custom claims or adminAccounts Firestore record
       const tokenResult = await cred.user.getIdTokenResult(true);
       const roleClaim = tokenResult.claims.role;
+      let isAdmin = roleClaim === "admin";
 
-      if (roleClaim !== "admin") {
+      if (this.firestore) {
+        try {
+          const docRef = doc(this.firestore, "adminAccounts", cred.user.uid);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.role === "admin" && data.enabled !== false) {
+              isAdmin = true;
+            } else if (data.enabled === false) {
+              await signOut(this.auth);
+              throw new RepositoryError({
+                code: "permissionDenied",
+                message: "Administrator account is currently disabled.",
+                fieldErrors: {},
+              });
+            }
+          }
+        } catch (err) {
+          if (err instanceof RepositoryError) throw err;
+        }
+      }
+
+      if (!isAdmin) {
         await signOut(this.auth);
         throw new RepositoryError({
           code: "permissionDenied",
           message: "Signed-in account does not possess administrator credentials.",
           fieldErrors: {},
         });
-      }
-
-      // Verify backend enabled state via Firestore or getAdminContext
-      if (this.firestore) {
-        try {
-          const docRef = doc(this.firestore, "adminAccounts", cred.user.uid);
-          const snap = await getDoc(docRef);
-          if (snap.exists() && snap.data().enabled === false) {
-            await signOut(this.auth);
-            throw new RepositoryError({
-              code: "permissionDenied",
-              message: "Administrator account is currently disabled.",
-              fieldErrors: {},
-            });
-          }
-        } catch (err) {
-          if (err instanceof RepositoryError) throw err;
-          // Firestore read error — proceed to callable check or accept verified auth claim
-        }
       }
 
       // Verify backend enabled state via getAdminContext if accessible
