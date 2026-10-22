@@ -95,16 +95,31 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /depositSessions/{sessionId} {
+      allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /batches/{batchId} {
       allow read: if signedIn() &&
         resource.data.ownerId == request.auth.uid;
       allow write: if false;
     }
 
+    match /deposits/{batchId} {
+      allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
     match /receipts/{receiptId} {
       allow read: if signedIn() &&
         resource.data.ownerId == request.auth.uid;
       allow write: if false;
+    }
+
+    match /depositResults/{receiptId} {
+      allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /inferenceJobs/{jobId} {
@@ -118,8 +133,7 @@ service cloud.firestore {
     }
 
     match /reviewTickets/{ticketId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminAccounts/{uid} {
@@ -170,8 +184,7 @@ service cloud.firestore {
     }
 
     match /adminReviewViews/{reviewId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminRewardViews/{rewardId} {
