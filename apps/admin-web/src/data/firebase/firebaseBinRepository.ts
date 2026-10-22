@@ -5,10 +5,14 @@
 
 import { httpsCallable, type Functions } from "firebase/functions";
 import {
+  collection,
   doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   type Firestore,
 } from "firebase/firestore";
+import QRCode from "qrcode";
 import {
   type BinsRepository,
   type Observable,
@@ -22,6 +26,7 @@ import type {
   Page,
   SmartBinRow,
   BinInput,
+  CollectionStatus,
 } from "../../contracts/admin.ts";
 import {
   decodeAdminBinView,
@@ -31,6 +36,7 @@ import {
   type AdminBinView,
   type AdminPaginatedResponse,
 } from "../../contracts/adminViewCodecs.ts";
+import type { MaterialType } from "../../contracts/shared.ts";
 import type { FirebaseCommandClient } from "../../core/firebase/commandClient.ts";
 
 export class FirebaseBinRepository implements BinsRepository {
@@ -72,7 +78,128 @@ export class FirebaseBinRepository implements BinsRepository {
     }
   }
 
+  private mapCanonicalBinDocToRow(id: string, data: Record<string, unknown>): SmartBinRow {
+    const capacitySpc = Math.max(50, Math.min(5000, Number(data.capacitySpc ?? 1000)));
+    const occupiedSpc = Math.max(0, Number(data.occupiedSpc ?? 0));
+    const capacityPercent = typeof data.capacityPercent === "number"
+      ? data.capacityPercent
+      : Math.min(100, Math.max(0, Math.round((occupiedSpc / capacitySpc) * 100)));
+
+    const acceptedMaterials: MaterialType[] = Array.isArray(data.acceptedMaterials)
+      ? (data.acceptedMaterials.filter((m): m is MaterialType =>
+          ["plastic", "aluminium", "paper", "glass", "unknown"].includes(String(m))
+        ))
+      : ["plastic", "aluminium"];
+
+    let lastUpdatedAt = new Date().toISOString();
+    if (data.updatedAt) {
+      if (typeof (data.updatedAt as { toDate?: () => Date }).toDate === "function") {
+        lastUpdatedAt = (data.updatedAt as { toDate: () => Date }).toDate().toISOString();
+      } else if (typeof data.updatedAt === "string") {
+        lastUpdatedAt = data.updatedAt;
+      }
+    }
+
+    const isOnline = data.isOnline !== false && data.logicalOnline !== false && data.enabled !== false;
+
+    let collectionStatus: CollectionStatus = "notScheduled";
+    if (typeof data.collectionState === "string") {
+      collectionStatus = data.collectionState === "collection_pending" ? "pending" : (data.collectionState as CollectionStatus);
+    } else if (typeof data.collectionStatus === "string") {
+      collectionStatus = data.collectionStatus as CollectionStatus;
+    } else if (capacityPercent >= 85) {
+      collectionStatus = "pending";
+    }
+
+    return {
+      bin: {
+        id,
+        locationName: String(data.locationName ?? data.displayName ?? id),
+        locationDetail: String(data.locationDetail ?? "Standard Facility"),
+        capacityPercent,
+        acceptedMaterials,
+        isOnline,
+        lastUpdatedAt,
+      },
+      operations: {
+        binId: id,
+        collectionStatus,
+      },
+    };
+  }
+
+  private filterAndPaginateRows(rows: SmartBinRow[], query: BinListQuery): Page<SmartBinRow> {
+    let filtered = [...rows];
+
+    // Search filter
+    if (query.search && query.search.trim()) {
+      const q = query.search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (r) =>
+          r.bin.id.toLowerCase().includes(q) ||
+          r.bin.locationName.toLowerCase().includes(q) ||
+          r.bin.locationDetail.toLowerCase().includes(q)
+      );
+    }
+
+    // Capacity band filter
+    if (query.capacityBand && query.capacityBand !== "all") {
+      filtered = filtered.filter((r) => {
+        const pct = r.bin.capacityPercent;
+        if (query.capacityBand === "critical") return pct >= 85;
+        if (query.capacityBand === "warning") return pct >= 75 && pct < 85;
+        if (query.capacityBand === "normal") return pct < 75;
+        return true;
+      });
+    }
+
+    // Online filter
+    if (query.online && query.online !== "all") {
+      const wantOnline = query.online === "online";
+      filtered = filtered.filter((r) => r.bin.isOnline === wantOnline);
+    }
+
+    // Sorting
+    const sortKey = query.sort.key as string;
+    const isAsc = query.sort.direction === "asc";
+    filtered.sort((a, b) => {
+      let va: string | number = a.bin.id;
+      let vb: string | number = b.bin.id;
+
+      if (sortKey === "locationName" || sortKey === "location") {
+        va = a.bin.locationName.toLowerCase();
+        vb = b.bin.locationName.toLowerCase();
+      } else if (sortKey === "capacityPercent" || sortKey === "capacity") {
+        va = a.bin.capacityPercent;
+        vb = b.bin.capacityPercent;
+      } else if (sortKey === "lastUpdatedAt" || sortKey === "updatedAt") {
+        va = a.bin.lastUpdatedAt;
+        vb = b.bin.lastUpdatedAt;
+      } else if (sortKey === "collectionState" || sortKey === "status") {
+        va = a.operations.collectionStatus;
+        vb = b.operations.collectionStatus;
+      }
+
+      if (va < vb) return isAsc ? -1 : 1;
+      if (va > vb) return isAsc ? 1 : -1;
+      return 0;
+    });
+
+    // Pagination
+    const total = filtered.length;
+    const startIndex = (query.page - 1) * query.pageSize;
+    const items = filtered.slice(startIndex, startIndex + query.pageSize);
+
+    return {
+      items,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+
   async list(query: BinListQuery): Promise<Page<SmartBinRow>> {
+    // 1. Try Cloud Function listAdminBins
     try {
       const callable = httpsCallable<
         Record<string, unknown>,
@@ -96,18 +223,45 @@ export class FirebaseBinRepository implements BinsRepository {
       });
 
       const decoded = decodeAdminPaginatedResponse(res.data, decodeAdminBinView);
-      const rows = decoded.items.map(adminBinViewToRow);
-
-      return {
-        items: rows,
-        total: decoded.total,
-        page: query.page,
-        pageSize: query.pageSize,
-      };
+      if (decoded.items && decoded.items.length > 0) {
+        const rows = decoded.items.map(adminBinViewToRow);
+        return {
+          items: rows,
+          total: decoded.total,
+          page: query.page,
+          pageSize: query.pageSize,
+        };
+      }
     } catch {
-      // Fallback to local baseline mock repository if cloud functions not yet deployed
-      return await this.fallbackBinsRepo.list(query);
+      // Fall through to direct Firestore connection
     }
+
+    // 2. Direct Firestore connection (adminBinViews & bins)
+    try {
+      let rows: SmartBinRow[] = [];
+
+      const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
+      if (!viewsSnap.empty) {
+        rows = viewsSnap.docs.map((d) => {
+          const view = decodeAdminBinView({ binId: d.id, ...d.data() });
+          return adminBinViewToRow(view);
+        });
+      } else {
+        const binsSnap = await getDocs(collection(this.firestore, "bins"));
+        if (!binsSnap.empty) {
+          rows = binsSnap.docs.map((d) => this.mapCanonicalBinDocToRow(d.id, d.data()));
+        }
+      }
+
+      if (rows.length > 0) {
+        return this.filterAndPaginateRows(rows, query);
+      }
+    } catch {
+      // Offline / unit test fallback below
+    }
+
+    // 3. Fallback to local baseline mock repository
+    return await this.fallbackBinsRepo.list(query);
   }
 
   watchList(query: BinListQuery): Observable<Page<SmartBinRow>> {
@@ -129,21 +283,49 @@ export class FirebaseBinRepository implements BinsRepository {
 
         load();
 
-        // Listen to topic revision bump
-        const versionDocRef = doc(this.firestore, "adminReadVersions/bins");
-        const unsubscribeSnapshot = onSnapshot(
-          versionDocRef,
-          () => {
-            if (isSubscribed) load();
-          },
-          () => {
-            // If rules or network error, silently keep current data
+        const unsubs: Array<() => void> = [];
+
+        try {
+          // Listen to topic revision bump
+          const versionDocRef = doc(this.firestore, "adminReadVersions/bins");
+          unsubs.push(
+            onSnapshot(
+              versionDocRef,
+              () => { if (isSubscribed) load(); },
+              () => {}
+            )
+          );
+
+          // Listen to adminBinViews collection
+          const viewsColRef = collection(this.firestore, "adminBinViews");
+          unsubs.push(
+            onSnapshot(
+              viewsColRef,
+              () => { if (isSubscribed) load(); },
+              () => {}
+            )
+          );
+
+          // Listen to canonical bins collection
+          const binsColRef = collection(this.firestore, "bins");
+          unsubs.push(
+            onSnapshot(
+              binsColRef,
+              () => { if (isSubscribed) load(); },
+              () => {}
+            )
+          );
+        } catch {
+          if (this.fallbackBinsRepo) {
+            return this.fallbackBinsRepo.watchList(query).subscribe(observer);
           }
-        );
+        }
 
         return () => {
           isSubscribed = false;
-          unsubscribeSnapshot();
+          unsubs.forEach((unsub) => {
+            try { unsub(); } catch {}
+          });
         };
       },
     };
@@ -159,6 +341,19 @@ export class FirebaseBinRepository implements BinsRepository {
       const detail = decodeAdminBinDetailView(res.data);
       return adminBinViewToRow(detail.bin);
     } catch {
+      try {
+        const viewDoc = await getDoc(doc(this.firestore, `adminBinViews/${id}`));
+        if (viewDoc.exists()) {
+          const view = decodeAdminBinView({ binId: viewDoc.id, ...viewDoc.data() });
+          return adminBinViewToRow(view);
+        }
+        const binDoc = await getDoc(doc(this.firestore, `bins/${id}`));
+        if (binDoc.exists()) {
+          return this.mapCanonicalBinDocToRow(binDoc.id, binDoc.data());
+        }
+      } catch {
+        // Fallback below
+      }
       return await this.fallbackBinsRepo.get(id);
     }
   }
@@ -167,34 +362,45 @@ export class FirebaseBinRepository implements BinsRepository {
     return {
       subscribe: (observer: Observer<SmartBinRow | null>): Unsubscribe => {
         let isSubscribed = true;
-        const binDocRef = doc(this.firestore, `adminBinViews/${id}`);
-
-        const unsubscribe = onSnapshot(
-          binDocRef,
-          (snap) => {
-            if (!isSubscribed) return;
-            if (!snap.exists()) {
-              observer.next(null);
-              return;
+        try {
+          const binDocRef = doc(this.firestore, `adminBinViews/${id}`);
+          const unsubscribe = onSnapshot(
+            binDocRef,
+            (snap) => {
+              if (!isSubscribed) return;
+              if (snap.exists()) {
+                try {
+                  const view = decodeAdminBinView({ binId: snap.id, ...snap.data() });
+                  observer.next(adminBinViewToRow(view));
+                  return;
+                } catch {}
+              }
+              getDoc(doc(this.firestore, `bins/${id}`))
+                .then((bSnap) => {
+                  if (!isSubscribed) return;
+                  if (bSnap.exists()) {
+                    observer.next(this.mapCanonicalBinDocToRow(bSnap.id, bSnap.data()));
+                  } else {
+                    observer.next(null);
+                  }
+                })
+                .catch(() => {
+                  observer.next(null);
+                });
+            },
+            () => {
+              if (!isSubscribed) return;
+              this.fallbackBinsRepo.watch(id).subscribe(observer);
             }
-            try {
-              const view = decodeAdminBinView({ binId: snap.id, ...snap.data() });
-              observer.next(adminBinViewToRow(view));
-            } catch {
-              observer.next(null);
-            }
-          },
-          () => {
-            if (!isSubscribed) return;
-            // Fallback to repository watch
-            this.fallbackBinsRepo.watch(id).subscribe(observer);
-          }
-        );
+          );
 
-        return () => {
-          isSubscribed = false;
-          unsubscribe();
-        };
+          return () => {
+            isSubscribed = false;
+            unsubscribe();
+          };
+        } catch {
+          return this.fallbackBinsRepo.watch(id).subscribe(observer);
+        }
       },
     };
   }
@@ -273,15 +479,54 @@ export class FirebaseBinRepository implements BinsRepository {
       );
       const res = await callable({ binId: id });
       return res.data;
-    } catch (err) {
+    } catch {
+      try {
+        let qrPayload = `ecoloop://bin/qr-${id}`;
+        let qrId = `qr-${id}`;
+
+        // Look for existing registered QR mapping in Firestore
+        const mappingSnap = await getDoc(doc(this.firestore, `binQrMappings/qr-${id}`));
+        if (mappingSnap.exists()) {
+          const data = mappingSnap.data();
+          if (data?.qrPayload) qrPayload = String(data.qrPayload);
+          if (data?.id) qrId = String(data.id);
+        } else {
+          // Check if bin document has specific qrId
+          const binSnap = await getDoc(doc(this.firestore, `bins/${id}`));
+          if (binSnap.exists()) {
+            const data = binSnap.data();
+            if (data?.qrId) {
+              qrId = String(data.qrId);
+              qrPayload = `ecoloop://bin/${qrId}`;
+            }
+          }
+        }
+
+        const svg = await QRCode.toString(qrPayload, {
+          type: "svg",
+          margin: 2,
+          errorCorrectionLevel: "M",
+        });
+        const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
+        return {
+          binId: id,
+          qrId,
+          qrPayload,
+          dataUrl,
+          svg,
+        };
+      } catch {
+        // Fallback to mock repository
+      }
+
       if (this.fallbackBinsRepo) {
         try {
           return await this.fallbackBinsRepo.getQrCode(id);
-        } catch {
-          // ignore fallback error and throw mapped original error
-        }
+        } catch {}
       }
-      throw this.commandClient.mapFirebaseError(err, "getAdminBinQr");
+
+      throw this.commandClient.mapFirebaseError(new Error("Unable to retrieve QR code"), "getAdminBinQr");
     }
   }
 }
