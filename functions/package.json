@@ -58,6 +58,8 @@
     "qrcode": "1.5.4"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@firebase/rules-unit-testing": "3.0.4",
     "@types/node": "22.15.21",
     "@types/qrcode": "^1.5.5",
