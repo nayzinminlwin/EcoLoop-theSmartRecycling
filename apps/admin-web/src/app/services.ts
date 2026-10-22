@@ -62,7 +62,7 @@ function createAdminServiceBundle(): AdminServiceBundle {
   initAppCheck(app);
 
   const commandClient = new FirebaseCommandClient(functions);
-  const authRepo = new FirebaseAuthRepository(auth, functions);
+  const authRepo = new FirebaseAuthRepository(auth, functions, firestore);
 
   // For domain repositories not yet activated (alerts, verification, settings),
   // retain baseline mock repositories until their respective phases (AB-05 to AB-08)

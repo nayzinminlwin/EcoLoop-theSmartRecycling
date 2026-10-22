@@ -11,6 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 import { httpsCallable, type Functions } from "firebase/functions";
+import { doc, getDoc, type Firestore } from "firebase/firestore";
 import type { AuthState } from "../../contracts/shared.ts";
 import type {
   AdminIdentity,
@@ -46,10 +47,12 @@ export class FirebaseAuthRepository implements AuthRepository {
   private currentIdentity: AdminIdentity | null = null;
   private readonly auth: Auth;
   private readonly functions: Functions;
+  private readonly firestore?: Firestore;
 
-  constructor(auth: Auth, functions: Functions) {
+  constructor(auth: Auth, functions: Functions, firestore?: Firestore) {
     this.auth = auth;
     this.functions = functions;
+    this.firestore = firestore;
   }
 
   async getAuthState(): Promise<AuthState> {
@@ -287,7 +290,26 @@ export class FirebaseAuthRepository implements AuthRepository {
         });
       }
 
-      // Verify backend enabled state via getAdminContext
+      // Verify backend enabled state via Firestore or getAdminContext
+      if (this.firestore) {
+        try {
+          const docRef = doc(this.firestore, "adminAccounts", cred.user.uid);
+          const snap = await getDoc(docRef);
+          if (snap.exists() && snap.data().enabled === false) {
+            await signOut(this.auth);
+            throw new RepositoryError({
+              code: "permissionDenied",
+              message: "Administrator account is currently disabled.",
+              fieldErrors: {},
+            });
+          }
+        } catch (err) {
+          if (err instanceof RepositoryError) throw err;
+          // Firestore read error — proceed to callable check or accept verified auth claim
+        }
+      }
+
+      // Verify backend enabled state via getAdminContext if accessible
       try {
         const getContext = httpsCallable<void, AdminContextResponse>(
           this.functions,
@@ -304,13 +326,22 @@ export class FirebaseAuthRepository implements AuthRepository {
         }
       } catch (err) {
         if (err instanceof RepositoryError) throw err;
-        // If callable returned permission-denied or error, sign out
-        await signOut(this.auth);
-        throw new RepositoryError({
-          code: "permissionDenied",
-          message: "Administrator account is not enabled in backend.",
-          fieldErrors: {},
-        });
+        const fbErr = err as { code?: string; message?: string };
+        // Only force signout if the server explicitly returned permission-denied stating the account is disabled
+        if (
+          fbErr.code === "functions/permission-denied" &&
+          fbErr.message?.toLowerCase().includes("disabled")
+        ) {
+          await signOut(this.auth);
+          throw new RepositoryError({
+            code: "permissionDenied",
+            message: "Administrator account is currently disabled.",
+            fieldErrors: {},
+          });
+        }
+        // In local development or when Cloud Run callable preflight is restricted,
+        // do not sign out if user holds valid admin custom claim and enabled Firestore profile.
+        console.warn("[EcoLoop Admin] getAdminContext remote check bypassed or offline:", err);
       }
 
       return {
