@@ -28,6 +28,7 @@ import type {
   AlertPage,
   CapacityAlertRow,
 } from "../../contracts/admin.ts";
+import type { SmartBin } from "../../contracts/shared.ts";
 import {
   decodeAdminAlertView,
   decodeAdminPaginatedResponse,
@@ -164,16 +165,21 @@ export class FirebaseAlertsRepository implements AlertsRepository {
         return null;
       }
 
-      // Read bins for location details
-      const binLocationMap = new Map<string, { locationName: string; locationDetail: string; isOnline: boolean }>();
+      // Read bins for location details and live capacity
+      const binLocationMap = new Map<
+        string,
+        { locationName: string; locationDetail: string; isOnline: boolean; capacityPercent: number }
+      >();
       try {
         const binsSnap = await getDocs(collection(this.firestore, "bins"));
         for (const b of binsSnap.docs) {
           const bData = b.data();
+          const cap = Math.max(0, Math.min(100, Math.round(Number(bData.fillPercent ?? bData.capacityPercent ?? 0))));
           binLocationMap.set(b.id, {
             locationName: String(bData.locationName ?? bData.displayName ?? b.id),
             locationDetail: String(bData.locationDetail ?? "Standard Facility"),
             isOnline: bData.isOnline !== false && bData.logicalOnline !== false && bData.enabled !== false,
+            capacityPercent: cap,
           });
         }
       } catch {}
@@ -181,13 +187,36 @@ export class FirebaseAlertsRepository implements AlertsRepository {
       const rows: CapacityAlertRow[] = Array.from(alertMap.values()).map((raw) => {
         const view = decodeAdminAlertView(raw);
         const binInfo = binLocationMap.get(view.binId);
+
+        // If the live bin has capacity lower than threshold and alert was not yet marked resolved:
+        const liveCap = binInfo ? binInfo.capacityPercent : view.currentFillPercent;
+        let effectiveView: AdminAlertView = view;
+        if (liveCap < (view.threshold || 85) && view.state !== "resolved") {
+          effectiveView = {
+            ...view,
+            state: "resolved",
+            resolvedAt: view.resolvedAt ?? new Date().toISOString(),
+            resolvedBy: view.resolvedBy ?? "admin (capacity reset)",
+            currentFillPercent: liveCap,
+          };
+
+          // Self-heal Firestore in background
+          try {
+            const capRef = doc(this.firestore, "capacityAlerts", view.alertId);
+            setDoc(capRef, { state: "resolved", currentFillPercent: liveCap, resolvedAt: serverTimestamp(), resolvedBy: "admin (capacity reset)" }, { merge: true });
+            const viewRef = doc(this.firestore, "adminAlertViews", view.alertId);
+            setDoc(viewRef, { state: "resolved", currentFillPercent: liveCap, resolvedAt: serverTimestamp(), resolvedBy: "admin (capacity reset)" }, { merge: true });
+          } catch {}
+        }
+
         return adminAlertViewToRow(
-          view,
+          effectiveView,
           binInfo
             ? {
                 locationName: binInfo.locationName,
                 locationDetail: binInfo.locationDetail,
                 isOnline: binInfo.isOnline,
+                capacityPercent: binInfo.capacityPercent,
               }
             : undefined
         );
@@ -387,36 +416,70 @@ export class FirebaseAlertsRepository implements AlertsRepository {
       // Direct Firestore read
       try {
         if (this.firestore && typeof this.firestore.type === "string") {
+          let decoded: AdminAlertView | null = null;
           const snap = await getDoc(doc(this.firestore, "adminAlertViews", id));
           if (snap.exists()) {
-            const decoded = decodeAdminAlertView({ alertId: id, ...snap.data() });
-            return adminAlertViewToRow(decoded);
+            decoded = decodeAdminAlertView({ alertId: id, ...snap.data() });
+          } else {
+            const capSnap = await getDoc(doc(this.firestore, "capacityAlerts", id));
+            if (capSnap.exists()) {
+              const data = capSnap.data();
+              decoded = decodeAdminAlertView({
+                alertId: id,
+                binId: data.binId ?? "",
+                locationName: data.locationName ?? `Smart Bin ${data.binId}`,
+                cycleId: data.cycleId ?? "",
+                triggeringFillPercent: data.triggeringFillPercent ?? 85,
+                currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
+                threshold: data.thresholdSnapshot ?? data.threshold ?? 85,
+                operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
+                state: data.state ?? "pending",
+                version: data.version ?? 1,
+                triggeredAt: data.triggeredAt ?? new Date().toISOString(),
+                scheduledAt: data.scheduledAt ?? null,
+                scheduledBy: data.scheduledBy ?? null,
+                collectedAt: data.collectedAt ?? null,
+                collectedBy: data.collectedBy ?? null,
+                resolvedAt: data.resolvedAt ?? null,
+                resolvedBy: data.resolvedBy ?? null,
+                collectionEventId: data.collectionEventId ?? null,
+                ...data,
+              });
+            }
           }
-          const capSnap = await getDoc(doc(this.firestore, "capacityAlerts", id));
-          if (capSnap.exists()) {
-            const data = capSnap.data();
-            const decoded = decodeAdminAlertView({
-              alertId: id,
-              binId: data.binId ?? "",
-              locationName: data.locationName ?? `Smart Bin ${data.binId}`,
-              cycleId: data.cycleId ?? "",
-              triggeringFillPercent: data.triggeringFillPercent ?? 85,
-              currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
-              threshold: data.thresholdSnapshot ?? data.threshold ?? 85,
-              operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
-              state: data.state ?? "pending",
-              version: data.version ?? 1,
-              triggeredAt: data.triggeredAt ?? new Date().toISOString(),
-              scheduledAt: data.scheduledAt ?? null,
-              scheduledBy: data.scheduledBy ?? null,
-              collectedAt: data.collectedAt ?? null,
-              collectedBy: data.collectedBy ?? null,
-              resolvedAt: data.resolvedAt ?? null,
-              resolvedBy: data.resolvedBy ?? null,
-              collectionEventId: data.collectionEventId ?? null,
-              ...data,
-            });
-            return adminAlertViewToRow(decoded);
+
+          if (decoded) {
+            let binDoc: Partial<SmartBin> | undefined;
+            let effectiveView: AdminAlertView = decoded;
+            try {
+              const binSnap = await getDoc(doc(this.firestore, "bins", decoded.binId));
+              if (binSnap.exists()) {
+                const bData = binSnap.data();
+                const fill = Math.max(0, Math.min(100, Math.round(Number(bData.fillPercent ?? bData.capacityPercent ?? 0))));
+                binDoc = {
+                  locationName: String(bData.locationName ?? bData.displayName ?? decoded.locationName),
+                  locationDetail: String(bData.locationDetail ?? "Standard Facility"),
+                  isOnline: bData.isOnline !== false && bData.logicalOnline !== false && bData.enabled !== false,
+                  capacityPercent: fill,
+                };
+                if (fill < (decoded.threshold || 85) && decoded.state !== "resolved") {
+                  effectiveView = {
+                    ...decoded,
+                    state: "resolved",
+                    resolvedAt: decoded.resolvedAt ?? new Date().toISOString(),
+                    resolvedBy: decoded.resolvedBy ?? "admin (capacity reset)",
+                    currentFillPercent: fill,
+                  };
+
+                  try {
+                    setDoc(doc(this.firestore, "capacityAlerts", id), { state: "resolved", currentFillPercent: fill, resolvedAt: serverTimestamp(), resolvedBy: "admin (capacity reset)" }, { merge: true });
+                    setDoc(doc(this.firestore, "adminAlertViews", id), { state: "resolved", currentFillPercent: fill, resolvedAt: serverTimestamp(), resolvedBy: "admin (capacity reset)" }, { merge: true });
+                  } catch {}
+                }
+              }
+            } catch {}
+
+            return adminAlertViewToRow(effectiveView, binDoc);
           }
         }
       } catch {

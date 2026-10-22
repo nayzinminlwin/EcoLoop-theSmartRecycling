@@ -137,7 +137,15 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       } catch {}
       const activeAlerts = Array.from(alertMap.values()).filter((a) => {
         const state = a.state;
-        return state !== "resolved" && state !== "closed";
+        if (state === "resolved" || state === "closed") return false;
+        const binId = String(a.binId ?? "");
+        const bin = binMap.get(binId);
+        if (bin) {
+          const fill = Math.max(0, Math.min(100, Math.round(Number(bin.fillPercent ?? bin.capacityPercent ?? 0))));
+          const threshold = Number(a.threshold ?? a.thresholdPercent ?? a.thresholdSnapshot ?? 85);
+          if (fill < threshold) return false;
+        }
+        return true;
       }).length;
 
       // 3. Review Tickets
