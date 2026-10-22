@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecoloop.example/contracts/admin/v1/commands.schema.json",
+  "title": "EcoLoop admin backend command and mutation contracts",
+  "description": "Authenticated administrative commands, mutations, and typed responses. Caller identity is derived exclusively from server context.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/adminCommand" },
+    { "$ref": "#/$defs/adminResponse" },
+    { "$ref": "#/$defs/adminErrorResponse" }
+  ],
+  "$defs": {
+    "schemaVersion": { "const": "admin.v1" },
+    "requestId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$" },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "instant": { "type": "string", "format": "date-time" },
+    "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "materialType": { "type": "string", "enum": ["plastic", "aluminium", "paper", "glass", "unknown"] },
+    "materialClass": { "type": "string", "enum": ["plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag", "cardboard_item", "other", "unknown"] },
+    "inventoryState": { "type": "string", "enum": ["resolved", "empty", "unreadable", "uncertain"] },
+    "adminOperation": {
+      "type": "string",
+      "enum": [
+        "recoverAdminOperation",
+        "adminCreateBin",
+        "adminUpdateBin",
+        "adminDeleteUnusedBin",
+        "adminScheduleCollection",
+        "adminRecordCollection",
+        "adminResolveCapacityAlert",
+        "previewAdminReviewResolution",
+        "adminResolveReview",
+        "adminCreateReward",
+        "adminUpdateReward",
+        "adminDeleteUnusedReward",
+        "adminPublishSettings"
+      ]
+    },
+    "adminCommand": {
+      "type": "object",
+      "oneOf": [
+        { "$ref": "#/$defs/recoverOperationCommand" },
+        { "$ref": "#/$defs/createBinCommand" },
+        { "$ref": "#/$defs/updateBinCommand" },
+        { "$ref": "#/$defs/deleteUnusedBinCommand" },
+        { "$ref": "#/$defs/scheduleCollectionCommand" },
+        { "$ref": "#/$defs/recordCollectionCommand" },
+        { "$ref": "#/$defs/resolveCapacityAlertCommand" },
+        { "$ref": "#/$defs/previewReviewResolutionCommand" },
+        { "$ref": "#/$defs/resolveReviewCommand" },
+        { "$ref": "#/$defs/createRewardCommand" },
+        { "$ref": "#/$defs/updateRewardCommand" },
+        { "$ref": "#/$defs/deleteUnusedRewardCommand" },
+        { "$ref": "#/$defs/publishSettingsCommand" }
+      ]
+    },
+    "recoverOperationCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "recoverAdminOperation" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["targetRequestId"],
+          "properties": {
+            "targetRequestId": { "$ref": "#/$defs/requestId" }
+          }
+        }
+      }
+    },
+    "createBinCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminCreateBin" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["binId", "locationName", "locationDetail", "capacitySpc"],
+          "properties": {
+            "binId": { "$ref": "#/$defs/id" },
+            "locationName": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "locationDetail": { "type": "string", "minLength": 2, "maxLength": 160 },
+            "capacitySpc": { "type": "integer", "minimum": 50, "maximum": 5000 }
+          }
+        }
+      }
+    },
+    "updateBinCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminUpdateBin" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["binId", "expectedVersion", "locationName", "locationDetail", "enabled"],
+          "properties": {
+            "binId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 },
+            "locationName": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "locationDetail": { "type": "string", "minLength": 2, "maxLength": 160 },
+            "enabled": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "deleteUnusedBinCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminDeleteUnusedBin" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["binId", "expectedVersion"],
+          "properties": {
+            "binId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "scheduleCollectionCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminScheduleCollection" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["alertId", "expectedVersion"],
+          "properties": {
+            "alertId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "recordCollectionCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminRecordCollection" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["binId", "expectedCycleId"],
+          "properties": {
+            "binId": { "$ref": "#/$defs/id" },
+            "expectedCycleId": { "$ref": "#/$defs/id" },
+            "notes": { "type": "string", "maxLength": 240 }
+          }
+        }
+      }
+    },
+    "resolveCapacityAlertCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminResolveCapacityAlert" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["alertId", "expectedVersion"],
+          "properties": {
+            "alertId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "objectResolutionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objectId", "resolvedClass", "decision"],
+      "properties": {
+        "objectId": { "$ref": "#/$defs/id" },
+        "resolvedClass": { "$ref": "#/$defs/materialClass" },
+        "decision": { "type": "string", "enum": ["accept", "exclude"] },
+        "note": { "type": "string", "maxLength": 160 }
+      }
+    },
+    "previewReviewResolutionCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "previewAdminReviewResolution" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ticketId", "inventoryState", "objects"],
+          "properties": {
+            "ticketId": { "$ref": "#/$defs/id" },
+            "inventoryState": { "$ref": "#/$defs/inventoryState" },
+            "objects": { "type": "array", "items": { "$ref": "#/$defs/objectResolutionDecision" }, "maxItems": 32 }
+          }
+        }
+      }
+    },
+    "resolveReviewCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminResolveReview" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ticketId", "expectedDecisionVersion", "inventoryState", "objects", "explanation"],
+          "properties": {
+            "ticketId": { "$ref": "#/$defs/id" },
+            "expectedDecisionVersion": { "type": "integer", "minimum": 0 },
+            "inventoryState": { "$ref": "#/$defs/inventoryState" },
+            "objects": { "type": "array", "items": { "$ref": "#/$defs/objectResolutionDecision" }, "maxItems": 32 },
+            "explanation": { "type": "string", "minLength": 3, "maxLength": 300 }
+          }
+        }
+      }
+    },
+    "createRewardCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminCreateReward" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "description", "merchantName", "categoryId", "pointsCost", "expiresAt", "isActive", "maxRedemptionsPerResident", "artKey", "sortOrder"],
+          "properties": {
+            "title": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "description": { "type": "string", "minLength": 5, "maxLength": 300 },
+            "merchantName": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "categoryId": { "$ref": "#/$defs/id" },
+            "tag": { "anyOf": [{ "type": "string", "maxLength": 40 }, { "type": "null" }] },
+            "imageUrl": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+            "pointsCost": { "type": "integer", "minimum": 1 },
+            "expiresAt": { "$ref": "#/$defs/instant" },
+            "isActive": { "type": "boolean" },
+            "maxRedemptionsPerResident": { "type": "integer", "minimum": 1 },
+            "artKey": { "type": "string", "enum": ["art0", "art1", "art2", "art3"] },
+            "sortOrder": { "type": "integer", "minimum": 0 },
+            "isDemo": { "type": "boolean" },
+            "terms": { "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }] }
+          }
+        }
+      }
+    },
+    "updateRewardCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminUpdateReward" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rewardId", "expectedVersion", "title", "description", "merchantName", "categoryId", "pointsCost", "expiresAt", "isActive", "maxRedemptionsPerResident", "artKey", "sortOrder"],
+          "properties": {
+            "rewardId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 },
+            "title": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "description": { "type": "string", "minLength": 5, "maxLength": 300 },
+            "merchantName": { "type": "string", "minLength": 2, "maxLength": 100 },
+            "categoryId": { "$ref": "#/$defs/id" },
+            "tag": { "anyOf": [{ "type": "string", "maxLength": 40 }, { "type": "null" }] },
+            "imageUrl": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+            "pointsCost": { "type": "integer", "minimum": 1 },
+            "expiresAt": { "$ref": "#/$defs/instant" },
+            "isActive": { "type": "boolean" },
+            "maxRedemptionsPerResident": { "type": "integer", "minimum": 1 },
+            "artKey": { "type": "string", "enum": ["art0", "art1", "art2", "art3"] },
+            "sortOrder": { "type": "integer", "minimum": 0 },
+            "isDemo": { "type": "boolean" },
+            "terms": { "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }] }
+          }
+        }
+      }
+    },
+    "deleteUnusedRewardCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminDeleteUnusedReward" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rewardId", "expectedVersion"],
+          "properties": {
+            "rewardId": { "$ref": "#/$defs/id" },
+            "expectedVersion": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "publishSettingsCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "payload"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "const": "adminPublishSettings" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["expectedVersion", "capacityAlertThreshold", "materialRates", "acceptedClasses"],
+          "properties": {
+            "expectedVersion": { "type": "integer", "minimum": 0 },
+            "capacityAlertThreshold": { "type": "integer", "enum": [75, 80, 85] },
+            "acceptedClasses": { "type": "array", "items": { "$ref": "#/$defs/materialClass" }, "minItems": 1 },
+            "materialRates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["materialType", "pointsPerItem", "eligible"],
+                "properties": {
+                  "materialType": { "$ref": "#/$defs/materialType" },
+                  "pointsPerItem": { "type": "integer", "minimum": 0 },
+                  "eligible": { "type": "boolean" }
+                }
+              },
+              "minItems": 1
+            }
+          }
+        }
+      }
+    },
+    "adminResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "traceId", "status", "data"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "$ref": "#/$defs/adminOperation" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+        "status": { "const": "committed" },
+        "data": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["resourceId", "version", "operationState"],
+          "properties": {
+            "resourceId": { "$ref": "#/$defs/id" },
+            "version": { "type": "integer", "minimum": 0 },
+            "operationState": { "type": "string", "enum": ["applied", "replayed"] },
+            "committedAt": { "$ref": "#/$defs/instant" }
+          }
+        }
+      }
+    },
+    "adminErrorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "traceId", "status", "error"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "operation": { "$ref": "#/$defs/adminOperation" },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "traceId": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+        "status": { "const": "error" },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "unauthenticated",
+                "permission_denied",
+                "app_check_failed",
+                "not_found",
+                "stale_version",
+                "idempotency_conflict",
+                "invalid_input",
+                "invalid_transition",
+                "resource_referenced",
+                "evidence_unavailable",
+                "internal"
+              ]
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 300 },
+            "retryable": { "type": "boolean" },
+            "fieldErrors": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "details": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 8
+            }
+          }
+        }
+      }
+    }
+  }
+}

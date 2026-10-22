@@ -1,11 +1,12 @@
+/// <reference path="../vite-env.d.ts" />
 // =============================================================================
 // primitives.tsx — Reusable UI control atoms, inputs, badges and headers
 // Phase 4 — Accessible, typed, style-system controls for EcoLoop Admin
 // =============================================================================
 
 import * as React from "react";
+import recycleSymbolImg from "../assets/recycle-symbol.png";
 
-// ---------------------------------------------------------------------------
 // 1. Icon & Brand
 // ---------------------------------------------------------------------------
 
@@ -51,11 +52,12 @@ const iconPaths: Record<IconName, React.ReactNode> = {
   ),
   arrow: <path d="m9 18 6-6-6-6" />,
   recycle: (
-    <>
-      <path d="m8 4 4-2 3 5M12 2l-2 6" />
-      <path d="m20 13 1 4-4 3M21 17h-7" />
-      <path d="m4 18-1-4 4-3M3 14l4 7" />
-    </>
+    <image
+      href={recycleSymbolImg}
+      width="24"
+      height="24"
+      preserveAspectRatio="xMidYMid meet"
+    />
   ),
   gift: (
     <>

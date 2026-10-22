@@ -77,6 +77,7 @@ export class FirestoreRewardsStore implements RewardStore {
       });
       transaction.update(walletRef, { balance: nextBalance, version: nextVersion, updatedAt: input.now });
       transaction.update(statsRef, { rewardRedemptionCount: FieldValue.increment(1), updatedAt: input.now });
+      transaction.update(rewardRef, { redemptionCount: FieldValue.increment(1) });
       transaction.create(requestRef, {
         payloadFingerprint: input.payloadFingerprint, redemptionId: redemptionRef.id,
         voucherId: voucherRef.id, voucherCode, rewardId: input.rewardId,

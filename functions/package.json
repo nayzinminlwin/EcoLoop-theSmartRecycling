@@ -38,6 +38,15 @@
     "test:settlement:runner": "vitest run --config vitest.settlement.config.ts",
     "test:rewards": "firebase emulators:exec --only firestore --project demo-ecoloop \"npm run test:rewards:runner\"",
     "test:rewards:runner": "vitest run --config vitest.rewards.config.ts",
+    "test:admin:auth": "vitest run tests/unit/admin_auth.test.ts",
+    "test:admin:queries": "vitest run tests/unit/admin_projections.test.ts",
+    "test:admin:bins": "vitest run tests/unit/admin_bins.test.ts",
+    "test:admin:settings": "vitest run tests/unit/admin_settings.test.ts",
+    "test:admin:collections": "vitest run tests/unit/admin_alerts.test.ts",
+    "test:admin:reviews": "vitest run tests/unit/admin_reviews.test.ts",
+    "test:admin:catalog": "vitest run tests/unit/admin_rewards.test.ts",
+    "test:admin:projections": "vitest run tests/unit/admin_dashboard.test.ts tests/unit/admin_projections.test.ts",
+    "test:admin:release": "npm run build && vitest run tests/unit/admin_auth.test.ts tests/unit/admin_projections.test.ts tests/unit/admin_bins.test.ts tests/unit/admin_settings.test.ts tests/unit/admin_alerts.test.ts tests/unit/admin_reviews.test.ts tests/unit/admin_rewards.test.ts tests/unit/admin_dashboard.test.ts",
     "test:unit": "vitest run",
     "test": "npm run build && npm run test:unit"
   },
@@ -51,6 +60,8 @@
     "qrcode": "1.5.4"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
     "@firebase/rules-unit-testing": "3.0.4",
     "@types/node": "22.15.21",
     "@types/qrcode": "^1.5.5",

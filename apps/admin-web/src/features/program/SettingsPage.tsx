@@ -1,6 +1,6 @@
 // =============================================================================
 // SettingsPage.tsx — System configuration, alert thresholds & material rates
-// Phase 9 — Dirty draft tracking, useBlocker navigation guard & atomic settings
+// Phase AB-05 — Immutable program settings and future-policy publication
 // =============================================================================
 
 import * as React from "react";
@@ -29,14 +29,14 @@ export type ProgramMaterial = "plastic" | "aluminium" | "paper" | "glass";
 
 interface SettingsFormState {
   capacityAlertThreshold: "75" | "80" | "85";
-  acceptedMaterials: MaterialType[];
+  acceptedClasses: string[];
   rateInputs: Record<ProgramMaterial, string>;
 }
 
 type SettingsFormErrors = Partial<
   Record<
     | "capacityAlertThreshold"
-    | "acceptedMaterials"
+    | "acceptedClasses"
     | ProgramMaterial,
     string
   >
@@ -45,16 +45,94 @@ type SettingsFormErrors = Partial<
 const MATERIAL_DISPLAY_NAMES: Record<ProgramMaterial, string> = {
   plastic: "Plastic",
   aluminium: "Metal / Aluminium",
-  paper: "Paper & Cardboard",
+  paper: "Paper (Cardboard excluded)",
   glass: "Glass"
 };
 
 const ALL_PROGRAM_MATERIALS: ProgramMaterial[] = ["plastic", "aluminium", "paper", "glass"];
 
+interface ClassDef {
+  id: string;
+  label: string;
+  description: string;
+  category: ProgramMaterial;
+  excluded?: boolean;
+  exclusionReason?: string;
+}
+
+const PROGRAM_CLASS_GROUPS: {
+  category: ProgramMaterial;
+  title: string;
+  classes: ClassDef[];
+}[] = [
+  {
+    category: "plastic",
+    title: "Plastic Stream",
+    classes: [
+      {
+        id: "plastic_bottle",
+        label: "Plastic bottles",
+        description: "Clean PET and HDPE beverage bottles and liquid containers",
+        category: "plastic",
+      },
+    ],
+  },
+  {
+    category: "aluminium",
+    title: "Metal / Aluminium Stream",
+    classes: [
+      {
+        id: "aluminium_can",
+        label: "Aluminium cans",
+        description: "Clean beverage cans (generic metal cans require subtype inspection)",
+        category: "aluminium",
+      },
+    ],
+  },
+  {
+    category: "glass",
+    title: "Glass Stream",
+    classes: [
+      {
+        id: "glass_bottle",
+        label: "Glass bottles",
+        description: "Clean beverage and food jars (broken glassware and window panes excluded)",
+        category: "glass",
+      },
+    ],
+  },
+  {
+    category: "paper",
+    title: "Paper Stream & Excluded Cardboard",
+    classes: [
+      {
+        id: "paper_item",
+        label: "Paper items",
+        description: "Clean office paper, notebooks, mail, flyers, and magazines",
+        category: "paper",
+      },
+      {
+        id: "paper_bag",
+        label: "Paper bags",
+        description: "Clean unlined paper grocery and shopping bags",
+        category: "paper",
+      },
+      {
+        id: "cardboard_item",
+        label: "Cardboard (Boxes & Cartons)",
+        description: "Bulky corrugated cardboard and packaging boxes",
+        category: "paper",
+        excluded: true,
+        exclusionReason: "Excluded from smart bin acceptance — Bulky stream must be brought to manual recycling hubs",
+      },
+    ],
+  },
+];
+
 function cloneForm(state: SettingsFormState): SettingsFormState {
   return {
     capacityAlertThreshold: state.capacityAlertThreshold,
-    acceptedMaterials: [...state.acceptedMaterials],
+    acceptedClasses: [...state.acceptedClasses],
     rateInputs: { ...state.rateInputs }
   };
 }
@@ -74,15 +152,15 @@ export function SettingsPage(): React.ReactElement {
   // Local Form Draft State
   const [draft, setDraft] = React.useState<SettingsFormState | null>(null);
   const [savedSnapshot, setSavedSnapshot] = React.useState<SettingsFormState | null>(null);
+  const [baseVersion, setBaseVersion] = React.useState<number>(1);
   const [errors, setErrors] = React.useState<SettingsFormErrors>({});
   const [isDirty, setIsDirty] = React.useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = React.useState<boolean>(false);
 
   // Initialize and preserve dirty draft across new snapshots:
-  // "copy its three editable fields into local draft once per initial load/save, preserving a dirty draft across new snapshots."
   React.useEffect(() => {
     if (settingsQuery.data && (!draft || !isDirty)) {
-      const ratesRecord: Record<"plastic" | "aluminium" | "paper" | "glass", string> = {
+      const ratesRecord: Record<ProgramMaterial, string> = {
         plastic: "0",
         aluminium: "0",
         paper: "0",
@@ -91,28 +169,43 @@ export function SettingsPage(): React.ReactElement {
 
       for (const r of settingsQuery.data.materialRates) {
         if (r.materialType in ratesRecord) {
-          ratesRecord[r.materialType as keyof typeof ratesRecord] = String(
+          ratesRecord[r.materialType as ProgramMaterial] = String(
             r.pointsPerItem
           );
         }
       }
 
+      const initialClasses = settingsQuery.data.acceptedClasses ?? [
+        "plastic_bottle",
+        "aluminium_can",
+        "glass_bottle",
+        "paper_item",
+        "paper_bag",
+      ];
+
       const initial: SettingsFormState = {
         capacityAlertThreshold: String(
           settingsQuery.data.capacityAlertThreshold
         ) as "75" | "80" | "85",
-        acceptedMaterials: [...settingsQuery.data.acceptedMaterials],
+        acceptedClasses: [...initialClasses],
         rateInputs: ratesRecord
       };
 
       setDraft(initial);
       setSavedSnapshot(initial);
+      setBaseVersion(settingsQuery.data.version ?? 1);
       setIsDirty(false);
     }
   }, [settingsQuery.data]);
 
+  // Version conflict detection: dirty draft exists while background data has moved ahead
+  const isVersionConflict = Boolean(
+    isDirty &&
+      settingsQuery.data?.version !== undefined &&
+      settingsQuery.data.version > baseVersion
+  );
+
   // Unconditional React Router blocker
-  // "Call useBlocker(dirty && !pending) unconditionally from react-router-dom and use ConfirmDialog for in-app navigation"
   const blocker = useBlocker(isDirty && !saveMutation.pending);
 
   // Browser beforeunload event while dirty
@@ -138,22 +231,24 @@ export function SettingsPage(): React.ReactElement {
     }
   };
 
-  const handleToggleMaterial = (material: MaterialType) => {
+  const handleToggleClass = (classId: string) => {
     if (!draft) return;
-    const isAccepted = draft.acceptedMaterials.includes(material);
-    const updated = isAccepted
-      ? draft.acceptedMaterials.filter((m) => m !== material)
-      : [...draft.acceptedMaterials, material];
+    if (classId === "cardboard_item") return; // strictly excluded
 
-    setDraft({ ...draft, acceptedMaterials: updated });
+    const isAccepted = draft.acceptedClasses.includes(classId);
+    const updated = isAccepted
+      ? draft.acceptedClasses.filter((c) => c !== classId)
+      : [...draft.acceptedClasses, classId];
+
+    setDraft({ ...draft, acceptedClasses: updated });
     setIsDirty(true);
     setSaveSuccess(false);
-    if (errors.acceptedMaterials) {
-      setErrors({ ...errors, acceptedMaterials: undefined });
+    if (errors.acceptedClasses) {
+      setErrors({ ...errors, acceptedClasses: undefined });
     }
   };
 
-  const handleRateChange = (material: "plastic" | "aluminium" | "paper" | "glass", value: string) => {
+  const handleRateChange = (material: ProgramMaterial, value: string) => {
     if (!draft) return;
     setDraft({
       ...draft,
@@ -180,6 +275,47 @@ export function SettingsPage(): React.ReactElement {
     }
   };
 
+  // Reload latest settings from server, discarding conflicting local draft
+  const handleReloadLatest = () => {
+    if (!settingsQuery.data) return;
+    saveMutation.clearError();
+    setSaveSuccess(false);
+
+    const ratesRecord: Record<ProgramMaterial, string> = {
+      plastic: "0",
+      aluminium: "0",
+      paper: "0",
+      glass: "0",
+    };
+    for (const r of settingsQuery.data.materialRates) {
+      if (r.materialType in ratesRecord) {
+        ratesRecord[r.materialType as ProgramMaterial] = String(r.pointsPerItem);
+      }
+    }
+
+    const initialClasses = settingsQuery.data.acceptedClasses ?? [
+      "plastic_bottle",
+      "aluminium_can",
+      "glass_bottle",
+      "paper_item",
+      "paper_bag",
+    ];
+
+    const initial: SettingsFormState = {
+      capacityAlertThreshold: String(
+        settingsQuery.data.capacityAlertThreshold
+      ) as "75" | "80" | "85",
+      acceptedClasses: [...initialClasses],
+      rateInputs: ratesRecord,
+    };
+
+    setDraft(initial);
+    setSavedSnapshot(initial);
+    setBaseVersion(settingsQuery.data.version ?? 1);
+    setIsDirty(false);
+    setErrors({});
+  };
+
   // Validation
   const validate = (): boolean => {
     if (!draft) return false;
@@ -189,18 +325,15 @@ export function SettingsPage(): React.ReactElement {
       newErrors.capacityAlertThreshold = "Valid threshold (75%, 80%, or 85%) is required";
     }
 
-    if (draft.acceptedMaterials.length === 0) {
-      newErrors.acceptedMaterials = "At least one accepted material category must be selected";
+    if (draft.acceptedClasses.length === 0) {
+      newErrors.acceptedClasses = "At least one accepted recyclable class must be selected";
     }
 
-    const knownMaterials: ("plastic" | "aluminium" | "paper" | "glass")[] = [
-      "plastic",
-      "aluminium",
-      "paper",
-      "glass"
-    ];
+    if (draft.acceptedClasses.includes("cardboard_item")) {
+      newErrors.acceptedClasses = "Cardboard cannot be accepted in smart bin automated deposits";
+    }
 
-    for (const m of knownMaterials) {
+    for (const m of ALL_PROGRAM_MATERIALS) {
       const val = Number(draft.rateInputs[m]);
       if (
         draft.rateInputs[m] === "" ||
@@ -223,12 +356,21 @@ export function SettingsPage(): React.ReactElement {
     saveMutation.clearError();
     setSaveSuccess(false);
 
-    // Build MaterialRate list in repository order, setting eligible flag according to acceptedMaterials
+    // Derive acceptedMaterials from explicit acceptedClasses
+    const derivedAcceptedMaterials: MaterialType[] = [];
+    if (draft.acceptedClasses.includes("plastic_bottle")) derivedAcceptedMaterials.push("plastic");
+    if (draft.acceptedClasses.includes("aluminium_can")) derivedAcceptedMaterials.push("aluminium");
+    if (draft.acceptedClasses.includes("glass_bottle")) derivedAcceptedMaterials.push("glass");
+    if (draft.acceptedClasses.includes("paper_item") || draft.acceptedClasses.includes("paper_bag")) {
+      derivedAcceptedMaterials.push("paper");
+    }
+
+    // Build MaterialRate list in repository order
     const materialRates: MaterialRate[] = (settingsQuery.data?.materialRates ?? []).map(
       (mr) => {
-        const key = mr.materialType as keyof typeof draft.rateInputs;
+        const key = mr.materialType as ProgramMaterial;
         const pts = Number(draft.rateInputs[key] ?? 0);
-        const isEligible = draft.acceptedMaterials.includes(mr.materialType);
+        const isEligible = derivedAcceptedMaterials.includes(mr.materialType);
         return {
           materialType: mr.materialType,
           displayName: mr.displayName,
@@ -239,8 +381,10 @@ export function SettingsPage(): React.ReactElement {
     );
 
     const input: SettingsInput = {
+      expectedVersion: baseVersion,
       capacityAlertThreshold: Number(draft.capacityAlertThreshold) as 75 | 80 | 85,
-      acceptedMaterials: draft.acceptedMaterials,
+      acceptedMaterials: derivedAcceptedMaterials,
+      acceptedClasses: draft.acceptedClasses,
       materialRates
     };
 
@@ -251,10 +395,11 @@ export function SettingsPage(): React.ReactElement {
     if (result) {
       const newSnapshot: SettingsFormState = {
         capacityAlertThreshold: String(result.capacityAlertThreshold) as "75" | "80" | "85",
-        acceptedMaterials: [...result.acceptedMaterials],
+        acceptedClasses: [...(result.acceptedClasses ?? draft.acceptedClasses)],
         rateInputs: { ...draft.rateInputs }
       };
       setSavedSnapshot(newSnapshot);
+      setBaseVersion(result.version ?? baseVersion + 1);
       setIsDirty(false);
       setSaveSuccess(true);
     }
@@ -267,7 +412,7 @@ export function SettingsPage(): React.ReactElement {
         <AsyncState
           kind="loading"
           title="Loading program configuration..."
-          description="Fetching alert thresholds and material calculation rates."
+          description="Fetching alert thresholds, accepted class policies, and points rates."
         />
       </div>
     );
@@ -294,6 +439,15 @@ export function SettingsPage(): React.ReactElement {
     );
   }
 
+  // Derive which categories are currently active in the draft
+  const activeCategories: ProgramMaterial[] = [];
+  if (draft.acceptedClasses.includes("plastic_bottle")) activeCategories.push("plastic");
+  if (draft.acceptedClasses.includes("aluminium_can")) activeCategories.push("aluminium");
+  if (draft.acceptedClasses.includes("glass_bottle")) activeCategories.push("glass");
+  if (draft.acceptedClasses.includes("paper_item") || draft.acceptedClasses.includes("paper_bag")) {
+    activeCategories.push("paper");
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Page Header */}
@@ -315,7 +469,7 @@ export function SettingsPage(): React.ReactElement {
             <Button
               variant="primary"
               busy={saveMutation.pending}
-              disabled={!isDirty}
+              disabled={!isDirty || isVersionConflict}
               onClick={handleSave}
             >
               <Icon name="check" size={16} /> Save settings
@@ -324,12 +478,48 @@ export function SettingsPage(): React.ReactElement {
         }
       />
 
+      {/* Program Policy and Operational Version Bar */}
+      <div className="settings-policy-bar">
+        <div className="settings-policy-pill">
+          <span>Settings Version:</span>
+          <code>v{settingsQuery.data?.version ?? baseVersion}</code>
+        </div>
+        <div className="settings-policy-pill">
+          <span>Active Policy ID:</span>
+          <code>{settingsQuery.data?.policyVersion ?? "policy-v1"}</code>
+        </div>
+        {settingsQuery.data?.updatedAt && (
+          <div style={{ color: "var(--muted)", fontSize: "12px", marginLeft: "auto" }}>
+            Last published: {new Date(settingsQuery.data.updatedAt).toLocaleString()}
+          </div>
+        )}
+      </div>
+
+      {/* Version Conflict Warning Banner */}
+      {isVersionConflict && (
+        <div className="conflict-banner" role="alert">
+          <div className="conflict-banner-content">
+            <Icon name="alert" size={22} />
+            <div>
+              <b>Newer program settings version published (v{settingsQuery.data?.version})</b>
+              <div>
+                Another administrator published updated program settings. Your local draft has been kept,
+                but you must reload before saving to prevent overwriting recent changes.
+              </div>
+            </div>
+          </div>
+          <Button variant="ghost" onClick={handleReloadLatest}>
+            <Icon name="history" size={14} /> Reload latest settings
+          </Button>
+        </div>
+      )}
+
       {/* Success Notification Banner */}
       {saveSuccess && (
         <div className="success-banner" role="status">
           <Icon name="check" size={20} />
           <div>
-            <b>Settings saved</b>
+            <b>Settings and policy published</b>
             <span>New configuration rules and calculation rates are now active township-wide.</span>
           </div>
         </div>
@@ -338,7 +528,16 @@ export function SettingsPage(): React.ReactElement {
       {/* Mutation Error Notification */}
       {saveMutation.error && (
         <Feedback kind="error" onDismiss={saveMutation.clearError}>
-          {saveMutation.error}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+            <span>{saveMutation.error}</span>
+            {saveMutation.error.includes("Stale settings version") && (
+              <span style={{ marginLeft: "12px" }}>
+                <Button variant="ghost" onClick={handleReloadLatest}>
+                  Reload latest
+                </Button>
+              </span>
+            )}
+          </div>
         </Feedback>
       )}
 
@@ -353,7 +552,7 @@ export function SettingsPage(): React.ReactElement {
             <h2>Capacity alert threshold</h2>
             <p>
               Trigger a priority operational alert whenever any smart bin sensor detects fill level
-              at or above this threshold.
+              at or above this threshold. Threshold changes trigger an automated cycle reconciliation.
             </p>
           </div>
           <div className="setting-controls">
@@ -394,40 +593,76 @@ export function SettingsPage(): React.ReactElement {
           </div>
         </section>
 
-        {/* Section 2: Accepted Material Categories */}
+        {/* Section 2: Explicit Accepted Material Classes */}
         <section className="setting-section">
           <div className="setting-section-intro">
             <div className="icon-wrap">
               <Icon name="recycle" size={22} />
             </div>
-            <h2>Accepted material categories</h2>
+            <h2>Accepted material classes</h2>
             <p>
-              Select which verified recycling streams qualify for resident EcoPoints issuance and
-              township processing.
+              Configure granular item-class eligibility grouped by material stream.
+              Cardboard is strictly excluded from smart bins and must be directed to regional drop-off centers.
             </p>
           </div>
           <div className="setting-controls">
-            <div className="material-options">
-              {ALL_PROGRAM_MATERIALS.map((mat) => {
-                const isChecked = draft.acceptedMaterials.includes(mat);
+            <div className="class-categories-stack">
+              {PROGRAM_CLASS_GROUPS.map((group) => {
+                const isGroupEligible = activeCategories.includes(group.category);
                 return (
-                  <label
-                    key={mat}
-                    className={`material-option-card ${isChecked ? "selected" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleToggleMaterial(mat)}
-                    />
-                    <span>{MATERIAL_DISPLAY_NAMES[mat]}</span>
-                  </label>
+                  <div key={group.category} className="class-category-group">
+                    <div className="class-category-header">
+                      <span className="class-category-title">
+                        {group.title}
+                      </span>
+                      <span
+                        className={`class-category-badge ${
+                          isGroupEligible ? "eligible" : "ineligible"
+                        }`}
+                      >
+                        {isGroupEligible ? "Stream Active" : "Stream Inactive"}
+                      </span>
+                    </div>
+
+                    <div className="class-options-grid">
+                      {group.classes.map((cls) => {
+                        const isChecked = draft.acceptedClasses.includes(cls.id);
+                        const isExcluded = Boolean(cls.excluded);
+
+                        return (
+                          <label
+                            key={cls.id}
+                            className={`class-option-card ${
+                              isChecked ? "selected" : ""
+                            } ${isExcluded ? "disabled" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked && !isExcluded}
+                              disabled={isExcluded}
+                              onChange={() => handleToggleClass(cls.id)}
+                            />
+                            <div className="class-option-info">
+                              <span className="class-option-label">{cls.label}</span>
+                              <span className="class-option-desc">{cls.description}</span>
+                              {isExcluded && cls.exclusionReason && (
+                                <span className="excluded-tag">
+                                  <Icon name="alert" size={12} /> {cls.exclusionReason}
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
-            {errors.acceptedMaterials && (
+
+            {errors.acceptedClasses && (
               <span className="form-error" role="alert">
-                {errors.acceptedMaterials}
+                {errors.acceptedClasses}
               </span>
             )}
           </div>
@@ -442,13 +677,13 @@ export function SettingsPage(): React.ReactElement {
             <h2>EcoPoints calculation rules</h2>
             <p>
               Specify the points awarded per accepted recyclable piece or container during verified
-              deposit sessions.
+              deposit sessions. Non-negative values including 0 are valid.
             </p>
           </div>
           <div className="setting-controls">
             <div className="rate-options">
               {ALL_PROGRAM_MATERIALS.map((mat) => {
-                const isAccepted = draft.acceptedMaterials.includes(mat);
+                const isAccepted = activeCategories.includes(mat);
                 const hasError = Boolean(errors[mat]);
                 return (
                   <div
@@ -459,7 +694,7 @@ export function SettingsPage(): React.ReactElement {
                       <span className="material-name">{MATERIAL_DISPLAY_NAMES[mat]}</span>
                       {!isAccepted && (
                         <div style={{ marginTop: "2px" }}>
-                          <small style={{ color: "var(--amber)" }}>Not eligible for points</small>
+                          <small style={{ color: "var(--amber)" }}>No active classes (0 pts)</small>
                         </div>
                       )}
                     </div>
@@ -470,7 +705,7 @@ export function SettingsPage(): React.ReactElement {
                       value={draft.rateInputs[mat]}
                       onChange={(e) =>
                         handleRateChange(
-                          mat as "plastic" | "aluminium" | "paper" | "glass",
+                          mat,
                           e.target.value
                         )
                       }

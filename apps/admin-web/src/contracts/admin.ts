@@ -67,7 +67,10 @@ export interface VerificationDetail {
   resident: ResidentProfile; bin: SmartBin;
 }
 export interface VerificationDecisionResult {
-  detail: VerificationDetail; wallet: WalletSnapshot;
+  detail: VerificationDetail;
+  wallet: WalletSnapshot;
+  outcome?: "verified" | "rejected" | "empty";
+  pointsAwarded?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,13 +86,23 @@ export interface AdminLoginRequest { email: string; password: string; }
 // Program settings
 // ---------------------------------------------------------------------------
 export interface AdminSettings {
-  id: "global"; capacityAlertThreshold: 75 | 80 | 85;
-  acceptedMaterials: MaterialType[]; materialRates: MaterialRate[];
+  id: "global";
+  version?: number;
+  policyVersion?: string;
+  capacityAlertThreshold: 75 | 80 | 85;
+  acceptedMaterials: MaterialType[];
+  acceptedClasses?: string[];
+  materialRates: MaterialRate[];
   updatedAt: ISODateTime;
 }
 export interface ProgramSettingsDocument {
-  id: "global"; capacityAlertThreshold: 75 | 80 | 85;
-  acceptedMaterials: MaterialType[]; updatedAt: ISODateTime;
+  id: "global";
+  version?: number;
+  policyVersion?: string;
+  capacityAlertThreshold: 75 | 80 | 85;
+  acceptedMaterials: MaterialType[];
+  acceptedClasses?: string[];
+  updatedAt: ISODateTime;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,10 +130,22 @@ export interface ResidentSnapshot {
 // ---------------------------------------------------------------------------
 // Input / mutation types
 // ---------------------------------------------------------------------------
-export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt">;
-export type RewardInput = Omit<RewardDocument, "id">;
-export type SettingsInput = Pick<AdminSettings,
-  "capacityAlertThreshold" | "acceptedMaterials" | "materialRates">;
+export type BinInput = Omit<SmartBin, "id" | "lastUpdatedAt"> & {
+  capacitySpc?: number;
+  expectedVersion?: number;
+};
+export type RewardInput = Omit<RewardDocument, "id"> & {
+  expectedVersion?: number;
+  terms?: string | null;
+  isDemo?: boolean;
+};
+export type SettingsInput = Pick<
+  AdminSettings,
+  "capacityAlertThreshold" | "acceptedMaterials" | "materialRates"
+> & {
+  expectedVersion?: number;
+  acceptedClasses?: string[];
+};
 
 // ---------------------------------------------------------------------------
 // List query specialisations

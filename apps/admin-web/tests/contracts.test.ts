@@ -656,7 +656,7 @@ describe("Phase 3 — Smart Bins CRUD & Lifecycle", () => {
 });
 
 describe("Phase 3 — Alert Lifecycle & Transitions", () => {
-  it("simulates BIN-004 to 85 twice -> 1 alert -> schedule -> collect to 10% -> resolve", async () => {
+  it("simulates BIN-004 to 85 twice -> 1 alert -> schedule -> collect to 0% -> resolve", async () => {
     let alertCount = 0;
     const bundle = createMockRepositories({
       readDelayMs: 0,
@@ -696,10 +696,10 @@ describe("Phase 3 — Alert Lifecycle & Transitions", () => {
     const scheduled = await bundle.repositories.alerts.schedule(alertId);
     assert.equal(scheduled.operations.collectionStatus, "scheduled");
 
-    // Collect -> capacity becomes 10%
+    // Collect -> capacity becomes 0% (corrected canonical requirement)
     const collected = await bundle.repositories.alerts.collect(alertId);
     assert.equal(collected.operations.collectionStatus, "collected");
-    assert.equal(collected.bin.capacityPercent, 10);
+    assert.equal(collected.bin.capacityPercent, 0);
 
     // Resolve
     const resolved = await bundle.repositories.alerts.resolve(alertId);

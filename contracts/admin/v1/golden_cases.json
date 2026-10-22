@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "admin.v1",
+  "cases": [
+    {
+      "caseId": "ab01-empty-resolution",
+      "scenario": "Admin resolves uncertain batch where image confirms no deposited items",
+      "command": {
+        "schemaVersion": "admin.v1",
+        "operation": "adminResolveReview",
+        "requestId": "req-empty-review-001",
+        "payload": {
+          "ticketId": "ticket-empty-001",
+          "expectedDecisionVersion": 0,
+          "inventoryState": "empty",
+          "objects": [],
+          "explanation": "Visual inspection of bin chamber confirms zero items deposited."
+        }
+      },
+      "expectedResult": {
+        "outcome": "empty",
+        "acceptedCount": 0,
+        "totalCount": 0,
+        "pointsAwarded": 0,
+        "spaceContributionSpc": 0,
+        "spaceCorrectionSpc": -50,
+        "statusBadge": "Empty",
+        "badgeColor": "gray"
+      }
+    },
+    {
+      "caseId": "ab01-technical-failure-review",
+      "scenario": "Admin resolves deposit flagged for unreadable/blurred capture",
+      "command": {
+        "schemaVersion": "admin.v1",
+        "operation": "adminResolveReview",
+        "requestId": "req-techfail-review-002",
+        "payload": {
+          "ticketId": "ticket-techfail-002",
+          "expectedDecisionVersion": 0,
+          "inventoryState": "unreadable",
+          "objects": [],
+          "explanation": "Image is completely obscured/black. Rejected under operator review."
+        }
+      },
+      "expectedResult": {
+        "outcome": "rejected",
+        "acceptedCount": 0,
+        "totalCount": null,
+        "pointsAwarded": 0,
+        "spaceContributionSpc": 50,
+        "spaceCorrectionSpc": 0,
+        "statusBadge": "Rejected",
+        "badgeColor": "red"
+      }
+    },
+    {
+      "caseId": "ab01-mixed-batch-resolution",
+      "scenario": "Admin inspects mixed batch with one detected plastic bottle and one uncertain item corrected to paper bag",
+      "command": {
+        "schemaVersion": "admin.v1",
+        "operation": "adminResolveReview",
+        "requestId": "req-mixed-review-003",
+        "payload": {
+          "ticketId": "ticket-mixed-003",
+          "expectedDecisionVersion": 0,
+          "inventoryState": "resolved",
+          "objects": [
+            {
+              "objectId": "obj-auto-01",
+              "resolvedClass": "plastic_bottle",
+              "decision": "accept",
+              "note": "Machine detection confirmed"
+            },
+            {
+              "objectId": "obj-uncertain-02",
+              "resolvedClass": "paper_bag",
+              "decision": "accept",
+              "note": "Operator identified as paper grocery bag"
+            }
+          ],
+          "explanation": "Verified plastic bottle and resolved uncertain paper bag."
+        }
+      },
+      "expectedResult": {
+        "outcome": "verified",
+        "acceptedCount": 2,
+        "totalCount": 2,
+        "pointsAwarded": 13,
+        "spaceContributionSpc": 28,
+        "spaceCorrectionSpc": -2,
+        "statusBadge": "Verified",
+        "badgeColor": "green"
+      }
+    },
+    {
+      "caseId": "ab01-alert-collection-cycle",
+      "scenario": "Bin exceeds threshold, alert triggers, collection is scheduled and recorded, resetting cycle to 0 spc / 0%",
+      "commands": [
+        {
+          "schemaVersion": "admin.v1",
+          "operation": "adminScheduleCollection",
+          "requestId": "req-sched-col-004",
+          "payload": {
+            "alertId": "alert-bin-01",
+            "expectedVersion": 0
+          }
+        },
+        {
+          "schemaVersion": "admin.v1",
+          "operation": "adminRecordCollection",
+          "requestId": "req-rec-col-005",
+          "payload": {
+            "binId": "bin-01",
+            "expectedCycleId": "cycle-bin-01-001",
+            "notes": "Routine weekly collection by EcoOps team"
+          }
+        },
+        {
+          "schemaVersion": "admin.v1",
+          "operation": "adminResolveCapacityAlert",
+          "requestId": "req-resolve-alert-006",
+          "payload": {
+            "alertId": "alert-bin-01",
+            "expectedVersion": 1
+          }
+        }
+      ],
+      "expectedResult": {
+        "finalAlertState": "resolved",
+        "newCycleOccupiedSpc": 0,
+        "newCycleFillPercent": 0,
+        "newCycleIdPattern": "^bin-01-[0-9]+$"
+      }
+    },
+    {
+      "caseId": "ab01-bin-registration-and-qr",
+      "scenario": "Admin registers new smart bin with 1000 spc capacity and generates valid QR mapping",
+      "command": {
+        "schemaVersion": "admin.v1",
+        "operation": "adminCreateBin",
+        "requestId": "req-create-bin-007",
+        "payload": {
+          "binId": "bin-library-01",
+          "locationName": "Central Library",
+          "locationDetail": "Level 1 Recycling Zone near entrance",
+          "capacitySpc": 1000
+        }
+      },
+      "expectedResult": {
+        "initialOccupiedSpc": 0,
+        "initialFillPercent": 0,
+        "enabled": true,
+        "qrPayload": "ecoloop://bin/qr-library-01"
+      }
+    },
+    {
+      "caseId": "ab01-publish-program-settings",
+      "scenario": "Admin updates operational threshold to 80% and establishes pinned policy version",
+      "command": {
+        "schemaVersion": "admin.v1",
+        "operation": "adminPublishSettings",
+        "requestId": "req-publish-settings-008",
+        "payload": {
+          "expectedVersion": 1,
+          "capacityAlertThreshold": 80,
+          "acceptedClasses": [
+            "plastic_bottle",
+            "aluminium_can",
+            "paper_item",
+            "paper_bag"
+          ],
+          "materialRates": [
+            { "materialType": "plastic", "pointsPerItem": 10, "eligible": true },
+            { "materialType": "aluminium", "pointsPerItem": 15, "eligible": true },
+            { "materialType": "paper", "pointsPerItem": 3, "eligible": true },
+            { "materialType": "glass", "pointsPerItem": 0, "eligible": false }
+          ]
+        }
+      },
+      "expectedResult": {
+        "newOperationalVersion": 2,
+        "activePolicyIdPattern": "^policy-[a-f0-9]{8}$"
+      }
+    }
+  ]
+}

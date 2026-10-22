@@ -3,7 +3,7 @@
 // Phase 3 — SDK-free; asynchronous Promise + Observable contracts
 // =============================================================================
 
-import type { AuthState, RewardCategory, Reward } from "../contracts/shared.ts";
+import type { AuthState, RewardCategory, Reward, ResidentVoucher, VoucherStatus } from "../contracts/shared.ts";
 import type {
   AdminSession, AdminIdentity, AdminLoginRequest, DashboardSummary,
   BinListQuery, Page, SmartBinRow, BinInput, AlertListQuery, AlertPage,
@@ -11,6 +11,12 @@ import type {
   VerificationDecisionResult, RewardListQuery, RewardInput,
   AdminSettings, SettingsInput, ResidentSnapshot
 } from "../contracts/admin.ts";
+import type {
+  AdminReviewDetailView,
+  ObjectResolutionDecisionInput,
+  ReviewResolutionPreview,
+  ResolveReviewInput,
+} from "../contracts/adminViewCodecs.ts";
 
 export type FailureCode = "unavailable" | "invalidData" | "notFound" |
   "validation" | "conflict" | "insufficientPoints" | "invalidQr" |
@@ -62,6 +68,14 @@ export interface DashboardRepository {
   watchSummary(): Observable<DashboardSummary>;
 }
 
+export interface BinQrCode {
+  binId: string;
+  qrId: string;
+  qrPayload: string;
+  dataUrl: string;
+  svg: string;
+}
+
 export interface BinsRepository {
   list(query: BinListQuery): Promise<Page<SmartBinRow>>;
   watchList(query: BinListQuery): Observable<Page<SmartBinRow>>;
@@ -71,6 +85,7 @@ export interface BinsRepository {
   update(id: string, input: BinInput): Promise<SmartBinRow>;
   delete(id: string): Promise<void>;
   simulateCapacity(id: string, capacityPercent: number): Promise<SmartBinRow>;
+  getQrCode(id: string): Promise<BinQrCode>;
 }
 
 export interface AlertsRepository {
@@ -88,7 +103,22 @@ export interface VerificationRepository {
   watchList(query: VerificationListQuery): Observable<Page<VerificationDetail>>;
   get(id: string): Promise<VerificationDetail>;
   watch(id: string): Observable<VerificationDetail | null>;
+  getReviewDetail?(ticketId: string): Promise<AdminReviewDetailView>;
+  watchReviewDetail?(ticketId: string): Observable<AdminReviewDetailView | null>;
+  previewResolution?(input: {
+    ticketId: string;
+    inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+    objects: ObjectResolutionDecisionInput[];
+  }): Promise<ReviewResolutionPreview>;
+  resolveReview?(input: ResolveReviewInput): Promise<VerificationDecisionResult>;
   decide(id: string, decision: "approve" | "reject", idempotencyKey: string): Promise<VerificationDecisionResult>;
+}
+
+export interface VoucherListQuery {
+  search?: string;
+  status?: VoucherStatus | "all";
+  page: number;
+  pageSize: 5 | 10 | 20;
 }
 
 export interface AdminRewardsRepository {
@@ -100,7 +130,9 @@ export interface AdminRewardsRepository {
   watchCategories(): Observable<RewardCategory[]>;
   create(input: RewardInput): Promise<Reward>;
   update(id: string, input: RewardInput): Promise<Reward>;
-  delete(id: string): Promise<void>;
+  delete(id: string, expectedVersion?: number): Promise<void>;
+  listVouchers?(query: VoucherListQuery): Promise<Page<ResidentVoucher>>;
+  watchVouchers?(query: VoucherListQuery): Observable<Page<ResidentVoucher>>;
 }
 
 export interface SettingsRepository {
@@ -124,7 +156,7 @@ export interface AdminRepositories {
 export type OperationName =
   "auth.getAuthState" | "auth.getSession" | "auth.getIdentity" | "auth.getDemoCredentials" | "auth.login" | "auth.logout" |
   "dashboard.getSummary" | "bins.list" | "bins.get" | "bins.create" | "bins.update" | "bins.delete" |
-  "bins.simulateCapacity" | "alerts.list" | "alerts.get" | "alerts.schedule" | "alerts.collect" |
+  "bins.simulateCapacity" | "bins.getQrCode" | "alerts.list" | "alerts.get" | "alerts.schedule" | "alerts.collect" |
   "alerts.resolve" | "verification.list" | "verification.get" | "verification.decide" |
   "rewards.list" | "rewards.get" | "rewards.getCategories" | "rewards.create" | "rewards.update" |
   "rewards.delete" | "settings.get" | "settings.update" | "residents.getSnapshot";

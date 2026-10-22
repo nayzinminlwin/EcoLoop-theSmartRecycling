@@ -1,0 +1,457 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecoloop.example/contracts/admin/v1/dtos.schema.json",
+  "title": "EcoLoop admin backend query and view DTO contracts",
+  "description": "Read models, projections, pagination envelopes, and dashboard representations for the admin portal. Identity display aliases are safe for browser exposure.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/adminContext" },
+    { "$ref": "#/$defs/adminBinView" },
+    { "$ref": "#/$defs/adminBinDetailView" },
+    { "$ref": "#/$defs/adminAlertView" },
+    { "$ref": "#/$defs/adminReviewView" },
+    { "$ref": "#/$defs/adminReviewDetailView" },
+    { "$ref": "#/$defs/adminRewardView" },
+    { "$ref": "#/$defs/adminRewardCategoryView" },
+    { "$ref": "#/$defs/adminSettingsView" },
+    { "$ref": "#/$defs/adminDashboardView" },
+    { "$ref": "#/$defs/adminPaginatedResponse" }
+  ],
+  "$defs": {
+    "schemaVersion": { "const": "admin.v1" },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "instant": { "type": "string", "format": "date-time" },
+    "dateString": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "materialType": { "type": "string", "enum": ["plastic", "aluminium", "paper", "glass", "unknown"] },
+    "materialClass": { "type": "string", "enum": ["plastic_bottle", "aluminium_can", "glass_bottle", "paper_item", "paper_bag", "cardboard_item", "other", "unknown"] },
+    "inventoryState": { "type": "string", "enum": ["resolved", "empty", "unreadable", "uncertain"] },
+    "reviewOutcome": { "type": "string", "enum": ["processing", "review", "verified", "rejected", "empty"] },
+    "alertLifecycleState": { "type": "string", "enum": ["pending", "active", "scheduled", "collected", "resolved"] },
+
+    "adminContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "uid", "email", "role", "enabled", "environment", "serverTime"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "anyOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }] },
+        "role": { "const": "admin" },
+        "enabled": { "type": "boolean" },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["projectId", "database", "region", "backendMode"],
+          "properties": {
+            "projectId": { "type": "string", "pattern": "^[a-z0-9-]{6,30}$" },
+            "database": { "type": "string", "pattern": "^[a-z0-9-]{3,30}$" },
+            "region": { "type": "string" },
+            "backendMode": { "type": "string", "enum": ["mock", "emulator", "firebase"] }
+          }
+        },
+        "serverTime": { "$ref": "#/$defs/instant" }
+      }
+    },
+
+    "adminBinView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binId",
+        "locationName",
+        "locationDetail",
+        "capacitySpc",
+        "occupiedSpc",
+        "fillPercent",
+        "cycleId",
+        "enabled",
+        "logicalOnline",
+        "version",
+        "sharedPolicyVersion",
+        "collectionState",
+        "updatedAt"
+      ],
+      "properties": {
+        "binId": { "$ref": "#/$defs/id" },
+        "locationName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "locationDetail": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "capacitySpc": { "type": "integer", "minimum": 50, "maximum": 5000 },
+        "occupiedSpc": { "type": "integer", "minimum": 0 },
+        "fillPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "cycleId": { "$ref": "#/$defs/id" },
+        "enabled": { "type": "boolean" },
+        "logicalOnline": { "type": "boolean" },
+        "version": { "type": "integer", "minimum": 0 },
+        "sharedPolicyVersion": { "type": "string" },
+        "collectionState": { "type": "string", "enum": ["normal", "warning", "critical", "collection_pending"] },
+        "lastCollectionTime": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] },
+        "updatedAt": { "$ref": "#/$defs/instant" }
+      }
+    },
+
+    "adminBinDetailView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bin",
+        "qrPayload",
+        "totalCollections",
+        "totalAcceptedItems",
+        "activeAlertId"
+      ],
+      "properties": {
+        "bin": { "$ref": "#/$defs/adminBinView" },
+        "qrPayload": { "type": "string", "format": "uri" },
+        "totalCollections": { "type": "integer", "minimum": 0 },
+        "totalAcceptedItems": { "type": "integer", "minimum": 0 },
+        "activeAlertId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    },
+
+    "adminAlertView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alertId",
+        "binId",
+        "locationName",
+        "cycleId",
+        "triggeringFillPercent",
+        "currentFillPercent",
+        "threshold",
+        "operationalSettingsVersion",
+        "state",
+        "version",
+        "triggeredAt"
+      ],
+      "properties": {
+        "alertId": { "$ref": "#/$defs/id" },
+        "binId": { "$ref": "#/$defs/id" },
+        "locationName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "cycleId": { "$ref": "#/$defs/id" },
+        "triggeringFillPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "currentFillPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "threshold": { "type": "integer", "enum": [75, 80, 85] },
+        "operationalSettingsVersion": { "type": "integer", "minimum": 0 },
+        "state": { "$ref": "#/$defs/alertLifecycleState" },
+        "version": { "type": "integer", "minimum": 0 },
+        "triggeredAt": { "$ref": "#/$defs/instant" },
+        "scheduledAt": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] },
+        "scheduledBy": { "anyOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }] },
+        "resolvedAt": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] },
+        "resolvedBy": { "anyOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }] },
+        "collectionEventId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }
+      }
+    },
+
+    "adminReviewView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticketId",
+        "batchId",
+        "binId",
+        "locationName",
+        "occurredAt",
+        "state",
+        "outcome",
+        "decisionVersion",
+        "residentAlias",
+        "totalCount",
+        "materialSummary"
+      ],
+      "properties": {
+        "ticketId": { "$ref": "#/$defs/id" },
+        "batchId": { "$ref": "#/$defs/id" },
+        "binId": { "$ref": "#/$defs/id" },
+        "locationName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "occurredAt": { "$ref": "#/$defs/instant" },
+        "state": { "type": "string", "enum": ["awaiting_review", "resolved"] },
+        "outcome": { "$ref": "#/$defs/reviewOutcome" },
+        "decisionVersion": { "type": "integer", "minimum": 0 },
+        "residentAlias": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "totalCount": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "materialSummary": { "anyOf": [{ "type": "string", "maxLength": 120 }, { "type": "null" }] },
+        "reviewerAlias": { "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }] },
+        "resolvedAt": { "anyOf": [{ "$ref": "#/$defs/instant" }, { "type": "null" }] }
+      }
+    },
+
+    "adminReviewDetailView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review",
+        "sessionId",
+        "resultId",
+        "pinnedPolicyId",
+        "pinnedPolicyVersion",
+        "provisionalSpaceSpc",
+        "inventoryState",
+        "findings",
+        "source",
+        "evidence",
+        "history"
+      ],
+      "properties": {
+        "review": { "$ref": "#/$defs/adminReviewView" },
+        "sessionId": { "$ref": "#/$defs/id" },
+        "resultId": { "$ref": "#/$defs/id" },
+        "pinnedPolicyId": { "type": "string" },
+        "pinnedPolicyVersion": { "type": "integer", "minimum": 0 },
+        "provisionalSpaceSpc": { "type": "integer", "minimum": 0 },
+        "heldPoints": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "finalSpaceSpc": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "awardedPoints": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] },
+        "inventoryState": { "$ref": "#/$defs/inventoryState" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["objectId", "detectedClass"],
+            "properties": {
+              "objectId": { "$ref": "#/$defs/id" },
+              "detectedClass": { "$ref": "#/$defs/materialClass" },
+              "confidence": { "anyOf": [{ "type": "number", "minimum": 0.0, "maximum": 1.0 }, { "type": "null" }] },
+              "boundingBox": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["x1", "y1", "x2", "y2"],
+                    "properties": {
+                      "x1": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                      "y1": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                      "x2": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                      "y2": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+                    }
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "resolvedClass": { "anyOf": [{ "$ref": "#/$defs/materialClass" }, { "type": "null" }] },
+              "decision": { "anyOf": [{ "type": "string", "enum": ["accept", "exclude"] }, { "type": "null" }] },
+              "note": { "anyOf": [{ "type": "string", "maxLength": 160 }, { "type": "null" }] }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "enum": ["simulated_bin_capture", "physical_camera"] },
+            "assetId": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+            "pipelineRunId": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+            "modelVersion": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["previewAvailable"],
+          "properties": {
+            "previewAvailable": { "type": "boolean" },
+            "previewUrl": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+            "failureReason": { "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }] }
+          }
+        },
+        "explanation": { "anyOf": [{ "type": "string", "maxLength": 300 }, { "type": "null" }] },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["actor", "action", "timestamp"],
+            "properties": {
+              "actor": { "type": "string", "maxLength": 64 },
+              "action": { "type": "string", "maxLength": 64 },
+              "timestamp": { "$ref": "#/$defs/instant" },
+              "note": { "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }] }
+            }
+          }
+        }
+      }
+    },
+
+    "adminRewardView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rewardId",
+        "title",
+        "description",
+        "merchantName",
+        "categoryId",
+        "categoryName",
+        "pointsCost",
+        "expiresAt",
+        "isActive",
+        "maxRedemptionsPerResident",
+        "artKey",
+        "sortOrder",
+        "isDemo",
+        "version",
+        "updatedAt"
+      ],
+      "properties": {
+        "rewardId": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 300 },
+        "merchantName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "categoryId": { "$ref": "#/$defs/id" },
+        "categoryName": { "type": "string", "minLength": 2, "maxLength": 50 },
+        "tag": { "anyOf": [{ "type": "string", "maxLength": 40 }, { "type": "null" }] },
+        "imageUrl": { "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }] },
+        "pointsCost": { "type": "integer", "minimum": 1 },
+        "expiresAt": { "$ref": "#/$defs/instant" },
+        "isActive": { "type": "boolean" },
+        "maxRedemptionsPerResident": { "type": "integer", "minimum": 1 },
+        "artKey": { "type": "string", "enum": ["art0", "art1", "art2", "art3"] },
+        "sortOrder": { "type": "integer", "minimum": 0 },
+        "isDemo": { "type": "boolean" },
+        "terms": { "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }] },
+        "version": { "type": "integer", "minimum": 0 },
+        "updatedAt": { "$ref": "#/$defs/instant" }
+      }
+    },
+
+    "adminRewardCategoryView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categoryId", "categoryName", "sortOrder"],
+      "properties": {
+        "categoryId": { "$ref": "#/$defs/id" },
+        "categoryName": { "type": "string", "minLength": 2, "maxLength": 50 },
+        "description": { "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }] },
+        "sortOrder": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "adminSettingsView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationalVersion",
+        "activePolicyId",
+        "activePolicyDigest",
+        "capacityAlertThreshold",
+        "acceptedClasses",
+        "materialRates",
+        "publishedAt",
+        "publishedBy"
+      ],
+      "properties": {
+        "operationalVersion": { "type": "integer", "minimum": 0 },
+        "activePolicyId": { "type": "string" },
+        "activePolicyDigest": { "type": "string", "pattern": "^[a-f0-9]{32,64}$" },
+        "capacityAlertThreshold": { "type": "integer", "enum": [75, 80, 85] },
+        "acceptedClasses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/materialClass" },
+          "minItems": 1
+        },
+        "materialRates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["materialType", "pointsPerItem", "eligible"],
+            "properties": {
+              "materialType": { "$ref": "#/$defs/materialType" },
+              "pointsPerItem": { "type": "integer", "minimum": 0 },
+              "eligible": { "type": "boolean" }
+            }
+          },
+          "minItems": 1
+        },
+        "publishedAt": { "$ref": "#/$defs/instant" },
+        "publishedBy": { "type": "string", "maxLength": 64 }
+      }
+    },
+
+    "adminDashboardView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registeredBins",
+        "activeAlerts",
+        "pendingReviews",
+        "verifiedDepositsToday",
+        "pointsIssuedToday",
+        "lastCalculatedAt",
+        "dailyActivity",
+        "materialMix",
+        "attentionBins"
+      ],
+      "properties": {
+        "registeredBins": { "type": "integer", "minimum": 0 },
+        "activeAlerts": { "type": "integer", "minimum": 0 },
+        "pendingReviews": { "type": "integer", "minimum": 0 },
+        "verifiedDepositsToday": { "type": "integer", "minimum": 0 },
+        "pointsIssuedToday": { "type": "integer", "minimum": 0 },
+        "lastCalculatedAt": { "$ref": "#/$defs/instant" },
+        "dailyActivity": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["date", "depositsCount", "pointsAwarded"],
+            "properties": {
+              "date": { "$ref": "#/$defs/dateString" },
+              "depositsCount": { "type": "integer", "minimum": 0 },
+              "pointsAwarded": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "maxItems": 14
+        },
+        "materialMix": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["materialType", "percentage", "itemCount"],
+            "properties": {
+              "materialType": { "$ref": "#/$defs/materialType" },
+              "percentage": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "itemCount": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "attentionBins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["binId", "locationName", "fillPercent", "collectionState"],
+            "properties": {
+              "binId": { "$ref": "#/$defs/id" },
+              "locationName": { "type": "string" },
+              "fillPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "collectionState": { "type": "string", "enum": ["normal", "warning", "critical", "collection_pending"] }
+            }
+          },
+          "maxItems": 10
+        }
+      }
+    },
+
+    "adminPaginatedResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "total", "hasMore", "readVersion", "freshness"],
+      "properties": {
+        "items": {
+          "type": "array"
+        },
+        "total": { "type": "integer", "minimum": 0 },
+        "hasMore": { "type": "boolean" },
+        "nextCursor": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "readVersion": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/instant" }
+      }
+    }
+  }
+}

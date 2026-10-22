@@ -1,3 +1,9 @@
+import { setGlobalOptions } from "firebase-functions/v2";
+
+setGlobalOptions({
+  invoker: "public",
+});
+
 export {
   bootstrapResident,
   getResidentProfile,
@@ -26,3 +32,52 @@ export {
 export { dispatchPendingJobs } from "./transport/dispatch.js";
 export { dispatchPendingNotifications } from "./transport/notification_dispatch.js";
 export { reconcileBackendState, runDailyMaintenance } from "./transport/schedules.js";
+export {
+  getAdminContext,
+  recoverAdminOperation,
+} from "./transport/admin_context.js";
+export {
+  listAdminBins,
+  getAdminBin,
+  listAdminRewards,
+  getAdminReward,
+  getAdminRewardCategories,
+} from "./transport/admin_queries.js";
+export {
+  adminCreateBin,
+  adminUpdateBin,
+  adminDeleteUnusedBin,
+  getAdminBinQr,
+} from "./transport/admin_bins.js";
+export {
+  getAdminSettings,
+  adminPublishSettings,
+} from "./transport/admin_settings.js";
+export {
+  listAdminAlerts,
+  getAdminAlert,
+  adminScheduleCollection,
+  adminRecordCollection,
+  adminResolveCapacityAlert,
+} from "./transport/admin_alerts.js";
+export {
+  listAdminReviews,
+  getAdminReview,
+  previewAdminReviewResolution,
+  adminResolveReview,
+} from "./transport/admin_reviews.js";
+export {
+  adminCreateReward,
+  adminCreateRewardOffer,
+  adminUpdateReward,
+  adminUpdateRewardOffer,
+  adminDeleteUnusedReward,
+  adminDeleteRewardOffer,
+} from "./transport/admin_rewards.js";
+export {
+  getAdminDashboard,
+  rebuildAdminDashboard,
+} from "./transport/admin_dashboard.js";
+
+
+

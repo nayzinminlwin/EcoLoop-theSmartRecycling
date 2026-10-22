@@ -8,6 +8,14 @@ export function timestampToInstant(value: unknown): Instant {
   throw new TypeError("Expected a Firestore timestamp or ISO instant");
 }
 
+export function tryTimestampToInstant(value: unknown): Instant | null {
+  if (!value) return null;
+  if (isTimestamp(value)) return value.toDate().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string" && !Number.isNaN(Date.parse(value))) return new Date(value).toISOString();
+  return null;
+}
+
 export function instantToTimestamp(value: Instant): Timestamp {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) throw new TypeError("Invalid instant");

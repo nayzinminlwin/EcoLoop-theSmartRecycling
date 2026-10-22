@@ -159,7 +159,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       services.repositories.alerts.schedule(alert.id)
     );
     if (result) {
-      setLocalFeedback(`Collection dispatched for bin ${bin.id}.`);
+      setLocalFeedback(`Collection scheduled for bin ${bin.id}.`);
     }
   };
 
@@ -174,7 +174,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
     );
     if (result) {
       setShowCollectConfirm(false);
-      setLocalFeedback(`Bin ${bin.id} marked as collected and capacity reset to 10%.`);
+      setLocalFeedback(`Bin ${bin.id} marked as collected and reset to 0% occupancy.`);
     }
   };
 
@@ -215,15 +215,15 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
                 isResolved
                   ? "green"
                   : isCollected
-                  ? "amber"
-                  : "red"
+                    ? "amber"
+                    : "red"
               }
             >
               {isResolved
                 ? "Resolved"
                 : isCollected
-                ? "Ready to resolve"
-                : "Critical · collection required"}
+                  ? "Ready to resolve"
+                  : "Critical · collection required"}
             </Badge>
           </div>
           <h2>
@@ -279,8 +279,8 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
                 operations.collectionStatus === "collected"
                   ? "green"
                   : operations.collectionStatus === "scheduled"
-                  ? "amber"
-                  : "gray"
+                    ? "amber"
+                    : "gray"
               }
             >
               {COLLECTION_LABELS[operations.collectionStatus]}
@@ -331,7 +331,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
         <div className="resolution" role="status">
           <Icon name="check" size={20} />
           <span>
-            Collection completed, capacity reset to 10%, and alert resolved at{" "}
+            Collection completed, cycle closed, and alert resolved at{" "}
             {formatDateTime(alert.resolvedAt)}.
           </span>
         </div>
@@ -341,7 +341,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       <ConfirmDialog
         open={showCollectConfirm}
         title="Confirm Bin Collection"
-        description="Confirm collection for this smart bin? Marking this bin as collected will reset its current capacity to 10% and update township operations."
+        description="Confirm collection for this smart bin? Marking this bin as collected will close the current cycle, reset occupancy to 0%, and open a new empty collection cycle."
         confirmLabel="Mark collected & reset bin"
         variant="primary"
         busy={actionMutation.pending}
@@ -490,8 +490,8 @@ export function CapacityAlertsPage(): React.ReactElement {
                     toneClass === "critical"
                       ? "var(--red)"
                       : toneClass === "warning"
-                      ? "var(--amber)"
-                      : "var(--green)",
+                        ? "var(--amber)"
+                        : "var(--green)",
                   borderRadius: "999px"
                 }}
               />
@@ -518,8 +518,8 @@ export function CapacityAlertsPage(): React.ReactElement {
               cs === "collected"
                 ? "green"
                 : cs === "scheduled"
-                ? "amber"
-                : "gray"
+                  ? "amber"
+                  : "gray"
             }
           >
             {COLLECTION_LABELS[cs]}
@@ -558,13 +558,15 @@ export function CapacityAlertsPage(): React.ReactElement {
         title="Capacity alerts"
         description="Monitor automated threshold alerts, schedule collection runs, and verify bin reset workflows."
         actions={
-          <Button
-            variant="primary"
-            busy={simulateMutation.pending}
-            onClick={handleSimulate}
-          >
-            <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
-          </Button>
+          services.mode !== "firebase" ? (
+            <Button
+              variant="primary"
+              busy={simulateMutation.pending}
+              onClick={handleSimulate}
+            >
+              <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
+            </Button>
+          ) : undefined
         }
       />
 
@@ -625,7 +627,7 @@ export function CapacityAlertsPage(): React.ReactElement {
               ? "Resolved collection alerts will appear here once collections are completed."
               : "All smart bins are operating within normal capacity thresholds. Simulate 85% capacity to demonstrate the operational workflow."}
           </p>
-          {query.status === "active" && (
+          {query.status === "active" && services.mode !== "firebase" && (
             <div style={{ marginTop: "12px" }}>
               <Button
                 variant="primary"

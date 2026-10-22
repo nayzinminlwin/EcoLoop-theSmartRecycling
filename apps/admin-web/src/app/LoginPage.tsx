@@ -73,8 +73,8 @@ export function LoginPage(): React.ReactElement {
     }
   }, [isLogoutIntent, performLogout]);
 
-  // If already signed in as admin and not logging out, redirect to safe destination
-  if (!isLogoutIntent && authState.data?.isSignedIn && authState.data.role === "admin") {
+  // If already signed in as admin and not logging out or submitting, redirect to safe destination
+  if (!isLogoutIntent && !loginMutation.pending && authState.data?.isSignedIn && authState.data.role === "admin") {
     return <Navigate to={safeRedirect} replace />;
   }
 
@@ -203,14 +203,16 @@ export function LoginPage(): React.ReactElement {
               Sign In
             </Button>
 
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={loginMutation.pending}
-              onClick={handleFillDemoCredentials}
-            >
-              Use demo credentials
-            </Button>
+            {services.mode !== "firebase" && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={loginMutation.pending}
+                onClick={handleFillDemoCredentials}
+              >
+                Use demo credentials
+              </Button>
+            )}
           </div>
         </form>
       </div>

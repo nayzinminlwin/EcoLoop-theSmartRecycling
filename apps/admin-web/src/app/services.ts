@@ -4,10 +4,181 @@
 // =============================================================================
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
-import type { Observable, MockBundle } from "../data/repositories.ts";
+import type { Observable, AdminRepositories, MockBundle } from "../data/repositories.ts";
 import { createMockRepositories } from "../data/mockRepositories.ts";
+import { firebaseConfig, type BackendMode } from "../core/firebase/config.ts";
+import { getFirebaseServices } from "../core/firebase/app.ts";
+import { initAppCheck } from "../core/firebase/appCheck.ts";
+import { FirebaseCommandClient } from "../core/firebase/commandClient.ts";
+import { FirebaseAuthRepository } from "../data/firebase/firebaseAuthRepository.ts";
+import { FirebaseBinRepository } from "../data/firebase/firebaseBinRepository.ts";
+import { FirebaseRewardRepository } from "../data/firebase/firebaseRewardRepository.ts";
+import { FirebaseSettingsRepository } from "../data/firebase/firebaseSettingsRepository.ts";
+import { FirebaseAlertsRepository } from "../data/firebase/firebaseAlertsRepository.ts";
+import { FirebaseVerificationRepository } from "../data/firebase/firebaseVerificationRepository.ts";
+import { FirebaseDashboardRepository } from "../data/firebase/firebaseDashboardRepository.ts";
 
-export const services: MockBundle = createMockRepositories();
+export interface AdminServiceBundle {
+  readonly repositories: AdminRepositories;
+  readonly controls?: MockBundle["controls"];
+  readonly mode: BackendMode;
+  readonly commandClient?: FirebaseCommandClient;
+  subscribe(listener: () => void): () => void;
+  getRevision(): number;
+  getAuthGeneration(): number;
+}
+
+function createAdminServiceBundle(): AdminServiceBundle {
+  if (firebaseConfig.mode === "mock") {
+    const mock = createMockRepositories();
+    let authGen = 1;
+    let lastUid: string | null = null;
+    mock.repositories.auth.watchAuthState().subscribe({
+      next: (st) => {
+        if (st.uid !== lastUid) {
+          lastUid = st.uid;
+          authGen += 1;
+        }
+      },
+      error: () => {
+        if (lastUid !== null) {
+          lastUid = null;
+          authGen += 1;
+        }
+      },
+    });
+    return {
+      repositories: mock.repositories,
+      controls: mock.controls,
+      mode: "mock",
+      subscribe: mock.subscribe,
+      getRevision: mock.getRevision,
+      getAuthGeneration: () => authGen,
+    };
+  }
+
+  // Live or emulator mode
+  const { app, auth, functions, firestore } = getFirebaseServices(firebaseConfig);
+  initAppCheck(app);
+
+  const commandClient = new FirebaseCommandClient(functions);
+  const authRepo = new FirebaseAuthRepository(auth, functions, firestore);
+
+  // For domain repositories not yet activated (alerts, verification, settings),
+  // retain baseline mock repositories until their respective phases (AB-05 to AB-08)
+  const fallbackMock = createMockRepositories();
+  const binsRepo = new FirebaseBinRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.bins
+  );
+  const rewardsRepo = new FirebaseRewardRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.rewards
+  );
+  const settingsRepo = new FirebaseSettingsRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.settings
+  );
+  const alertsRepo = new FirebaseAlertsRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.alerts
+  );
+  const verificationRepo = new FirebaseVerificationRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.verification
+  );
+  const dashboardRepo = new FirebaseDashboardRepository(
+    functions,
+    firestore,
+    commandClient,
+    fallbackMock.repositories.dashboard
+  );
+
+  let revision = 1;
+  let authGeneration = 1;
+  let currentUid: string | null = null;
+  const listeners = new Set<() => void>();
+
+  function notify() {
+    revision += 1;
+    listeners.forEach((l) => l());
+  }
+
+  // When auth changes, track authGeneration, sync fallbackMock, and notify subscribers to refresh views
+  authRepo.watchAuthState().subscribe({
+    next: (state) => {
+      if (state.uid !== currentUid) {
+        currentUid = state.uid;
+        authGeneration += 1;
+      }
+      if (fallbackMock.controls) {
+        if (state.isSignedIn && state.role === "admin" && state.uid) {
+          fallbackMock.controls.setAuthState({
+            isSignedIn: true,
+            role: "admin",
+            uid: state.uid,
+          });
+        } else {
+          fallbackMock.controls.setAuthState({
+            isSignedIn: false,
+            role: null,
+            uid: null,
+          });
+        }
+      }
+      notify();
+    },
+    error: () => {
+      if (currentUid !== null) {
+        currentUid = null;
+        authGeneration += 1;
+      }
+      if (fallbackMock.controls) {
+        fallbackMock.controls.setAuthState({
+          isSignedIn: false,
+          role: null,
+          uid: null,
+        });
+      }
+      notify();
+    },
+  });
+
+  const repositories: AdminRepositories = {
+    ...fallbackMock.repositories,
+    auth: authRepo,
+    bins: binsRepo,
+    alerts: alertsRepo,
+    verification: verificationRepo,
+    rewards: rewardsRepo,
+    settings: settingsRepo,
+    dashboard: dashboardRepo,
+  };
+
+  return {
+    repositories,
+    mode: firebaseConfig.mode,
+    commandClient,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getRevision: () => revision,
+    getAuthGeneration: () => authGeneration,
+  };
+}
+
+export const services: AdminServiceBundle = createAdminServiceBundle();
 
 export interface QueryState<T> {
   data: T | null;
@@ -32,8 +203,17 @@ export function useRepositoryRevision(): number {
   );
 }
 
+export function useAuthGeneration(): number {
+  return useSyncExternalStore(
+    services.subscribe,
+    services.getAuthGeneration,
+    services.getAuthGeneration
+  );
+}
+
 export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T> {
   const revision = useRepositoryRevision();
+  const authGeneration = useAuthGeneration();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -46,6 +226,8 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
   const currentKeyRef = useRef(key);
   currentKeyRef.current = key;
 
+  const authGenRef = useRef(authGeneration);
+
   const reload = useCallback(() => {
     setRetryCount((c) => c + 1);
   }, []);
@@ -54,7 +236,13 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
     let isCurrent = true;
     const activeKey = key;
 
-    if (data === null) {
+    // Reset data immediately on account switch/generation change
+    if (authGenRef.current !== authGeneration) {
+      authGenRef.current = authGeneration;
+      setData(null);
+      setLoading(true);
+      setRefreshing(false);
+    } else if (data === null) {
       setLoading(true);
       setRefreshing(false);
     } else {
@@ -88,12 +276,14 @@ export function useQuery<T>(key: string, loader: () => Promise<T>): QueryState<T
     return () => {
       isCurrent = false;
     };
-  }, [key, revision, retryCount]);
+  }, [key, revision, retryCount, authGeneration]);
 
   return { data, loading, refreshing, error, reload };
 }
 
 export function useObservableQuery<T>(key: string, source: () => Observable<T>): QueryState<T> {
+  const revision = useRepositoryRevision();
+  const authGeneration = useAuthGeneration();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -106,6 +296,8 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
   const currentKeyRef = useRef(key);
   currentKeyRef.current = key;
 
+  const authGenRef = useRef(authGeneration);
+
   const reload = useCallback(() => {
     setRetryCount((c) => c + 1);
   }, []);
@@ -114,7 +306,13 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
     let isCurrent = true;
     const activeKey = key;
 
-    if (data === null) {
+    // Reset data immediately on account switch/generation change
+    if (authGenRef.current !== authGeneration) {
+      authGenRef.current = authGeneration;
+      setData(null);
+      setLoading(true);
+      setRefreshing(false);
+    } else if (data === null) {
       setLoading(true);
       setRefreshing(false);
     } else {
@@ -146,7 +344,7 @@ export function useObservableQuery<T>(key: string, source: () => Observable<T>):
       isCurrent = false;
       unsubscribe();
     };
-  }, [key, retryCount]);
+  }, [key, retryCount, revision, authGeneration]);
 
   return { data, loading, refreshing, error, reload };
 }
