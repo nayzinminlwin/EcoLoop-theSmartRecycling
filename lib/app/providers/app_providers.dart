@@ -29,6 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
+import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
@@ -73,6 +74,9 @@ final leaveDecisionProvider = Provider<LeaveDecisionCoordinator>(
 );
 final exitIntentCoordinatorProvider = Provider<ExitIntentCoordinator>(
   (ref) => ExitIntentCoordinator(),
+);
+final residentWorkStoreProvider = Provider<ResidentWorkStore>(
+  (ref) => ResidentWorkStore(),
 );
 final mockScenarioProvider = Provider<MockScenarioState>(
   (ref) => MockScenarioState.fromEnvironment(),

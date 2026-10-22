@@ -9,6 +9,7 @@ import 'package:eco_loop/core/firebase/firebase_clients.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
 import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
 import 'package:eco_loop/core/data/exit_intent_store.dart';
+import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
 import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
@@ -25,6 +26,9 @@ Future<void> bootstrap() async {
     installationId: await pendingOperationStore.installationId(),
   );
   await exitIntentCoordinator.restore();
+  final residentWorkStore = ResidentWorkStore(
+    preferences: SharedPreferencesResidentWorkPreferences(),
+  );
   final config = RuntimeConfig.fromEnvironment();
   if (config.mode != FirebaseMode.mock) {
     final clients = await FirebaseClients.initialize(config);
@@ -63,6 +67,7 @@ Future<void> bootstrap() async {
           exitIntentCoordinatorProvider.overrideWithValue(
             exitIntentCoordinator,
           ),
+          residentWorkStoreProvider.overrideWithValue(residentWorkStore),
         ],
         child: const EcoLoopApp(),
       ),
@@ -80,6 +85,7 @@ Future<void> bootstrap() async {
         mockScenarioProvider.overrideWithValue(scenario),
         mockApiProvider.overrideWithValue(api),
         exitIntentCoordinatorProvider.overrideWithValue(exitIntentCoordinator),
+        residentWorkStoreProvider.overrideWithValue(residentWorkStore),
       ],
       child: const EcoLoopApp(),
     ),

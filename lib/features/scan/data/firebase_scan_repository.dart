@@ -278,6 +278,24 @@ class FirebaseScanRepository implements ScanRepository {
   }
 
   @override
+  Future<DepositSession?> getResidentWork() async {
+    _ensureActive();
+    final resident = await _reads.read('residents', uid);
+    final activeSessionId =
+        resident?['activeSessionId'] ??
+        (resident?['latestSubmittedDeposit'] is Map
+            ? (resident!['latestSubmittedDeposit'] as Map)['sessionId']
+            : null);
+    if (activeSessionId is! String || activeSessionId.isEmpty) return null;
+    return getSession(activeSessionId);
+  }
+
+  @override
+  Stream<DepositSession?> watchResidentWork() async* {
+    yield await getResidentWork();
+  }
+
+  @override
   Stream<DepositResult?> watchResult(String resultId) async* {
     _ensureActive();
     final initial = await _readOptional('depositResults', resultId);

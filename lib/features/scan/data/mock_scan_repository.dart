@@ -484,6 +484,22 @@ class MockScanRepository implements ScanRepository {
   }
 
   @override
+  Future<DepositSession?> getResidentWork() async {
+    final sessions = _store.sessions.map(DepositSession.fromJson).toList();
+    if (sessions.isEmpty) return null;
+    sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return sessions.first;
+  }
+
+  @override
+  Stream<DepositSession?> watchResidentWork() async* {
+    yield await getResidentWork();
+    await for (final _ in _store.watchRevision()) {
+      yield await getResidentWork();
+    }
+  }
+
+  @override
   Stream<DepositResult?> watchResult(String resultId) async* {
     yield _resultById(resultId);
     yield* _stream(resultId).map((_) => _resultById(resultId));

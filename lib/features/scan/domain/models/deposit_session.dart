@@ -125,7 +125,21 @@ class DepositSession {
     updatedAt: JsonReaders.dateTime(json, 'updatedAt'),
     creationRequestId: JsonReaders.string(json, 'creationRequestId'),
     resultId: JsonReaders.nullableString(json, 'resultId'),
+    sessionVersion: json['version'] == null
+        ? 0
+        : JsonReaders.integer(json, 'version'),
+    draftAssetId: JsonReaders.nullableString(json, 'draftAssetId'),
+    draftAssetVersion: JsonReaders.nullableString(json, 'draftAssetVersion'),
+    committedAssetId: JsonReaders.nullableString(json, 'assetId'),
+    committedAssetVersion: JsonReaders.nullableString(json, 'assetVersion'),
+    batchId: JsonReaders.nullableString(json, 'batchId'),
+    jobId: JsonReaders.nullableString(json, 'jobId'),
+    jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
+    progress: _progressOrNull(json),
     submittedAt: _dateOrNull(json, 'submittedAt'),
+    deadlineAt: _dateOrNull(json, 'deadlineAt'),
+    reservationExpiresAt: _dateOrNull(json, 'reservationExpiresAt'),
+    terminationReason: JsonReaders.nullableString(json, 'terminationReason'),
   );
 
   factory DepositSession.fromBackendJson(JsonMap json) {

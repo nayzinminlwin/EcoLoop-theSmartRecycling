@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,6 +41,7 @@ class ActiveScanSession {
     required this.sessionVersion,
     this.session,
     this.result,
+    this.resultSeen = false,
   });
 
   final String sessionId;
@@ -47,6 +49,7 @@ class ActiveScanSession {
   final int sessionVersion;
   final DepositSession? session;
   final DepositResult? result;
+  final bool resultSeen;
 
   bool get isUnfinished =>
       stage != ScanStage.completed && stage != ScanStage.cancelled;
@@ -61,6 +64,7 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
   StreamSubscription<DepositResult?>? _resultSubscription;
   String? _observedSessionId;
   String? _observedResultId;
+  String? _residentId;
 
   @override
   ActiveScanSession? build() {
@@ -69,7 +73,14 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
         .watchAuthState()
         .listen(
           (authState) {
-            if (!authState.isSignedIn) clear();
+            final uid = authState.uid;
+            if (!authState.isSignedIn || uid == null) {
+              _residentId = null;
+              clear();
+            } else if (_residentId != uid) {
+              _residentId = uid;
+              unawaited(_restoreForResident());
+            }
           },
           onError: (Object error, StackTrace stackTrace) {
             developer.log(
@@ -105,6 +116,134 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
       sessionVersion: session.sessionVersion,
       session: session,
       result: current?.sessionId == session.id ? current?.result : null,
+      resultSeen: current?.sessionId == session.id
+          ? current?.resultSeen ?? false
+          : false,
+    );
+    if (_residentId != null &&
+        (session.submittedAt != null ||
+            session.batchId != null ||
+            session.resultId != null)) {
+      unawaited(_persistReference(_residentId!, session));
+    }
+  }
+
+  Future<void> _restoreForResident() async {
+    final residentId = _residentId;
+    if (residentId == null ||
+        ref.read(exitIntentCoordinatorProvider).isLocallySignedOut) {
+      return;
+    }
+
+    final store = ref.read(residentWorkStoreProvider);
+    final reference = await store.readReference(residentId);
+    if (reference != null &&
+        !ref
+            .read(exitIntentCoordinatorProvider)
+            .isSessionAbandoned(reference.sessionId)) {
+      observe(reference.sessionId);
+    }
+    try {
+      final serverSession = await ref
+          .read(scanRepositoryProvider)
+          .getResidentWork();
+      if (serverSession != null) {
+        _acceptRestoredSession(serverSession);
+      }
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        'Resident work restore failed',
+        name: 'ecoloop.flutter.resident_work',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> restore() => _restoreForResident();
+
+  void _acceptRestoredSession(DepositSession session) {
+    if (ref
+        .read(exitIntentCoordinatorProvider)
+        .isSessionAbandoned(session.id)) {
+      clearIf(session.id);
+      return;
+    }
+    track(session);
+    observe(session.id);
+    unawaited(_restoreSeenState(session));
+  }
+
+  Future<void> _restoreSeenState(DepositSession session) async {
+    final residentId = _residentId;
+    final resultId = session.resultId;
+    if (residentId == null ||
+        resultId == null ||
+        state?.sessionId != session.id) {
+      return;
+    }
+    final seen = await ref
+        .read(residentWorkStoreProvider)
+        .isSeen(residentId, resultId, state?.result?.decisionVersion);
+    final current = state;
+    if (current == null || current.sessionId != session.id) return;
+    state = ActiveScanSession(
+      sessionId: current.sessionId,
+      stage: current.stage,
+      sessionVersion: current.sessionVersion,
+      session: current.session,
+      result: current.result,
+      resultSeen: seen,
+    );
+  }
+
+  Future<void> _persistReference(
+    String residentId,
+    DepositSession session,
+  ) async {
+    try {
+      await ref
+          .read(residentWorkStoreProvider)
+          .writeReference(
+            residentId,
+            ResidentWorkReference(
+              sessionId: session.id,
+              submittedAt:
+                  session.submittedAt ??
+                  session.progress?.submissionAt ??
+                  session.updatedAt,
+              batchId: session.batchId,
+              resultId: session.resultId,
+              decisionVersion: state?.result?.decisionVersion,
+            ),
+          );
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        'Resident work reference persistence failed',
+        name: 'ecoloop.flutter.resident_work',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void markResultSeen() {
+    final residentId = _residentId;
+    final current = state;
+    final result = current?.result;
+    if (residentId == null || current == null || result == null) return;
+    state = ActiveScanSession(
+      sessionId: current.sessionId,
+      stage: current.stage,
+      sessionVersion: current.sessionVersion,
+      session: current.session,
+      result: result,
+      resultSeen: true,
+    );
+    unawaited(
+      ref
+          .read(residentWorkStoreProvider)
+          .markSeen(residentId, result.id, result.decisionVersion),
     );
   }
 
@@ -170,7 +309,9 @@ class ActiveScanSessionController extends Notifier<ActiveScanSession?> {
               sessionVersion: current.sessionVersion,
               session: current.session,
               result: result,
+              resultSeen: current.resultSeen,
             );
+            unawaited(_restoreSeenState(current.session ?? session));
           },
           onError: (Object error, StackTrace stackTrace) {
             developer.log(

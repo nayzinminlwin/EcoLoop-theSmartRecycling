@@ -151,6 +151,7 @@ export class FirestoreInspectionStore implements InspectionStore {
           deadlineAt,
         },
       };
+      const residentRef = this.firestore.doc(`residents/${identity.uid}`);
       transaction.create(batchRef, {
         id: batchId, ownerId: identity.uid, sessionId, binId: session.binId,
         binLocation: String(bin.locationName ?? bin.displayName ?? session.binId),
@@ -181,6 +182,17 @@ export class FirestoreInspectionStore implements InspectionStore {
         explanation: "Your image is being checked.", createdAt: now,
       });
       updateDocument(transaction, sessionRef, updatedSession);
+      transaction.set(residentRef, {
+        latestSubmittedDeposit: {
+          sessionId,
+          batchId,
+          resultId,
+          decisionVersion: 0,
+          submittedAt: now,
+          updatedAt: now,
+        },
+        updatedAt: now,
+      }, { merge: true });
       transaction.update(actualReservationRef, {
         phase: "processing", simulatedAccess: "closed", updatedAt: now,
       });

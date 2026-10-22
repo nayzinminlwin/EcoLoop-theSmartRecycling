@@ -170,7 +170,28 @@ export class FirestoreSettlementStore implements SettlementStore {
         transaction.update(reservationRef, { phase: "available", ownerId: null, sessionId: null, expiresAt: null, updatedAt: input.now });
         transaction.update(sessionRef, { stage: plan.status === "review" ? "completed" : "completed", version: Number(session.version) + 1, updatedAt: input.now });
         if (residentSnapshot.exists && residentSnapshot.data()?.activeSessionId === job.sessionId) {
-          transaction.update(residentRef, { activeSessionId: null, updatedAt: input.now });
+          transaction.update(residentRef, {
+            activeSessionId: null,
+            latestSubmittedDeposit: {
+              sessionId: job.sessionId,
+              batchId,
+              resultId: resultRef.id,
+              decisionVersion,
+              updatedAt: input.now,
+            },
+            updatedAt: input.now,
+          });
+        } else if (residentSnapshot.exists) {
+          transaction.set(residentRef, {
+            latestSubmittedDeposit: {
+              sessionId: job.sessionId,
+              batchId,
+              resultId: resultRef.id,
+              decisionVersion,
+              updatedAt: input.now,
+            },
+            updatedAt: input.now,
+          }, { merge: true });
         }
       }
       transaction.update(jobRef, { state: "succeeded", activeAttemptId: null, activeLeaseExpiresAt: null, updatedAt: input.now });
@@ -332,7 +353,28 @@ export class FirestoreSettlementStore implements SettlementStore {
           stage: "completed", version: Number(session.version ?? 0) + 1, updatedAt: input.now,
         });
         if (residentSnapshot.data()?.activeSessionId === job.sessionId) {
-          transaction.update(residentRef, { activeSessionId: null, updatedAt: input.now });
+          transaction.update(residentRef, {
+            activeSessionId: null,
+            latestSubmittedDeposit: {
+              sessionId: job.sessionId,
+              batchId,
+              resultId: resultRef.id,
+              decisionVersion,
+              updatedAt: input.now,
+            },
+            updatedAt: input.now,
+          });
+        } else if (residentSnapshot.exists) {
+          transaction.set(residentRef, {
+            latestSubmittedDeposit: {
+              sessionId: job.sessionId,
+              batchId,
+              resultId: resultRef.id,
+              decisionVersion,
+              updatedAt: input.now,
+            },
+            updatedAt: input.now,
+          }, { merge: true });
         }
       }
       return { jobId: input.jobId, batchId, resultId: resultRef.id, outcome: "review", pointsAwarded: null, spaceContributionSpc: 0, decisionVersion, replayed: false };

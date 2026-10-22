@@ -55,6 +55,9 @@ class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
         : _formatElapsed(_now.difference(startedAt));
     final completed = work.stage == ScanStage.completed;
     final result = work.result;
+    if (completed && result != null && work.resultSeen) {
+      return const SizedBox.shrink();
+    }
     final title = completed ? _resultTitle(result) : _stageTitle(work.stage);
     final description = completed
         ? result == null
@@ -106,6 +109,9 @@ class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
   }
 
   void _openWork(BuildContext context, ActiveScanSession work) {
+    if (work.stage == ScanStage.completed && work.result != null) {
+      ref.read(activeScanSessionProvider.notifier).markResultSeen();
+    }
     final path = switch (work.stage) {
       ScanStage.binFound => AppRoutes.scanBinPath(work.sessionId),
       ScanStage.ready => AppRoutes.scanReadyPath(work.sessionId),
