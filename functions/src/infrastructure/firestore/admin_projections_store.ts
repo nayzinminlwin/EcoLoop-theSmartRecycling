@@ -347,6 +347,12 @@ export class FirestoreAdminProjectionsStore {
     const reviewerAlias = reviewerUid ? `Admin •••${reviewerUid.slice(-4)}` : null;
     const resolvedAt = tryTimestampToInstant(ticketDoc.resolvedAt) ?? null;
 
+    const assetId = String(ticketDoc.assetId ?? batchDoc?.assetId ?? "");
+    const assetVersion = String(ticketDoc.assetVersion ?? batchDoc?.assetVersion ?? "");
+    const imageUrl = (assetId && assetVersion)
+      ? `https://firebasestorage.googleapis.com/v0/b/ecoloop-thesmartrecycling.firebasestorage.app/o/simulation-assets%2F${encodeURIComponent(assetId)}%2F${encodeURIComponent(assetVersion)}%2Fsource.jpg?alt=media`
+      : null;
+
     const searchTokens = generatePrefixTokens([ticketId, batchId, binId, locationName]);
 
     return {
@@ -363,6 +369,7 @@ export class FirestoreAdminProjectionsStore {
       materialSummary,
       reviewerAlias,
       resolvedAt,
+      imageUrl,
       searchTokens,
     };
   }
@@ -390,6 +397,7 @@ export interface AdminReviewViewRecord {
   readonly materialSummary: string | null;
   readonly reviewerAlias?: string | null;
   readonly resolvedAt?: Instant | null;
+  readonly imageUrl?: string | null;
   readonly searchTokens?: string[];
 }
 

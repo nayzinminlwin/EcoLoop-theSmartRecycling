@@ -68,7 +68,7 @@ function adminReviewViewToVerificationDetail(r: AdminReviewView): VerificationDe
       predictedMaterialLabel: r.materialSummary ?? "Mixed Batch",
       confidencePercent: 90,
       captureDescription: `Batch ${r.batchId} (${r.totalCount ?? 0} items)`,
-      captureImageUrl: null,
+      captureImageUrl: r.imageUrl ?? null,
       flag: "uncertain",
       status,
       reviewedAt: r.resolvedAt ?? null,
@@ -175,6 +175,11 @@ export class FirebaseVerificationRepository implements VerificationRepository {
           const rawState = String(data.state ?? "open");
           const state: "awaiting_review" | "resolved" = rawState === "resolved" ? "resolved" : "awaiting_review";
           const ownerId = String(data.ownerId ?? "");
+          const assetId = String(data.assetId ?? "asset-demo-0010");
+          const assetVersion = String(data.assetVersion ?? "sha256-4a5e8b49da2c64c3");
+          const imageUrl = data.imageUrl
+            ? String(data.imageUrl)
+            : `https://firebasestorage.googleapis.com/v0/b/ecoloop-thesmartrecycling.firebasestorage.app/o/simulation-assets%2F${encodeURIComponent(assetId)}%2F${encodeURIComponent(assetVersion)}%2Fsource.jpg?alt=media`;
           return {
             ticketId,
             batchId,
@@ -189,6 +194,7 @@ export class FirebaseVerificationRepository implements VerificationRepository {
             materialSummary: "Recyclable Batch",
             reviewerAlias: data.resolvedBy ? `Admin •••${String(data.resolvedBy).slice(-4)}` : null,
             resolvedAt: data.resolvedAt ? String(data.resolvedAt) : null,
+            imageUrl,
           };
         });
       }
@@ -363,6 +369,12 @@ export class FirebaseVerificationRepository implements VerificationRepository {
         materialSummary = depositData.lines.map((l: any) => `${l.count ?? 1}x ${l.class ?? "item"}`).join(", ");
       }
 
+      const assetId = String(viewData.assetId ?? ticketData.assetId ?? depositData.assetId ?? "asset-demo-0010");
+      const assetVersion = String(viewData.assetVersion ?? ticketData.assetVersion ?? depositData.assetVersion ?? "sha256-4a5e8b49da2c64c3");
+      const previewUrl = viewData.imageUrl
+        ? String(viewData.imageUrl)
+        : `https://firebasestorage.googleapis.com/v0/b/ecoloop-thesmartrecycling.firebasestorage.app/o/simulation-assets%2F${encodeURIComponent(assetId)}%2F${encodeURIComponent(assetVersion)}%2Fsource.jpg?alt=media`;
+
       const review: AdminReviewView = {
         ticketId,
         batchId,
@@ -377,6 +389,7 @@ export class FirebaseVerificationRepository implements VerificationRepository {
         materialSummary,
         reviewerAlias: viewData.reviewerAlias ?? null,
         resolvedAt: viewData.resolvedAt ?? null,
+        imageUrl: previewUrl,
       };
 
       const findings: AdminReviewDetailView["findings"] = [];
@@ -422,12 +435,12 @@ export class FirebaseVerificationRepository implements VerificationRepository {
         findings,
         source: {
           type: "simulated_bin_capture",
-          assetId: depositData.assetId ? String(depositData.assetId) : null,
-          modelVersion: depositData.assetVersion ? String(depositData.assetVersion) : null,
+          assetId: depositData.assetId ? String(depositData.assetId) : assetId,
+          modelVersion: depositData.assetVersion ? String(depositData.assetVersion) : assetVersion,
         },
         evidence: {
           previewAvailable: true,
-          previewUrl: null,
+          previewUrl,
           failureReason: null,
         },
         explanation: String(ticketData.explanation ?? "Referred for operator review"),

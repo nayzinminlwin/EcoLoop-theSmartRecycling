@@ -525,6 +525,12 @@ export class FirestoreAdminQueriesStore {
       }
     }
 
+    const assetId = String(ticketData.assetId ?? batchData.assetId ?? "");
+    const assetVersion = String(ticketData.assetVersion ?? batchData.assetVersion ?? "");
+    const previewUrl = (assetId && assetVersion)
+      ? `https://firebasestorage.googleapis.com/v0/b/ecoloop-thesmartrecycling.firebasestorage.app/o/simulation-assets%2F${encodeURIComponent(assetId)}%2F${encodeURIComponent(assetVersion)}%2Fsource.jpg?alt=media`
+      : null;
+
     return {
       review: reviewView,
       sessionId: String(ticketData.sessionId ?? batchData.sessionId ?? ""),
@@ -539,10 +545,13 @@ export class FirestoreAdminQueriesStore {
       findings,
       source: {
         type: "simulated_bin_capture",
+        assetId: assetId || null,
+        modelVersion: assetVersion || null,
       },
       evidence: {
-        previewAvailable: false,
-        failureReason: ticketData.reasonCodes?.join(", ") ?? null,
+        previewAvailable: Boolean(previewUrl),
+        previewUrl,
+        failureReason: previewUrl ? null : (ticketData.reasonCodes?.join(", ") ?? null),
       },
       explanation: ticketData.resolutionReason ? String(ticketData.resolutionReason) : (batchData.explanation ?? null),
       history: [

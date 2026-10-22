@@ -52,7 +52,14 @@ const timeFormatter = new Intl.DateTimeFormat("en-MY", {
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return dateTimeFormatter.format(new Date(iso));
+    let clean = iso;
+    if (typeof clean === "string" && clean.startsWith("Timestamp(")) {
+      const m = clean.match(/seconds=(\d+)/);
+      if (m) clean = new Date(Number(m[1]) * 1000).toISOString();
+    }
+    const d = new Date(clean);
+    if (isNaN(d.getTime())) return iso;
+    return dateTimeFormatter.format(d);
   } catch {
     return iso;
   }
@@ -61,7 +68,14 @@ function formatDateTime(iso: string | null | undefined): string {
 function formatTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return timeFormatter.format(new Date(iso));
+    let clean = iso;
+    if (typeof clean === "string" && clean.startsWith("Timestamp(")) {
+      const m = clean.match(/seconds=(\d+)/);
+      if (m) clean = new Date(Number(m[1]) * 1000).toISOString();
+    }
+    const d = new Date(clean);
+    if (isNaN(d.getTime())) return iso;
+    return timeFormatter.format(d);
   } catch {
     return iso;
   }

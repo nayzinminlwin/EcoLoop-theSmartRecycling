@@ -405,6 +405,7 @@ export interface AdminReviewView {
   readonly reason?: string | null;
   readonly reviewerAlias?: string | null;
   readonly resolvedAt?: string | null;
+  readonly imageUrl?: string | null;
 }
 
 export interface AdminReviewDetailView {
@@ -495,6 +496,9 @@ export function decodeAdminReviewView(raw: unknown): AdminReviewView {
   if (obj.occurredAt && typeof obj.occurredAt === "object" && "_seconds" in (obj.occurredAt as Record<string, unknown>)) {
     const ts = obj.occurredAt as { _seconds: number; _nanoseconds?: number };
     occurredAt = new Date(ts._seconds * 1000).toISOString();
+  } else if (typeof occurredAt === "string" && occurredAt.startsWith("Timestamp(")) {
+    const m = occurredAt.match(/seconds=(\d+)/);
+    if (m) occurredAt = new Date(Number(m[1]) * 1000).toISOString();
   }
 
   let resolvedAt: string | null = null;
@@ -504,6 +508,10 @@ export function decodeAdminReviewView(raw: unknown): AdminReviewView {
       resolvedAt = new Date(ts._seconds * 1000).toISOString();
     } else {
       resolvedAt = String(obj.resolvedAt);
+      if (resolvedAt.startsWith("Timestamp(")) {
+        const m = resolvedAt.match(/seconds=(\d+)/);
+        if (m) resolvedAt = new Date(Number(m[1]) * 1000).toISOString();
+      }
     }
   }
 
@@ -520,6 +528,7 @@ export function decodeAdminReviewView(raw: unknown): AdminReviewView {
   const totalCount = obj.totalCount !== undefined && obj.totalCount !== null ? Number(obj.totalCount) : null;
   const materialSummary = obj.materialSummary ? String(obj.materialSummary) : null;
   const reviewerAlias = obj.reviewerAlias ? String(obj.reviewerAlias) : null;
+  const imageUrl = obj.imageUrl ? String(obj.imageUrl) : (obj.captureImageUrl ? String(obj.captureImageUrl) : null);
 
   return {
     ticketId,
@@ -535,6 +544,7 @@ export function decodeAdminReviewView(raw: unknown): AdminReviewView {
     materialSummary,
     reviewerAlias,
     resolvedAt,
+    imageUrl,
   };
 }
 
@@ -635,7 +645,7 @@ export function adminReviewDetailToVerificationDetail(view: AdminReviewDetailVie
     predictedMaterialLabel: r.materialSummary ?? "Mixed Batch",
     confidencePercent: 90,
     captureDescription: `Batch ${r.batchId} (${r.totalCount ?? 0} items)`,
-    captureImageUrl: view.evidence.previewUrl ?? null,
+    captureImageUrl: view.evidence.previewUrl ?? r.imageUrl ?? null,
     flag: "uncertain",
     status,
     reviewedAt: r.resolvedAt ?? null,
