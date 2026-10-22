@@ -90,11 +90,10 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       for (const d of binsDocs) {
         const b = d.data();
         const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
-        const isOnline = b.logicalOnline !== false && b.enabled !== false && b.isOnline !== false;
         const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
           (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
 
-        if (fill >= 75 || colState === "critical" || colState === "warning" || !isOnline) {
+        if (fill >= 75 || colState === "critical" || colState === "warning") {
           attentionBins.push({
             binId: String(b.binId ?? b.id ?? d.id),
             locationName: String(b.locationName ?? "Unknown Location"),
@@ -296,7 +295,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
           alertCount++;
         }
 
-        const needsAttention = fill >= 75 || colState === "critical" || colState === "warning" || !isOnline;
+        const needsAttention = fill >= 75 || colState === "critical" || colState === "warning";
         if (needsAttention) {
           const band = fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal";
           attentionBins.push({
