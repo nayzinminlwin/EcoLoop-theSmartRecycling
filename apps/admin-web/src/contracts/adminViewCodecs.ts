@@ -290,21 +290,23 @@ export function decodeAdminAlertView(raw: unknown): AdminAlertView {
   }
   const obj = raw as Record<string, unknown>;
 
-  if (!obj.alertId || typeof obj.alertId !== "string") {
+  const alertId = String(obj.alertId ?? obj.id ?? "");
+  const binId = String(obj.binId ?? "");
+  if (!alertId) {
     throw new Error("Invalid AdminAlertView: missing or invalid alertId");
   }
-  if (!obj.binId || typeof obj.binId !== "string") {
+  if (!binId) {
     throw new Error("Invalid AdminAlertView: missing or invalid binId");
   }
 
-  const rawThreshold = Number(obj.threshold ?? 85);
+  const rawThreshold = Number(obj.threshold ?? obj.thresholdSnapshot ?? 85);
   const threshold: 75 | 80 | 85 = (rawThreshold === 75 || rawThreshold === 80 || rawThreshold === 85)
     ? rawThreshold
     : 85;
 
   return {
-    alertId: obj.alertId,
-    binId: obj.binId,
+    alertId,
+    binId,
     locationName: String(obj.locationName ?? "Unknown Location"),
     cycleId: String(obj.cycleId ?? ""),
     triggeringFillPercent: Math.max(0, Math.min(100, Number(obj.triggeringFillPercent ?? threshold))),

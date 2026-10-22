@@ -182,6 +182,98 @@ The web client (`FirebaseDashboardRepository`) maintains real-time synchronizati
 
 ---
 
+## Capacity Alerts Data Connection & Lifecycle Workflow
+
+The Admin Portal's **Capacity Alerts** module (`/alerts` in `apps/admin-web`, backed by `CapacityAlertsPage.tsx` and `FirebaseAlertsRepository.ts`) connects directly to the Firestore collection **`capacityAlerts/{alertId}`** in `ecoloop-db`. It manages the end-to-end lifecycle of smart bins requiring collection dispatch, from initial threshold trigger to physical collection and administrative resolution.
+
+### 1. Database Document Schema (`capacityAlerts/{alertId}`)
+
+Alert IDs follow deterministic naming: `alert-{binId}-{cycleId}` (or `alert-{binId}`).
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` / `alertId` | `string` | Unique alert identifier. |
+| `binId` | `string` | Foreign key referencing the affected smart bin in `bins/{binId}`. |
+| `locationName` | `string` | Human-readable location name for dispatch. |
+| `cycleId` | `string` | Foreign key referencing the active collection cycle in `binCycles/{cycleId}`. |
+| `thresholdSnapshot` | `number` | Immutable threshold percentage (`75`, `80`, or `85`) locked at alert creation time. |
+| `operationalSettingsVersion` | `number` | Global settings version active when alert was triggered. |
+| `triggeringFillPercent` | `number` | Smart bin fill percentage at the moment threshold was breached. |
+| `currentFillPercent` | `number` | Live smart bin fill percentage, updated dynamically as telemetry changes. |
+| `state` | `string` | Lifecycle state: `"pending"`, `"scheduled"`, `"collected"`, or `"resolved"`. |
+| `version` | `number` | Concurrency version counter (incremented on each state transition). |
+| `triggeredAt` | `Timestamp` / `string` | ISO timestamp when the capacity threshold was breached. |
+| `scheduledAt` | `Timestamp` / `string` \| `null` | Timestamp when collection was scheduled. |
+| `scheduledBy` | `string` \| `null` | UID of the administrator who scheduled the collection. |
+| `collectedAt` | `Timestamp` / `string` \| `null` | Timestamp when the bin was emptied and reset. |
+| `collectedBy` | `string` \| `null` | Operator/crew UID who recorded the collection event. |
+| `resolvedAt` | `Timestamp` / `string` \| `null` | Timestamp when the alert was officially closed. |
+| `resolvedBy` | `string` \| `null` | UID of the administrator who resolved the alert. |
+| `collectionEventId` | `string` \| `null` | Foreign key referencing `collectionEvents/{collectionEventId}`. |
+| `updatedAt` | `Timestamp` / `string` | Timestamp of latest alert mutation. |
+
+### 2. Companion Collections & Dispatch Coordination
+
+Capacity alert operations coordinate transactionally across multiple database collections:
+
+1. **`binCollectionState/{binId}`**:
+   - Maintains real-time operational status for collection crews (`status`: `"normal"`, `"collection_scheduled"`, or `"collected"`).
+   - Links to `activeAlertId` when an alert is open; cleared to `null` upon resolution.
+2. **`binCycles/{cycleId}`**:
+   - Tracks the bin's collection lifecycle.
+   - When collection is recorded, the current cycle closes (`endedAt`, `closingOccupiedSpc`), and a new cycle opens with `openingOccupiedSpc: 0`.
+3. **`collectionEvents/{collectionEventId}`**:
+   - Immutable audit record of the physical collection event.
+4. **`adminAlertViews/{alertId}`**:
+   - Projected read model indexing search tokens, sort fields, and active status for fast cursor pagination.
+5. **`adminReadVersions/alerts`**:
+   - Version counter bumped after every alert mutation to trigger instant cross-client UI revalidation.
+
+### 3. 4-Stage Operational Lifecycle Workflow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: Fill >= 85% (Capacity Threshold)
+    Pending --> Scheduled: adminScheduleCollection
+    Scheduled --> Collected: adminRecordCollection (Reset to 0%)
+    Collected --> Resolved: adminResolveCapacityAlert
+    Resolved --> [*]
+```
+
+1. **Stage 1 — Triggered (`pending`):**
+   - Automatically created when a bin reaches or exceeds capacity threshold ($\ge 85\%$).
+   - Displays under the **Active** alerts tab with a red `CRITICAL` badge and `Pending Collection` status.
+2. **Stage 2 — Scheduled (`scheduled`):**
+   - Administrator dispatches collection crew via `schedule()`.
+   - Updates `capacityAlerts` with `scheduledAt`, `scheduledBy`, and increments `version`.
+   - `binCollectionState` sets `status: "collection_scheduled"`.
+   - Displays an amber `Collection Scheduled` badge.
+3. **Stage 3 — Collected (`collected`):**
+   - Collection crew records physical emptying via `collect()`.
+   - Smart bin in `bins/{binId}` resets to **0 occupied space / 0% fill**.
+   - Old cycle in `binCycles` ends; new empty cycle begins.
+   - `capacityAlerts` sets `state: "collected"`, `currentFillPercent: 0`, and records `collectedAt`.
+   - Displays a green `Collected` badge.
+4. **Stage 4 — Resolved (`resolved`):**
+   - Administrator marks the alert closed via `resolve()`.
+   - Updates `capacityAlerts` with `resolvedAt` and `resolvedBy`.
+   - `binCollectionState` clears `activeAlertId` and restores `status: "normal"`.
+   - Moves alert to the **Resolved** tab; removes alert warning from the Overview dashboard.
+
+### 4. Client Connection & Live Synchronization
+
+The Admin Web client (`FirebaseAlertsRepository`) maintains real-time synchronization with `capacityAlerts`:
+- **Dual-Collection Merging:** Merges canonical documents from `capacityAlerts` and projected views from `adminAlertViews`, guaranteeing no alert is omitted even if projection is delayed.
+- **Location Enrichment:** Dynamically joins `bins/{binId}` to attach up-to-date location details and bin online telemetry.
+- **Real-Time Snapshot Watchers:** Listens via `onSnapshot` to:
+  1. `adminReadVersions/alerts` (invalidation trigger).
+  2. `capacityAlerts` (canonical alert collection updates).
+  3. `adminAlertViews` (projected view updates).
+  4. `bins` (smart-bin occupancy and location updates).
+- **Tab State Coordination:** Automatically switches active/resolved tabs and reflects the alert count in real time across the fleet.
+
+---
+
 ## Firebase Storage structure
 
 ```text

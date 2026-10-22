@@ -122,47 +122,78 @@ export class FirebaseAlertsRepository implements AlertsRepository {
         return null;
       }
 
-      let rows: CapacityAlertRow[] = [];
+      const alertMap = new Map<string, Record<string, unknown>>();
 
-      const viewsSnap = await getDocs(collection(this.firestore, "adminAlertViews"));
-      if (!viewsSnap.empty) {
-        rows = viewsSnap.docs.map((d) => {
-          const view = decodeAdminAlertView({ alertId: d.id, ...d.data() });
-          return adminAlertViewToRow(view);
-        });
-      } else {
+      try {
         const capSnap = await getDocs(collection(this.firestore, "capacityAlerts"));
-        if (!capSnap.empty) {
-          rows = capSnap.docs.map((d) => {
-            const data = d.data();
-            const view = decodeAdminAlertView({
-              alertId: d.id,
-              binId: data.binId ?? "",
-              locationName: data.locationName ?? `Smart Bin ${data.binId}`,
-              cycleId: data.cycleId ?? "",
-              triggeringFillPercent: data.triggeringFillPercent ?? 85,
-              currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
-              threshold: data.thresholdSnapshot ?? 85,
-              operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
-              state: data.state ?? "pending",
-              version: data.version ?? 1,
-              triggeredAt: data.triggeredAt ?? new Date().toISOString(),
-              scheduledAt: data.scheduledAt ?? null,
-              scheduledBy: data.scheduledBy ?? null,
-              collectedAt: data.collectedAt ?? null,
-              collectedBy: data.collectedBy ?? null,
-              resolvedAt: data.resolvedAt ?? null,
-              resolvedBy: data.resolvedBy ?? null,
-              collectionEventId: data.collectionEventId ?? null,
-            });
-            return adminAlertViewToRow(view);
+        for (const d of capSnap.docs) {
+          const data = d.data();
+          alertMap.set(d.id, {
+            alertId: d.id,
+            binId: data.binId ?? "",
+            locationName: data.locationName ?? `Smart Bin ${data.binId}`,
+            cycleId: data.cycleId ?? "",
+            triggeringFillPercent: data.triggeringFillPercent ?? 85,
+            currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
+            threshold: data.thresholdSnapshot ?? data.threshold ?? 85,
+            operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
+            state: data.state ?? "pending",
+            version: data.version ?? 1,
+            triggeredAt: data.triggeredAt ?? new Date().toISOString(),
+            scheduledAt: data.scheduledAt ?? null,
+            scheduledBy: data.scheduledBy ?? null,
+            collectedAt: data.collectedAt ?? null,
+            collectedBy: data.collectedBy ?? null,
+            resolvedAt: data.resolvedAt ?? null,
+            resolvedBy: data.resolvedBy ?? null,
+            collectionEventId: data.collectionEventId ?? null,
+            ...data,
           });
         }
+      } catch {}
+
+      try {
+        const viewsSnap = await getDocs(collection(this.firestore, "adminAlertViews"));
+        for (const d of viewsSnap.docs) {
+          const existing = alertMap.get(d.id) ?? { alertId: d.id };
+          alertMap.set(d.id, { ...existing, alertId: d.id, ...d.data() });
+        }
+      } catch {}
+
+      if (alertMap.size === 0) {
+        return null;
       }
 
-      if (rows.length > 0) {
-        return this.filterAndPaginateAlerts(rows, query);
-      }
+      // Read bins for location details
+      const binLocationMap = new Map<string, { locationName: string; locationDetail: string; isOnline: boolean }>();
+      try {
+        const binsSnap = await getDocs(collection(this.firestore, "bins"));
+        for (const b of binsSnap.docs) {
+          const bData = b.data();
+          binLocationMap.set(b.id, {
+            locationName: String(bData.locationName ?? bData.displayName ?? b.id),
+            locationDetail: String(bData.locationDetail ?? "Standard Facility"),
+            isOnline: bData.isOnline !== false && bData.logicalOnline !== false && bData.enabled !== false,
+          });
+        }
+      } catch {}
+
+      const rows: CapacityAlertRow[] = Array.from(alertMap.values()).map((raw) => {
+        const view = decodeAdminAlertView(raw);
+        const binInfo = binLocationMap.get(view.binId);
+        return adminAlertViewToRow(
+          view,
+          binInfo
+            ? {
+                locationName: binInfo.locationName,
+                locationDetail: binInfo.locationDetail,
+                isOnline: binInfo.isOnline,
+              }
+            : undefined
+        );
+      });
+
+      return this.filterAndPaginateAlerts(rows, query);
     } catch {
       // Return null to allow fallback
     }
@@ -296,6 +327,42 @@ export class FirebaseAlertsRepository implements AlertsRepository {
           // Non-blocking
         }
 
+        // Listen for changes on canonical capacityAlerts directly
+        try {
+          const capAlertsCol = collection(this.firestore, "capacityAlerts");
+          unsubs.push(
+            onSnapshot(
+              capAlertsCol,
+              () => {
+                if (active) load();
+              },
+              () => {
+                // Silently keep current data
+              }
+            )
+          );
+        } catch {
+          // Non-blocking
+        }
+
+        // Listen for changes on bins to reflect updated location/status
+        try {
+          const binsCol = collection(this.firestore, "bins");
+          unsubs.push(
+            onSnapshot(
+              binsCol,
+              () => {
+                if (active) load();
+              },
+              () => {
+                // Silently keep current data
+              }
+            )
+          );
+        } catch {
+          // Non-blocking
+        }
+
         return () => {
           active = false;
           unsubs.forEach((u) => u());
@@ -335,7 +402,7 @@ export class FirebaseAlertsRepository implements AlertsRepository {
               cycleId: data.cycleId ?? "",
               triggeringFillPercent: data.triggeringFillPercent ?? 85,
               currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
-              threshold: data.thresholdSnapshot ?? 85,
+              threshold: data.thresholdSnapshot ?? data.threshold ?? 85,
               operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
               state: data.state ?? "pending",
               version: data.version ?? 1,
@@ -347,6 +414,7 @@ export class FirebaseAlertsRepository implements AlertsRepository {
               resolvedAt: data.resolvedAt ?? null,
               resolvedBy: data.resolvedBy ?? null,
               collectionEventId: data.collectionEventId ?? null,
+              ...data,
             });
             return adminAlertViewToRow(decoded);
           }
@@ -368,40 +436,76 @@ export class FirebaseAlertsRepository implements AlertsRepository {
           typeof observerOrNext === "function" ? { next: observerOrNext } : observerOrNext;
 
         let active = true;
+        const unsubs: (() => void)[] = [];
 
-        const docRef = doc(this.firestore, "adminAlertViews", id);
-        const unsubscribe = onSnapshot(
-          docRef,
-          (snap) => {
-            if (!active) return;
-            if (!snap.exists()) {
-              // Try loading via get() in case it's in capacityAlerts or fallback
-              this.get(id)
-                .then((row) => {
-                  if (active && observer.next) observer.next(row);
-                })
-                .catch(() => {
-                  if (active && observer.next) observer.next(null);
-                });
-              return;
-            }
-            try {
-              const decoded = decodeAdminAlertView({ alertId: id, ...snap.data() });
-              const row = adminAlertViewToRow(decoded);
-              if (observer.next) observer.next(row);
-            } catch {
-              if (observer.next) observer.next(null);
-            }
-          },
-          () => {
-            if (!active) return;
-            this.fallbackAlertsRepo.watch(id).subscribe(observer as Observer<CapacityAlertRow | null>);
-          }
-        );
+        const load = () => {
+          this.get(id)
+            .then((row) => {
+              if (active && observer.next) observer.next(row);
+            })
+            .catch(() => {
+              if (active && observer.next) observer.next(null);
+            });
+        };
+
+        // Initial fetch
+        load();
+
+        // Listen on adminAlertViews doc
+        try {
+          const docRef = doc(this.firestore, "adminAlertViews", id);
+          unsubs.push(
+            onSnapshot(
+              docRef,
+              (snap) => {
+                if (!active) return;
+                if (snap.exists()) {
+                  try {
+                    const decoded = decodeAdminAlertView({ alertId: id, ...snap.data() });
+                    if (observer.next) observer.next(adminAlertViewToRow(decoded));
+                  } catch {
+                    load();
+                  }
+                } else {
+                  load();
+                }
+              },
+              () => {
+                if (active) load();
+              }
+            )
+          );
+        } catch {}
+
+        // Listen on canonical capacityAlerts doc
+        try {
+          const capRef = doc(this.firestore, "capacityAlerts", id);
+          unsubs.push(
+            onSnapshot(
+              capRef,
+              (snap) => {
+                if (!active) return;
+                if (snap.exists()) {
+                  try {
+                    const decoded = decodeAdminAlertView({ alertId: id, ...snap.data() });
+                    if (observer.next) observer.next(adminAlertViewToRow(decoded));
+                  } catch {
+                    load();
+                  }
+                } else {
+                  load();
+                }
+              },
+              () => {
+                if (active) load();
+              }
+            )
+          );
+        } catch {}
 
         return () => {
           active = false;
-          unsubscribe();
+          unsubs.forEach((u) => u());
         };
       },
     };
@@ -625,6 +729,31 @@ export class FirebaseAlertsRepository implements AlertsRepository {
           const snap = await getDoc(doc(this.firestore, "adminAlertViews", id));
           if (snap.exists()) {
             return decodeAdminAlertView({ alertId: id, ...snap.data() });
+          }
+          const capSnap = await getDoc(doc(this.firestore, "capacityAlerts", id));
+          if (capSnap.exists()) {
+            const data = capSnap.data();
+            return decodeAdminAlertView({
+              alertId: id,
+              binId: data.binId ?? "",
+              locationName: data.locationName ?? `Smart Bin ${data.binId}`,
+              cycleId: data.cycleId ?? "",
+              triggeringFillPercent: data.triggeringFillPercent ?? 85,
+              currentFillPercent: data.currentFillPercent ?? data.triggeringFillPercent ?? 85,
+              threshold: data.thresholdSnapshot ?? data.threshold ?? 85,
+              operationalSettingsVersion: data.operationalSettingsVersion ?? 1,
+              state: data.state ?? "pending",
+              version: data.version ?? 1,
+              triggeredAt: data.triggeredAt ?? new Date().toISOString(),
+              scheduledAt: data.scheduledAt ?? null,
+              scheduledBy: data.scheduledBy ?? null,
+              collectedAt: data.collectedAt ?? null,
+              collectedBy: data.collectedBy ?? null,
+              resolvedAt: data.resolvedAt ?? null,
+              resolvedBy: data.resolvedBy ?? null,
+              collectionEventId: data.collectionEventId ?? null,
+              ...data,
+            });
           }
         }
       } catch {
