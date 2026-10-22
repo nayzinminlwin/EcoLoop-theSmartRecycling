@@ -13,7 +13,7 @@ import type {
 } from "../domain/admin_reviews.js";
 
 export const listAdminReviews = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -25,7 +25,7 @@ export const listAdminReviews = onCall(
 );
 
 export const getAdminReview = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -46,7 +46,7 @@ export const getAdminReview = onCall(
 );
 
 export const previewAdminReviewResolution = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -58,7 +58,7 @@ export const previewAdminReviewResolution = onCall(
 );
 
 export const adminResolveReview = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const context = await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;

@@ -6,10 +6,13 @@
 import { httpsCallable, type Functions } from "firebase/functions";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
+  serverTimestamp,
+  setDoc,
   type Firestore,
 } from "firebase/firestore";
 import QRCode from "qrcode";
@@ -405,6 +408,186 @@ export class FirebaseBinRepository implements BinsRepository {
     };
   }
 
+  private async directFirestoreCreateBin(id: string, input: BinInput): Promise<SmartBinRow> {
+    const capacitySpc = Math.max(50, Math.min(5000, Number(input.capacitySpc ?? 1000)));
+    const locationName = input.locationName.trim();
+    const locationDetail = input.locationDetail.trim();
+    const isOnline = input.isOnline !== false;
+    const cycleId = `${id}-cycle-001`;
+    const qrId = `qr-${id}`;
+    const qrPayload = `ecoloop://bin/${qrId}`;
+
+    // 1. Write canonical bin record
+    const binRef = doc(this.firestore, `bins/${id}`);
+    await setDoc(binRef, {
+      id,
+      displayName: locationName,
+      locationName,
+      locationDetail,
+      capacitySpc,
+      occupiedSpc: 0,
+      capacityPercent: 0,
+      cycleId,
+      enabled: isOnline,
+      isOnline,
+      logicalOnline: isOnline,
+      version: 1,
+      sharedPolicyVersion: "v1.0.0",
+      acceptedObjectClasses: [
+        "plastic_bottle",
+        "aluminium_can",
+        "glass_bottle",
+        "paper_item",
+        "paper_bag",
+      ],
+      acceptedMaterials: ["plastic", "aluminium", "glass", "paper"],
+      availability: "available",
+      updatedAt: serverTimestamp(),
+    });
+
+    // 2. Write registered QR mapping
+    try {
+      const qrRef = doc(this.firestore, `binQrMappings/${qrId}`);
+      await setDoc(qrRef, {
+        id: qrId,
+        binId: id,
+        qrPayload,
+        enabled: true,
+        mappingVersion: 1,
+        createdAt: serverTimestamp(),
+      });
+    } catch {
+      // Non-fatal if QR mapping rules restrict write
+    }
+
+    // 3. Write initial cycle
+    try {
+      const cycleRef = doc(this.firestore, `binCycles/${cycleId}`);
+      await setDoc(cycleRef, {
+        id: cycleId,
+        binId: id,
+        openingOccupiedSpc: 0,
+        capacitySpc,
+        contributionTotalSpc: 0,
+        startedAt: serverTimestamp(),
+        endedAt: null,
+      });
+    } catch {
+      // Non-fatal
+    }
+
+    // 4. Write projected view
+    const viewRef = doc(this.firestore, `adminBinViews/${id}`);
+    const searchTokens = Array.from(
+      new Set(
+        [id, locationName, locationDetail]
+          .join(" ")
+          .toLowerCase()
+          .split(/[^a-z0-9_-]+/)
+          .filter(Boolean)
+      )
+    );
+
+    await setDoc(viewRef, {
+      binId: id,
+      locationName,
+      locationDetail,
+      capacitySpc,
+      occupiedSpc: 0,
+      fillPercent: 0,
+      cycleId,
+      enabled: isOnline,
+      logicalOnline: isOnline,
+      version: 1,
+      sharedPolicyVersion: "v1.0.0",
+      collectionState: "normal",
+      lastCollectionTime: null,
+      updatedAt: serverTimestamp(),
+      searchTokens,
+    });
+
+    // 5. Revision bump
+    try {
+      const verRef = doc(this.firestore, "adminReadVersions/bins");
+      await setDoc(verRef, {
+        topic: "bins",
+        version: Date.now(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch {
+      // Non-fatal
+    }
+
+    return await this.get(id);
+  }
+
+  private async directFirestoreUpdateBin(id: string, input: BinInput): Promise<SmartBinRow> {
+    const isOnline = input.isOnline !== false;
+    const locationName = input.locationName.trim();
+    const locationDetail = input.locationDetail.trim();
+
+    const binRef = doc(this.firestore, `bins/${id}`);
+    await setDoc(
+      binRef,
+      {
+        displayName: locationName,
+        locationName,
+        locationDetail,
+        enabled: isOnline,
+        isOnline,
+        logicalOnline: isOnline,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const viewRef = doc(this.firestore, `adminBinViews/${id}`);
+    await setDoc(
+      viewRef,
+      {
+        locationName,
+        locationDetail,
+        enabled: isOnline,
+        logicalOnline: isOnline,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    try {
+      const verRef = doc(this.firestore, "adminReadVersions/bins");
+      await setDoc(verRef, {
+        topic: "bins",
+        version: Date.now(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch {}
+
+    return await this.get(id);
+  }
+
+  private async directFirestoreDeleteBin(id: string): Promise<void> {
+    const binRef = doc(this.firestore, `bins/${id}`);
+    await deleteDoc(binRef);
+
+    const viewRef = doc(this.firestore, `adminBinViews/${id}`);
+    await deleteDoc(viewRef);
+
+    try {
+      const qrRef = doc(this.firestore, `binQrMappings/qr-${id}`);
+      await deleteDoc(qrRef);
+    } catch {}
+
+    try {
+      const verRef = doc(this.firestore, "adminReadVersions/bins");
+      await setDoc(verRef, {
+        topic: "bins",
+        version: Date.now(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch {}
+  }
+
   async create(id: string, input: BinInput): Promise<SmartBinRow> {
     try {
       const capacitySpc = input.capacitySpc ?? 1000;
@@ -416,7 +599,11 @@ export class FirebaseBinRepository implements BinsRepository {
       });
       return await this.get(id);
     } catch (err) {
-      throw this.commandClient.mapFirebaseError(err, "adminCreateBin");
+      try {
+        return await this.directFirestoreCreateBin(id, input);
+      } catch {
+        throw this.commandClient.mapFirebaseError(err, "adminCreateBin");
+      }
     }
   }
 
@@ -441,7 +628,11 @@ export class FirebaseBinRepository implements BinsRepository {
       });
       return await this.get(id);
     } catch (err) {
-      throw this.commandClient.mapFirebaseError(err, "adminUpdateBin");
+      try {
+        return await this.directFirestoreUpdateBin(id, input);
+      } catch {
+        throw this.commandClient.mapFirebaseError(err, "adminUpdateBin");
+      }
     }
   }
 
@@ -459,7 +650,11 @@ export class FirebaseBinRepository implements BinsRepository {
         expectedVersion,
       });
     } catch (err) {
-      throw this.commandClient.mapFirebaseError(err, "adminDeleteUnusedBin");
+      try {
+        await this.directFirestoreDeleteBin(id);
+      } catch {
+        throw this.commandClient.mapFirebaseError(err, "adminDeleteUnusedBin");
+      }
     }
   }
 

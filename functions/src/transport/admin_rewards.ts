@@ -29,7 +29,7 @@ function extractPayload<T>(data: unknown): { payload: T; requestId: string } {
 }
 
 export const adminCreateReward = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<CreateRewardOfferInput>(request.data);
@@ -44,7 +44,7 @@ export const adminCreateReward = onCall(
 export const adminCreateRewardOffer = adminCreateReward;
 
 export const adminUpdateReward = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<UpdateRewardOfferInput>(request.data);
@@ -59,7 +59,7 @@ export const adminUpdateReward = onCall(
 export const adminUpdateRewardOffer = adminUpdateReward;
 
 export const adminDeleteUnusedReward = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<DeleteRewardOfferInput>(request.data);

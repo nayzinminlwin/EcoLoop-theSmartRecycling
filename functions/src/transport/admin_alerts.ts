@@ -14,7 +14,7 @@ import type {
 } from "../domain/admin_alerts.js";
 
 export const listAdminAlerts = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -27,7 +27,7 @@ export const listAdminAlerts = onCall(
 );
 
 export const getAdminAlert = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -48,7 +48,7 @@ export const getAdminAlert = onCall(
 );
 
 export const adminScheduleCollection = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const context = await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -66,7 +66,7 @@ export const adminScheduleCollection = onCall(
 );
 
 export const adminRecordCollection = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const context = await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -84,7 +84,7 @@ export const adminRecordCollection = onCall(
 );
 
 export const adminResolveCapacityAlert = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const context = await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;

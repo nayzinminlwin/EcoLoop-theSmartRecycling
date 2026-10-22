@@ -8,7 +8,7 @@ import { getComposition } from "../composition.js";
 import { requireAdminCaller } from "./admin_guard.js";
 
 export const getAdminDashboard = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     return await getComposition().adminDashboard.getDashboard();
@@ -16,7 +16,7 @@ export const getAdminDashboard = onCall(
 );
 
 export const rebuildAdminDashboard = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin } = await requireAdminCaller(request);
     return await getComposition().adminDashboard.rebuildDashboard(admin.uid);

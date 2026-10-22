@@ -9,7 +9,7 @@ import { requireAdminCaller } from "./admin_guard.js";
 import type { QueryPaginationInput } from "../infrastructure/firestore/admin_queries_store.js";
 
 export const listAdminBins = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -22,7 +22,7 @@ export const listAdminBins = onCall(
 );
 
 export const getAdminBin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -43,7 +43,7 @@ export const getAdminBin = onCall(
 );
 
 export const listAdminRewards = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -56,7 +56,7 @@ export const listAdminRewards = onCall(
 );
 
 export const getAdminReward = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     const data = (request.data ?? {}) as Record<string, unknown>;
@@ -77,7 +77,7 @@ export const getAdminReward = onCall(
 );
 
 export const getAdminRewardCategories = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     return await getComposition().adminQueries.getRewardCategories();

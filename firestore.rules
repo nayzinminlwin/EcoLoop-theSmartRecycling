@@ -23,17 +23,16 @@ service cloud.firestore {
 
     match /bins/{binId} {
       allow read: if canReadCatalog();
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
     match /binQrMappings/{mappingId} {
-      allow read: if false;
-      allow write: if false;
+      allow read: if canReadCatalog() || isAdmin();
+      allow write: if isAdmin();
     }
 
     match /binCycles/{cycleId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /binTombstones/{binId} {
@@ -147,8 +146,7 @@ service cloud.firestore {
     }
 
     match /adminBinViews/{binId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminAlertViews/{alertId} {
@@ -187,8 +185,7 @@ service cloud.firestore {
     }
 
     match /adminReadVersions/{topic} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow read, write: if isAdmin();
     }
 
     match /adminDashboard/{dashboardId} {

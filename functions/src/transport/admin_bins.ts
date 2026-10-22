@@ -29,7 +29,7 @@ function extractPayload<T>(data: unknown): { payload: T; requestId: string } {
 }
 
 export const adminCreateBin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin, traceId } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<CreateBinInput>(request.data);
@@ -46,7 +46,7 @@ export const adminCreateBin = onCall(
 );
 
 export const adminUpdateBin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin, traceId } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<UpdateBinInput>(request.data);
@@ -63,7 +63,7 @@ export const adminUpdateBin = onCall(
 );
 
 export const adminDeleteUnusedBin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin, traceId } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<DeleteBinInput>(request.data);
@@ -80,7 +80,7 @@ export const adminDeleteUnusedBin = onCall(
 );
 
 export const getAdminBinQr = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin } = await requireAdminCaller(request);
     const data = request.data as Record<string, unknown> | undefined;

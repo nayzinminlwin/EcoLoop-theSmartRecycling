@@ -25,7 +25,7 @@ function extractPayload<T>(data: unknown): { payload: T; requestId: string } {
 }
 
 export const getAdminSettings = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     await requireAdminCaller(request);
     return await getComposition().adminSettings.getSettings();
@@ -33,7 +33,7 @@ export const getAdminSettings = onCall(
 );
 
 export const adminPublishSettings = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", invoker: "public" },
   async (request) => {
     const { admin, traceId } = await requireAdminCaller(request);
     const { payload, requestId } = extractPayload<PublishSettingsInput>(request.data);
