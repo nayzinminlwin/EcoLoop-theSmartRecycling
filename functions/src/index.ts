@@ -1,3 +1,9 @@
+import { setGlobalOptions } from "firebase-functions/v2";
+
+setGlobalOptions({
+  invoker: "public",
+});
+
 export {
   bootstrapResident,
   getResidentProfile,

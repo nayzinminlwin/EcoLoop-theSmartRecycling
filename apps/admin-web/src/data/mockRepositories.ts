@@ -132,8 +132,7 @@ export function createMockRepositories(options?: {
   function requireAdmin(): void {
     if (
       !state.authState.isSignedIn ||
-      state.authState.role !== "admin" ||
-      state.authState.uid !== "ADM-001"
+      state.authState.role !== "admin"
     ) {
       throw new RepositoryError({
         code: "unauthenticated",

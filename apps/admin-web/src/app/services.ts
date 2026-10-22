@@ -114,12 +114,27 @@ function createAdminServiceBundle(): AdminServiceBundle {
     listeners.forEach((l) => l());
   }
 
-  // When auth changes, track authGeneration and notify subscribers to refresh views
+  // When auth changes, track authGeneration, sync fallbackMock, and notify subscribers to refresh views
   authRepo.watchAuthState().subscribe({
     next: (state) => {
       if (state.uid !== currentUid) {
         currentUid = state.uid;
         authGeneration += 1;
+      }
+      if (fallbackMock.controls) {
+        if (state.isSignedIn && state.role === "admin" && state.uid) {
+          fallbackMock.controls.setAuthState({
+            isSignedIn: true,
+            role: "admin",
+            uid: state.uid,
+          });
+        } else {
+          fallbackMock.controls.setAuthState({
+            isSignedIn: false,
+            role: null,
+            uid: null,
+          });
+        }
       }
       notify();
     },
@@ -127,6 +142,13 @@ function createAdminServiceBundle(): AdminServiceBundle {
       if (currentUid !== null) {
         currentUid = null;
         authGeneration += 1;
+      }
+      if (fallbackMock.controls) {
+        fallbackMock.controls.setAuthState({
+          isSignedIn: false,
+          role: null,
+          uid: null,
+        });
       }
       notify();
     },
