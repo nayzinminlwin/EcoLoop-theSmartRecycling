@@ -90,10 +90,10 @@ describe("Phase AB-06 — Admin Alert View Codecs", () => {
       collectionEventId: null,
     };
 
-    // 1. Pending state
+    // 1. Pending state (alert created, not yet scheduled)
     const pendingRow = adminAlertViewToRow(baseView);
     assert.equal(pendingRow.alert.status, "active");
-    assert.equal(pendingRow.operations.collectionStatus, "pending");
+    assert.equal(pendingRow.operations.collectionStatus, "notScheduled");
     assert.equal(pendingRow.bin.capacityPercent, 86);
 
     // 2. Scheduled state

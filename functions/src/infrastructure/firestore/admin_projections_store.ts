@@ -104,13 +104,14 @@ export class FirestoreAdminProjectionsStore {
       Math.min(5000, Number(binDoc.capacitySpc ?? 1000))
     );
     const occupiedSpc = Math.max(0, Number(binDoc.occupiedSpc ?? 0));
-    const fillPercent = Math.min(
-      100,
-      Math.max(
-        0,
-        Math.round((occupiedSpc / capacitySpc) * 100)
-      )
-    );
+    const explicitFill = typeof binDoc.fillPercent === "number" && binDoc.fillPercent > 0
+      ? binDoc.fillPercent
+      : typeof binDoc.capacityPercent === "number" && binDoc.capacityPercent > 0
+        ? binDoc.capacityPercent
+        : occupiedSpc > 0
+          ? Math.round((occupiedSpc / capacitySpc) * 100)
+          : 0;
+    const fillPercent = Math.min(100, Math.max(0, explicitFill));
 
     const rawOpsStatus = String(opsDoc?.collectionStatus ?? "");
     let collectionState: CollectionState = "normal";

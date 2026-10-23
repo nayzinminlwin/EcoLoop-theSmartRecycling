@@ -34,6 +34,8 @@ import {
   type FilterId
 } from "../../ui/ListControls.tsx";
 import { Modal, ConfirmDialog } from "../../ui/Modal.tsx";
+import "../../ui/primitives.css";
+import "../../ui/data-table.css";
 import "./fleet.css";
 
 // ---------------------------------------------------------------------------
@@ -66,7 +68,7 @@ const INITIAL_FORM: BinFormState = {
 const COLLECTION_LABELS: Record<CollectionStatus, string> = {
   notScheduled: "Not Scheduled",
   pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
+  scheduled: "Pending Collection",
   collected: "Collected"
 };
 
@@ -340,11 +342,16 @@ export function SmartBinsPage(): React.ReactElement {
     {
       id: "collection",
       header: "Collection Status",
-      cell: (row) => (
-        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-          {COLLECTION_LABELS[row.operations.collectionStatus]}
-        </span>
-      )
+      cell: (row) => {
+        const cs = row.operations.collectionStatus;
+        if (cs === "collected") {
+          return <Badge tone="green">Collected</Badge>;
+        }
+        if (cs === "pending" || cs === "scheduled") {
+          return <Badge tone="amber">Pending Collection</Badge>;
+        }
+        return <Badge tone="gray">Not Scheduled</Badge>;
+      }
     },
     {
       id: "actions",
@@ -352,18 +359,21 @@ export function SmartBinsPage(): React.ReactElement {
       cell: (row) => (
         <div style={{ display: "flex", gap: "6px" }}>
           <Button
+            size="sm"
             variant="secondary"
             onClick={() => void handleOpenQrModal(row.bin)}
           >
             QR
           </Button>
           <Button
+            size="sm"
             variant="secondary"
             onClick={() => handleOpenEditModal(row.bin)}
           >
             Edit
           </Button>
           <Button
+            size="sm"
             variant="danger"
             onClick={() => {
               setDeleteCandidate(row.bin);
@@ -397,8 +407,7 @@ export function SmartBinsPage(): React.ReactElement {
       options: [
         { value: "all", label: "All Collections" },
         { value: "notScheduled", label: "Not Scheduled" },
-        { value: "pending", label: "Pending" },
-        { value: "scheduled", label: "Scheduled" },
+        { value: "pending", label: "Pending Collection" },
         { value: "collected", label: "Collected" }
       ]
     },
@@ -451,7 +460,7 @@ export function SmartBinsPage(): React.ReactElement {
       />
 
       {/* Main Bins Data Table */}
-      <div style={{ background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
+      <div className="table-card">
         <DataTable<SmartBinRow, BinSortKey>
           caption="Smart Bins Fleet List"
           rows={pageData?.items ?? []}

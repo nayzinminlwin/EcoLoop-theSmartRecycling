@@ -309,6 +309,7 @@ export class FirestoreAdminAlertsStore {
       transaction.update(binRef, {
         occupiedSpc: 0,
         capacityPercent: 0,
+        fillPercent: 0,
         cycleId: nextCycleId,
         version: nextBinVersion,
         updatedAt: FieldValue.serverTimestamp(),
@@ -502,6 +503,7 @@ export class FirestoreAdminAlertsStore {
       // Update alert record
       transaction.update(alertRef, {
         state: "resolved",
+        currentFillPercent: 0,
         version: nextVersion,
         resolvedBy: caller.uid,
         resolvedAt: FieldValue.serverTimestamp(),
@@ -514,6 +516,7 @@ export class FirestoreAdminAlertsStore {
         alertViewRef,
         {
           state: "resolved",
+          currentFillPercent: 0,
           version: nextVersion,
           resolvedBy: caller.uid,
           resolvedAt: nowInstant,
@@ -531,6 +534,29 @@ export class FirestoreAdminAlertsStore {
           updatedAt: FieldValue.serverTimestamp(),
         });
       }
+
+      // Reset bin capacity to 0 upon resolution
+      const binRef = this.firestore.doc(`bins/${binId}`);
+      const binSnap = await transaction.get(binRef);
+      if (binSnap.exists) {
+        transaction.update(binRef, {
+          occupiedSpc: 0,
+          fillPercent: 0,
+          capacityPercent: 0,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+      const binViewRef = this.firestore.doc(`adminBinViews/${binId}`);
+      transaction.set(
+        binViewRef,
+        {
+          occupiedSpc: 0,
+          fillPercent: 0,
+          collectionState: "normal",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
       // Record audit event
       const auditRef = this.firestore.doc(`adminAuditEvents/${randomUUID()}`);

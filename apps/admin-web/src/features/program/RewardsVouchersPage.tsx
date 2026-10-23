@@ -144,7 +144,7 @@ export function RewardsVouchersPage(): React.ReactElement {
     return {
       subscribe: (obs) => {
         obs.next({ items: [], total: 0, page: 1, pageSize: 10 });
-        return () => {};
+        return () => { };
       },
     };
   });

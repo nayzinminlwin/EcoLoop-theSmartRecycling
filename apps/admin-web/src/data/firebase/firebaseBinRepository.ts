@@ -83,17 +83,48 @@ export class FirebaseBinRepository implements BinsRepository {
     }
   }
 
-  private mapCanonicalBinDocToRow(id: string, data: Record<string, unknown>): SmartBinRow {
+  private deriveBinCollectionStatus(
+    binId: string,
+    capacityPercent: number,
+    alertState?: string,
+    explicitStatus?: string
+  ): CollectionStatus {
+    // 1. If marked collected, status is "collected"
+    if (alertState === "collected" || explicitStatus === "collected") {
+      return "collected";
+    }
+
+    // 2. If scheduled (during schedule), status is "pending" (displays as "Collection Pending")
+    if (
+      alertState === "scheduled" ||
+      explicitStatus === "scheduled" ||
+      explicitStatus === "collection_pending" ||
+      (explicitStatus === "pending" && alertState !== "pending" && alertState !== "triggered")
+    ) {
+      return "pending";
+    }
+
+    // 3. Before schedule (normal <85% or reached threshold >=85% awaiting scheduling action):
+    return "notScheduled";
+  }
+
+  private mapCanonicalBinDocToRow(
+    id: string,
+    data: Record<string, unknown>,
+    alertState?: string
+  ): SmartBinRow {
     const capacitySpc = Math.max(50, Math.min(5000, Number(data.capacitySpc ?? 1000)));
     const occupiedSpc = Math.max(0, Number(data.occupiedSpc ?? 0));
-    const capacityPercent = typeof data.capacityPercent === "number"
-      ? data.capacityPercent
-      : Math.min(100, Math.max(0, Math.round((occupiedSpc / capacitySpc) * 100)));
+    const capacityPercent = typeof data.fillPercent === "number" && data.fillPercent > 0
+      ? data.fillPercent
+      : typeof data.capacityPercent === "number" && data.capacityPercent > 0
+        ? data.capacityPercent
+        : Math.min(100, Math.max(0, occupiedSpc > 0 ? Math.round((occupiedSpc / capacitySpc) * 100) : 0));
 
     const acceptedMaterials: MaterialType[] = Array.isArray(data.acceptedMaterials)
       ? (data.acceptedMaterials.filter((m): m is MaterialType =>
-          ["plastic", "aluminium", "paper", "glass", "unknown"].includes(String(m))
-        ))
+        ["plastic", "aluminium", "paper", "glass", "unknown"].includes(String(m))
+      ))
       : ["plastic", "aluminium"];
 
     let lastUpdatedAt = new Date().toISOString();
@@ -106,15 +137,18 @@ export class FirebaseBinRepository implements BinsRepository {
     }
 
     const isOnline = data.isOnline !== false && data.logicalOnline !== false && data.enabled !== false;
+    const explicitStatus = typeof data.collectionStatus === "string"
+      ? data.collectionStatus
+      : typeof data.collectionState === "string"
+        ? (data.collectionState === "collection_pending" ? "pending" : data.collectionState)
+        : undefined;
 
-    let collectionStatus: CollectionStatus = "notScheduled";
-    if (typeof data.collectionState === "string") {
-      collectionStatus = data.collectionState === "collection_pending" ? "pending" : (data.collectionState as CollectionStatus);
-    } else if (typeof data.collectionStatus === "string") {
-      collectionStatus = data.collectionStatus as CollectionStatus;
-    } else if (capacityPercent >= 85) {
-      collectionStatus = "pending";
-    }
+    const collectionStatus = this.deriveBinCollectionStatus(
+      id,
+      capacityPercent,
+      alertState,
+      explicitStatus
+    );
 
     return {
       bin: {
@@ -162,6 +196,16 @@ export class FirebaseBinRepository implements BinsRepository {
     if (query.online && query.online !== "all") {
       const wantOnline = query.online === "online";
       filtered = filtered.filter((r) => r.bin.isOnline === wantOnline);
+    }
+
+    // Collection status filter
+    if (query.collectionStatus && query.collectionStatus !== "all") {
+      filtered = filtered.filter((r) => {
+        if (query.collectionStatus === "pending") {
+          return r.operations.collectionStatus === "pending" || r.operations.collectionStatus === "scheduled";
+        }
+        return r.operations.collectionStatus === query.collectionStatus;
+      });
     }
 
     // Sorting
@@ -230,6 +274,22 @@ export class FirebaseBinRepository implements BinsRepository {
       const decoded = decodeAdminPaginatedResponse(res.data, decodeAdminBinView);
       if (decoded.items && decoded.items.length > 0) {
         const rows = decoded.items.map(adminBinViewToRow);
+        try {
+          const binsSnap = await getDocs(collection(this.firestore, "bins"));
+          const canonicalMap = new Map(binsSnap.docs.map(d => [d.id, d.data()]));
+          for (const row of rows) {
+            const canon = canonicalMap.get(row.bin.id);
+            if (canon) {
+              const liveFill = typeof canon.fillPercent === "number" && canon.fillPercent > 0
+                ? canon.fillPercent
+                : typeof canon.capacityPercent === "number" && canon.capacityPercent > 0
+                  ? canon.capacityPercent
+                  : row.bin.capacityPercent;
+              row.bin.capacityPercent = liveFill;
+              if (liveFill >= 85) row.operations.collectionStatus = "pending";
+            }
+          }
+        } catch { }
         return {
           items: rows,
           total: decoded.total,
@@ -245,17 +305,81 @@ export class FirebaseBinRepository implements BinsRepository {
     try {
       let rows: SmartBinRow[] = [];
 
-      const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
-      if (!viewsSnap.empty) {
-        rows = viewsSnap.docs.map((d) => {
-          const view = decodeAdminBinView({ binId: d.id, ...d.data() });
-          return adminBinViewToRow(view);
-        });
-      } else {
-        const binsSnap = await getDocs(collection(this.firestore, "bins"));
-        if (!binsSnap.empty) {
-          rows = binsSnap.docs.map((d) => this.mapCanonicalBinDocToRow(d.id, d.data()));
+      const [viewsSnap, binsSnap, capAlertsSnap, adminAlertsSnap] = await Promise.all([
+        getDocs(collection(this.firestore, "adminBinViews")).catch(() => null),
+        getDocs(collection(this.firestore, "bins")).catch(() => null),
+        getDocs(collection(this.firestore, "capacityAlerts")).catch(() => null),
+        getDocs(collection(this.firestore, "adminAlertViews")).catch(() => null),
+      ]);
+
+      const alertStateByBin = new Map<string, string>();
+      const processAlertDoc = (data: Record<string, unknown>) => {
+        const bId = String(data.binId || "");
+        if (!bId) return;
+        const state = String(data.state || "");
+        if (!state) return;
+        const prev = alertStateByBin.get(bId);
+        if (!prev || prev === "resolved") {
+          alertStateByBin.set(bId, state);
+        } else if (state === "collected" && prev !== "collected") {
+          alertStateByBin.set(bId, state);
         }
+      };
+
+      if (capAlertsSnap && !capAlertsSnap.empty) {
+        for (const d of capAlertsSnap.docs) processAlertDoc(d.data());
+      }
+      if (adminAlertsSnap && !adminAlertsSnap.empty) {
+        for (const d of adminAlertsSnap.docs) processAlertDoc(d.data());
+      }
+
+      const canonicalMap = new Map<string, Record<string, unknown>>();
+      if (binsSnap && !binsSnap.empty) {
+        for (const d of binsSnap.docs) {
+          canonicalMap.set(d.id, d.data());
+        }
+      }
+
+      if (viewsSnap && !viewsSnap.empty) {
+        rows = viewsSnap.docs.map((d) => {
+          const viewData = { binId: d.id, ...d.data() };
+          const canon = canonicalMap.get(d.id);
+          if (canon) {
+            const canonFill = typeof canon.fillPercent === "number" && canon.fillPercent > 0
+              ? canon.fillPercent
+              : typeof canon.capacityPercent === "number" && canon.capacityPercent > 0
+                ? canon.capacityPercent
+                : 0;
+            if (canonFill > 0) {
+              viewData.fillPercent = canonFill;
+              if (canonFill >= 85) {
+                viewData.collectionState = "critical";
+              } else if (canonFill >= 75) {
+                viewData.collectionState = "warning";
+              }
+            }
+          }
+          const view = decodeAdminBinView(viewData);
+          const row = adminBinViewToRow(view);
+          const alertState = alertStateByBin.get(d.id);
+          const explicitStatus = typeof canon?.collectionStatus === "string"
+            ? canon.collectionStatus
+            : typeof d.data().collectionStatus === "string"
+              ? d.data().collectionStatus
+              : undefined;
+          row.operations.collectionStatus = this.deriveBinCollectionStatus(
+            d.id,
+            row.bin.capacityPercent,
+            alertState,
+            explicitStatus
+          );
+          return row;
+        });
+      } else if (binsSnap && !binsSnap.empty) {
+        rows = binsSnap.docs.map((d) => {
+          const alertState = alertStateByBin.get(d.id);
+          return this.mapCanonicalBinDocToRow(d.id, d.data(), alertState);
+        });
       }
 
       if (rows.length > 0) {
@@ -297,7 +421,7 @@ export class FirebaseBinRepository implements BinsRepository {
             onSnapshot(
               versionDocRef,
               () => { if (isSubscribed) load(); },
-              () => {}
+              () => { }
             )
           );
 
@@ -307,7 +431,7 @@ export class FirebaseBinRepository implements BinsRepository {
             onSnapshot(
               viewsColRef,
               () => { if (isSubscribed) load(); },
-              () => {}
+              () => { }
             )
           );
 
@@ -317,7 +441,30 @@ export class FirebaseBinRepository implements BinsRepository {
             onSnapshot(
               binsColRef,
               () => { if (isSubscribed) load(); },
-              () => {}
+              () => { }
+            )
+          );
+
+          // Listen to capacity alerts collections and alert version bump
+          unsubs.push(
+            onSnapshot(
+              collection(this.firestore, "capacityAlerts"),
+              () => { if (isSubscribed) load(); },
+              () => { }
+            )
+          );
+          unsubs.push(
+            onSnapshot(
+              collection(this.firestore, "adminAlertViews"),
+              () => { if (isSubscribed) load(); },
+              () => { }
+            )
+          );
+          unsubs.push(
+            onSnapshot(
+              doc(this.firestore, "adminReadVersions/alerts"),
+              () => { if (isSubscribed) load(); },
+              () => { }
             )
           );
         } catch {
@@ -329,7 +476,7 @@ export class FirebaseBinRepository implements BinsRepository {
         return () => {
           isSubscribed = false;
           unsubs.forEach((unsub) => {
-            try { unsub(); } catch {}
+            try { unsub(); } catch { }
           });
         };
       },
@@ -344,17 +491,70 @@ export class FirebaseBinRepository implements BinsRepository {
       );
       const res = await callable({ binId: id });
       const detail = decodeAdminBinDetailView(res.data);
-      return adminBinViewToRow(detail.bin);
-    } catch {
+      const row = adminBinViewToRow(detail.bin);
       try {
-        const viewDoc = await getDoc(doc(this.firestore, `adminBinViews/${id}`));
-        if (viewDoc.exists()) {
-          const view = decodeAdminBinView({ binId: viewDoc.id, ...viewDoc.data() });
-          return adminBinViewToRow(view);
-        }
         const binDoc = await getDoc(doc(this.firestore, `bins/${id}`));
         if (binDoc.exists()) {
-          return this.mapCanonicalBinDocToRow(binDoc.id, binDoc.data());
+          const canon = binDoc.data();
+          const liveFill = typeof canon.fillPercent === "number" && canon.fillPercent > 0
+            ? canon.fillPercent
+            : typeof canon.capacityPercent === "number" && canon.capacityPercent > 0
+              ? canon.capacityPercent
+              : row.bin.capacityPercent;
+          row.bin.capacityPercent = liveFill;
+        }
+        let alertState: string | undefined;
+        const [capDoc, aViewDoc] = await Promise.all([
+          getDoc(doc(this.firestore, `capacityAlerts/alert-${id}`)).catch(() => null),
+          getDoc(doc(this.firestore, `adminAlertViews/alert-${id}`)).catch(() => null),
+        ]);
+        if (capDoc && capDoc.exists()) alertState = capDoc.data().state;
+        else if (aViewDoc && aViewDoc.exists()) alertState = aViewDoc.data().state;
+        row.operations.collectionStatus = this.deriveBinCollectionStatus(id, row.bin.capacityPercent, alertState);
+      } catch { }
+      return row;
+    } catch {
+      try {
+        const [viewDoc, binDoc, capDoc, aViewDoc] = await Promise.all([
+          getDoc(doc(this.firestore, `adminBinViews/${id}`)).catch(() => null),
+          getDoc(doc(this.firestore, `bins/${id}`)).catch(() => null),
+          getDoc(doc(this.firestore, `capacityAlerts/alert-${id}`)).catch(() => null),
+          getDoc(doc(this.firestore, `adminAlertViews/alert-${id}`)).catch(() => null),
+        ]);
+        let alertState: string | undefined;
+        if (capDoc && capDoc.exists()) alertState = capDoc.data().state;
+        else if (aViewDoc && aViewDoc.exists()) alertState = aViewDoc.data().state;
+        else {
+          const capSnap = await getDocs(collection(this.firestore, "capacityAlerts")).catch(() => null);
+          if (capSnap) {
+            for (const d of capSnap.docs) {
+              if (d.data().binId === id) { alertState = d.data().state; break; }
+            }
+          }
+        }
+
+        if (viewDoc && viewDoc.exists()) {
+          const viewData = { binId: viewDoc.id, ...viewDoc.data() };
+          let explicitStatus: string | undefined;
+          if (binDoc && binDoc.exists()) {
+            const canon = binDoc.data();
+            const canonFill = typeof canon.fillPercent === "number" && canon.fillPercent > 0
+              ? canon.fillPercent
+              : typeof canon.capacityPercent === "number" && canon.capacityPercent > 0
+                ? canon.capacityPercent
+                : 0;
+            if (canonFill > 0) {
+              viewData.fillPercent = canonFill;
+            }
+            explicitStatus = typeof canon.collectionStatus === "string" ? canon.collectionStatus : undefined;
+          }
+          const view = decodeAdminBinView(viewData);
+          const row = adminBinViewToRow(view);
+          row.operations.collectionStatus = this.deriveBinCollectionStatus(id, row.bin.capacityPercent, alertState, explicitStatus);
+          return row;
+        }
+        if (binDoc && binDoc.exists()) {
+          return this.mapCanonicalBinDocToRow(binDoc.id, binDoc.data(), alertState);
         }
       } catch {
         // Fallback below
@@ -367,41 +567,29 @@ export class FirebaseBinRepository implements BinsRepository {
     return {
       subscribe: (observer: Observer<SmartBinRow | null>): Unsubscribe => {
         let isSubscribed = true;
+        const unsubs: Array<() => void> = [];
+
+        const load = async () => {
+          try {
+            const row = await this.get(id);
+            if (isSubscribed) observer.next(row);
+          } catch (err) {
+            if (isSubscribed) observer.next(null);
+          }
+        };
+
         try {
-          const binDocRef = doc(this.firestore, `adminBinViews/${id}`);
-          const unsubscribe = onSnapshot(
-            binDocRef,
-            (snap) => {
-              if (!isSubscribed) return;
-              if (snap.exists()) {
-                try {
-                  const view = decodeAdminBinView({ binId: snap.id, ...snap.data() });
-                  observer.next(adminBinViewToRow(view));
-                  return;
-                } catch {}
-              }
-              getDoc(doc(this.firestore, `bins/${id}`))
-                .then((bSnap) => {
-                  if (!isSubscribed) return;
-                  if (bSnap.exists()) {
-                    observer.next(this.mapCanonicalBinDocToRow(bSnap.id, bSnap.data()));
-                  } else {
-                    observer.next(null);
-                  }
-                })
-                .catch(() => {
-                  observer.next(null);
-                });
-            },
-            () => {
-              if (!isSubscribed) return;
-              this.fallbackBinsRepo.watch(id).subscribe(observer);
-            }
+          unsubs.push(
+            onSnapshot(doc(this.firestore, `adminBinViews/${id}`), () => { if (isSubscribed) load(); }, () => { })
           );
+          unsubs.push(
+            onSnapshot(doc(this.firestore, `bins/${id}`), () => { if (isSubscribed) load(); }, () => { })
+          );
+          load();
 
           return () => {
             isSubscribed = false;
-            unsubscribe();
+            unsubs.forEach((u) => { try { u(); } catch { } });
           };
         } catch {
           return this.fallbackBinsRepo.watch(id).subscribe(observer);
@@ -629,7 +817,7 @@ export class FirebaseBinRepository implements BinsRepository {
             updatedAt: serverTimestamp(),
           });
         }
-      } catch {}
+      } catch { }
     } else {
       // If lowered below threshold (< 85%), automatically resolve active alerts for this bin
       try {
@@ -690,7 +878,7 @@ export class FirebaseBinRepository implements BinsRepository {
               hasResolvedAlert = true;
             }
           }
-        } catch {}
+        } catch { }
 
         // Restore operational collection status
         const colStateRef = doc(this.firestore, `binCollectionState/${id}`);
@@ -713,7 +901,7 @@ export class FirebaseBinRepository implements BinsRepository {
             updatedAt: serverTimestamp(),
           });
         }
-      } catch {}
+      } catch { }
     }
 
     try {
@@ -723,7 +911,7 @@ export class FirebaseBinRepository implements BinsRepository {
         version: Date.now(),
         updatedAt: serverTimestamp(),
       });
-    } catch {}
+    } catch { }
 
     try {
       const dashRef = doc(this.firestore, "adminReadVersions/dashboard");
@@ -732,7 +920,7 @@ export class FirebaseBinRepository implements BinsRepository {
         version: Date.now(),
         updatedAt: serverTimestamp(),
       });
-    } catch {}
+    } catch { }
 
     return await this.get(id);
   }
@@ -747,7 +935,7 @@ export class FirebaseBinRepository implements BinsRepository {
     try {
       const qrRef = doc(this.firestore, `binQrMappings/qr-${id}`);
       await deleteDoc(qrRef);
-    } catch {}
+    } catch { }
 
     try {
       const verRef = doc(this.firestore, "adminReadVersions/bins");
@@ -756,7 +944,7 @@ export class FirebaseBinRepository implements BinsRepository {
         version: Date.now(),
         updatedAt: serverTimestamp(),
       });
-    } catch {}
+    } catch { }
   }
 
   async create(id: string, input: BinInput): Promise<SmartBinRow> {
@@ -889,7 +1077,7 @@ export class FirebaseBinRepository implements BinsRepository {
       if (this.fallbackBinsRepo) {
         try {
           return await this.fallbackBinsRepo.getQrCode(id);
-        } catch {}
+        } catch { }
       }
 
       throw this.commandClient.mapFirebaseError(new Error("Unable to retrieve QR code"), "getAdminBinQr");

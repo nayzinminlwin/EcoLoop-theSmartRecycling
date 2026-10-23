@@ -140,7 +140,7 @@ export function decodeAdminBinView(raw: unknown): AdminBinView {
     locationDetail: String(obj.locationDetail ?? "Standard Facility"),
     capacitySpc: Math.max(50, Math.min(5000, Number(obj.capacitySpc ?? 1000))),
     occupiedSpc: Math.max(0, Number(obj.occupiedSpc ?? 0)),
-    fillPercent: Math.max(0, Math.min(100, Number(obj.fillPercent ?? 0))),
+    fillPercent: Math.max(0, Math.min(100, Number(obj.fillPercent) > 0 ? Number(obj.fillPercent) : Number(obj.capacityPercent) > 0 ? Number(obj.capacityPercent) : 0)),
     cycleId: String(obj.cycleId ?? `cycle-${obj.binId}-001`),
     enabled: obj.enabled !== false,
     logicalOnline: obj.logicalOnline !== false,
@@ -335,11 +335,14 @@ export function adminAlertViewToRow(
   const isResolved = view.state === "resolved";
   const alertStatus: "active" | "resolved" = isResolved ? "resolved" : "active";
 
-  let collectionStatus: "notScheduled" | "pending" | "scheduled" | "collected" = "pending";
+  let collectionStatus: "notScheduled" | "pending" | "scheduled" | "collected" = "notScheduled";
   if (view.state === "scheduled") {
     collectionStatus = "scheduled";
   } else if (view.state === "collected" || view.state === "resolved") {
     collectionStatus = "collected";
+  } else {
+    // view.state === "pending" (Alert created, not yet scheduled)
+    collectionStatus = "notScheduled";
   }
 
   const alert: CapacityAlert = {
@@ -349,7 +352,8 @@ export function adminAlertViewToRow(
     thresholdPercent: view.threshold,
     triggeredAt: view.triggeredAt,
     resolvedAt: view.resolvedAt,
-  };
+    state: view.state,
+  } as CapacityAlert & { state: string };
 
   const bin: SmartBin = {
     id: view.binId,
@@ -792,7 +796,7 @@ export function decodeAdminDashboardView(raw: unknown): AdminDashboardView {
         return {
           binId: String(item.binId ?? ""),
           locationName: String(item.locationName ?? "Unknown Location"),
-          fillPercent: Math.min(100, Math.max(0, Number(item.fillPercent ?? 0))),
+          fillPercent: Math.min(100, Math.max(0, Number(item.fillPercent) > 0 ? Number(item.fillPercent) : Number(item.capacityPercent) > 0 ? Number(item.capacityPercent) : 0)),
           collectionState,
           isOnline,
         };

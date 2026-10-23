@@ -292,10 +292,10 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
       prev.map((o) =>
         o.objectId === objectId
           ? {
-              ...o,
-              resolvedClass: newClass,
-              decision: isCardboard ? "exclude" : o.decision,
-            }
+            ...o,
+            resolvedClass: newClass,
+            decision: isCardboard ? "exclude" : o.decision,
+          }
           : o
       )
     );
@@ -379,9 +379,8 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
       {/* Decision Receipt Banner */}
       {lastReceipt && lastReceipt.detail.ticket.id === ticket.id && (
         <div
-          className={`decision-receipt-banner ${
-            lastReceipt.detail.ticket.status === "approved" ? "approved" : "rejected"
-          }`}
+          className={`decision-receipt-banner ${lastReceipt.detail.ticket.status === "approved" ? "approved" : "rejected"
+            }`}
           role="status"
         >
           <Icon
@@ -390,9 +389,8 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
           />
           <span>
             {lastReceipt.detail.ticket.status === "approved"
-              ? `Deposit ${lastReceipt.detail.transaction.id} verified! +${
-                  lastReceipt.detail.transaction.pointsAwarded ?? 0
-                } EcoPoints credited to ${residentDisplayAlias}.`
+              ? `Deposit ${lastReceipt.detail.transaction.id} verified! +${lastReceipt.detail.transaction.pointsAwarded ?? 0
+              } EcoPoints credited to ${residentDisplayAlias}.`
               : `Deposit ${lastReceipt.detail.transaction.id} resolved as ${lastReceipt.detail.transaction.status}. 0 points credited to ${residentDisplayAlias}.`}
           </span>
         </div>
@@ -427,15 +425,15 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
               ticket.status === "approved"
                 ? "green"
                 : ticket.status === "rejected"
-                ? "red"
-                : "amber"
+                  ? "red"
+                  : "amber"
             }
           >
             {ticket.status === "approved"
               ? "Approved"
               : ticket.status === "rejected"
-              ? "Rejected"
-              : "Awaiting review"}
+                ? "Rejected"
+                : "Awaiting review"}
           </Badge>
         </div>
       </div>
@@ -659,24 +657,23 @@ function VerificationDetailPanel(props: VerificationDetailPanelProps): React.Rea
           confirmAction === "quickApprove"
             ? "Quick Approve Deposit"
             : confirmAction === "quickReject"
-            ? "Quick Reject Deposit"
-            : "Confirm Batch Resolution"
+              ? "Quick Reject Deposit"
+              : "Confirm Batch Resolution"
         }
         description={
           confirmAction === "quickApprove"
             ? `Approve deposit ${transaction.id} and award EcoPoints for all eligible items to ${residentDisplayAlias}?`
             : confirmAction === "quickReject"
-            ? `Reject deposit ${transaction.id}? No points will be credited to ${residentDisplayAlias}.`
-            : `Submit resolution for ticket ${ticket.id} (${inventoryState}) with ${
-                preview ? `+${preview.pointsAwarded} pts and ${preview.spaceContributionSpc} spc` : "calculated changes"
+              ? `Reject deposit ${transaction.id}? No points will be credited to ${residentDisplayAlias}.`
+              : `Submit resolution for ticket ${ticket.id} (${inventoryState}) with ${preview ? `+${preview.pointsAwarded} pts and ${preview.spaceContributionSpc} spc` : "calculated changes"
               }?`
         }
         confirmLabel={
           confirmAction === "quickApprove"
             ? "Approve deposit"
             : confirmAction === "quickReject"
-            ? "Reject deposit"
-            : "Confirm resolution"
+              ? "Reject deposit"
+              : "Confirm resolution"
         }
         variant={confirmAction === "quickReject" ? "danger" : "primary"}
         busy={decideMutation.pending}
@@ -795,7 +792,7 @@ export function DepositVerificationPage(): React.ReactElement {
           <span>Rejected</span>
         </button>
       </div>
- 
+
       {/* Decision Receipt Banner */}
       {lastReceipt && (
         <div className="receipt-banner" role="status">
@@ -824,7 +821,7 @@ export function DepositVerificationPage(): React.ReactElement {
             searchLabel="Search ticket, deposit, resident…"
             onSearchChange={handleSearchChange}
             filters={[]}
-            onFilterChange={() => {}}
+            onFilterChange={() => { }}
             onReset={() => handleSearchChange("")}
           />
 
