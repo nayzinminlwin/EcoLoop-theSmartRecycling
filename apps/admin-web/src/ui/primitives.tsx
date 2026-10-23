@@ -1,3 +1,4 @@
+/// <reference path="../vite-env.d.ts" />
 // =============================================================================
 // primitives.tsx — Reusable UI control atoms, inputs, badges and headers
 // Phase 4 — Accessible, typed, style-system controls for EcoLoop Admin
@@ -5,6 +6,7 @@
 
 import * as React from "react";
 import recycleSymbolImg from "../assets/recycle-symbol.png";
+import "./primitives.css";
 
 // 1. Icon & Brand
 // ---------------------------------------------------------------------------
@@ -164,6 +166,8 @@ export function Brand(): React.ReactElement {
 export interface ButtonProps {
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md" | "lg";
+  className?: string;
   type?: "button" | "submit";
   disabled?: boolean;
   busy?: boolean;
@@ -175,6 +179,8 @@ export function Button(props: ButtonProps): React.ReactElement {
   const {
     children,
     variant = "primary",
+    size = "md",
+    className = "",
     type = "button",
     disabled = false,
     busy = false,
@@ -182,10 +188,13 @@ export function Button(props: ButtonProps): React.ReactElement {
     testId
   } = props;
 
+  const sizeClass = size === "sm" ? " btn-sm" : size === "lg" ? " btn-lg" : "";
+  const combinedClass = `btn ${variant}${sizeClass}${busy ? " busy" : ""}${className ? ` ${className}` : ""}`;
+
   return (
     <button
       type={type}
-      className={`btn ${variant}${busy ? " busy" : ""}`}
+      className={combinedClass}
       disabled={disabled || busy}
       onClick={onClick}
       data-testid={testId}

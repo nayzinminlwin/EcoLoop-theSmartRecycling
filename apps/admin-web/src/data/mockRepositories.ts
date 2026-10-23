@@ -3,9 +3,10 @@
 // Phase 3 — SDK-free; asynchronous Promise + Observable implementation
 // =============================================================================
 
+import QRCode from "qrcode";
 import type {
   AuthState, RewardCategory, Reward, RewardDocument, MaterialType,
-  DepositTransaction, SmartBin
+  DepositTransaction, SmartBin, ResidentVoucher
 } from "../contracts/shared.ts";
 import type {
   AdminSession, AdminIdentity, AdminLoginRequest, DashboardSummary,
@@ -23,7 +24,9 @@ import {
   type Observable,
   type Observer,
   type Unsubscribe,
-  type OperationName
+  type OperationName,
+  type BinQrCode,
+  type VoucherListQuery
 } from "./repositories.ts";
 import { createSeedState, MOCK_NOW, MOCK_LOGIN, type MockSeedState } from "./mockSeeds.ts";
 
@@ -131,8 +134,7 @@ export function createMockRepositories(options?: {
   function requireAdmin(): void {
     if (
       !state.authState.isSignedIn ||
-      state.authState.role !== "admin" ||
-      state.authState.uid !== "ADM-001"
+      state.authState.role !== "admin"
     ) {
       throw new RepositoryError({
         code: "unauthenticated",
@@ -286,21 +288,32 @@ export function createMockRepositories(options?: {
     const totalWeightKg = computeDerivedWeight(state.deposits);
 
     const sevenDays: string[] = [
-      "2024-05-14",
-      "2024-05-15",
-      "2024-05-16",
-      "2024-05-17",
-      "2024-05-18",
-      "2024-05-19",
-      "2024-05-20"
+      "2024-05-13", // Monday
+      "2024-05-14", // Tuesday
+      "2024-05-15", // Wednesday
+      "2024-05-16", // Thursday
+      "2024-05-17", // Friday
+      "2024-05-18", // Saturday
+      "2024-05-19"  // Sunday
     ];
 
+    // Baseline daily activity creating a typical realistic up-and-down analytics trend
+    const baseDailyTrend: Record<string, number> = {
+      "2024-05-13": 8,  // Mon (baseline)
+      "2024-05-14": 15, // Tue (rise up)
+      "2024-05-15": 11, // Wed (dip down)
+      "2024-05-16": 19, // Thu (climb up)
+      "2024-05-17": 25, // Fri (weekday peak up)
+      "2024-05-18": 18, // Sat (weekend dip down)
+      "2024-05-19": 10  // Sun (evening low down)
+    };
+
     const activity: DailyActivity[] = sevenDays.map((date) => {
-      const count = verifiedDeposits.filter((d) => {
+      const sessionCount = verifiedDeposits.filter((d) => {
         if (!d.verifiedAt) return false;
         return getKualaLumpurCalendarDate(d.verifiedAt) === date;
       }).length;
-      return { date, verifiedDepositCount: count };
+      return { date, verifiedDepositCount: (baseDailyTrend[date] ?? 0) + sessionCount };
     });
 
     const matKeys: MaterialType[] = ["plastic", "aluminium", "paper", "glass"];
@@ -444,10 +457,22 @@ export function createMockRepositories(options?: {
         });
         const ops = state.binOperations.find((o) => o.binId === bin.id);
         if (ops) {
-          ops.collectionStatus = "pending";
+          ops.collectionStatus = "notScheduled";
         } else {
-          state.binOperations.push({ binId: bin.id, collectionStatus: "pending" });
+          state.binOperations.push({ binId: bin.id, collectionStatus: "notScheduled" });
         }
+      }
+    } else {
+      // Lower than threshold: resolve any active alerts for this bin
+      for (const alert of state.alerts) {
+        if (alert.binId === bin.id && alert.status === "active") {
+          alert.status = "resolved";
+          alert.resolvedAt = MOCK_NOW;
+        }
+      }
+      const ops = state.binOperations.find((o) => o.binId === bin.id);
+      if (ops && (ops.collectionStatus === "pending" || ops.collectionStatus === "scheduled")) {
+        ops.collectionStatus = "notScheduled";
       }
     }
   }
@@ -612,6 +637,31 @@ export function createMockRepositories(options?: {
       checkAndTriggerAlert(bin);
       notifyCommit();
       return clone(getBinRow(id));
+    },
+    async getQrCode(id: string): Promise<BinQrCode> {
+      await wait(readDelay);
+      checkFailure("bins.getQrCode");
+      requireAdmin();
+      const qrId = `qr-${id}`;
+      const qrPayload = `ecoloop://bin/${qrId}`;
+      let svg: string;
+      try {
+        svg = await QRCode.toString(qrPayload, {
+          type: "svg",
+          margin: 2,
+          errorCorrectionLevel: "M",
+        });
+      } catch {
+        svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f0f0f0"/><text x="100" y="100" text-anchor="middle" font-size="10">${qrPayload}</text></svg>`;
+      }
+      const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+      return {
+        binId: id,
+        qrId,
+        qrPayload,
+        dataUrl,
+        svg,
+      };
     }
   };
 
@@ -759,7 +809,7 @@ export function createMockRepositories(options?: {
       ops.collectionStatus = "collected";
       const bin = state.bins.find((b) => b.id === alert.binId);
       if (bin) {
-        bin.capacityPercent = 10;
+        bin.capacityPercent = 0;
         bin.lastUpdatedAt = MOCK_NOW;
       }
       notifyCommit();
@@ -785,6 +835,7 @@ export function createMockRepositories(options?: {
 
       alert.status = "resolved";
       alert.resolvedAt = MOCK_NOW;
+      ops.collectionStatus = "notScheduled";
       notifyCommit();
       return clone(getAlertRow(id));
     }
@@ -972,7 +1023,7 @@ export function createMockRepositories(options?: {
 
         ticket.status = "approved";
         ticket.reviewedAt = MOCK_NOW;
-        ticket.reviewedByAdminId = "ADM-001";
+        ticket.reviewedByAdminId = state.adminSession?.adminId ?? "Admin";
 
         wallet.balance += awardedPoints;
         wallet.version += 1;
@@ -980,6 +1031,8 @@ export function createMockRepositories(options?: {
 
         const nextRewardCost = computeNextRewardCost(wallet.balance, state.rewards);
         const receipt: VerificationDecisionResult = {
+          outcome: "verified",
+          pointsAwarded: awardedPoints,
           detail: {
             ticket: clone(ticket),
             transaction: clone(tx),
@@ -1005,10 +1058,12 @@ export function createMockRepositories(options?: {
 
         ticket.status = "rejected";
         ticket.reviewedAt = MOCK_NOW;
-        ticket.reviewedByAdminId = "ADM-001";
+        ticket.reviewedByAdminId = state.adminSession?.adminId ?? "Admin";
 
         const nextRewardCost = computeNextRewardCost(wallet.balance, state.rewards);
         const receipt: VerificationDecisionResult = {
+          outcome: "rejected",
+          pointsAwarded: 0,
           detail: {
             ticket: clone(ticket),
             transaction: clone(tx),
@@ -1028,6 +1083,161 @@ export function createMockRepositories(options?: {
         notifyCommit();
         return clone(receipt);
       }
+    },
+    async getReviewDetail(ticketId: string): Promise<import("../contracts/adminViewCodecs.ts").AdminReviewDetailView> {
+      await wait(readDelay);
+      checkFailure("verification.get");
+      requireAdmin();
+      const detail = getVerificationDetail(ticketId);
+      const isApproved = detail.ticket.status === "approved";
+      const isRejected = detail.ticket.status === "rejected";
+      const reviewOutcome: "verified" | "rejected" | "review" = isApproved ? "verified" : isRejected ? "rejected" : "review";
+      const detailView: import("../contracts/adminViewCodecs.ts").AdminReviewDetailView = {
+        review: {
+          ticketId: detail.ticket.id,
+          batchId: detail.transaction.id,
+          residentAlias: detail.resident.fullName,
+          binId: detail.bin.id,
+          locationName: detail.bin.locationName,
+          state: detail.ticket.status === "awaitingReview" ? "awaiting_review" : "resolved",
+          outcome: reviewOutcome,
+          decisionVersion: 1,
+          reason: detail.ticket.flag,
+          occurredAt: detail.transaction.occurredAt,
+          resolvedAt: detail.ticket.reviewedAt ?? null,
+          reviewerAlias: detail.ticket.reviewedByAdminId ?? null,
+          materialSummary: detail.ticket.predictedMaterialLabel,
+          totalCount: 1,
+        },
+        sessionId: "session-001",
+        resultId: "result-001",
+        pinnedPolicyId: "policy-v1",
+        pinnedPolicyVersion: 1,
+        provisionalSpaceSpc: 10,
+        heldPoints: null,
+        finalSpaceSpc: isApproved ? 10 : 0,
+        awardedPoints: isApproved ? detail.transaction.pointsAwarded : 0,
+        inventoryState: isApproved ? "resolved" : "uncertain",
+        findings: [
+          {
+            objectId: "obj-1",
+            detectedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+            confidence: detail.ticket.confidencePercent / 100,
+            boundingBox: null,
+            resolvedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+            decision: isApproved ? "accept" : null,
+            note: null,
+          }
+        ],
+        source: {
+          type: "simulated_bin_capture",
+          assetId: "asset-001",
+          modelVersion: "ecoloop-cv-v1",
+        },
+        evidence: {
+          previewAvailable: Boolean(detail.ticket.captureImageUrl),
+          previewUrl: detail.ticket.captureImageUrl ?? null,
+          failureReason: null,
+        },
+        explanation: detail.ticket.reviewedAt ? "Reviewed by operator" : null,
+        history: [],
+      };
+      return detailView;
+    },
+    watchReviewDetail(ticketId: string): Observable<import("../contracts/adminViewCodecs.ts").AdminReviewDetailView | null> {
+      return createObservable("verification.get", () => {
+        try {
+          const detail = getVerificationDetail(ticketId);
+          const isApproved = detail.ticket.status === "approved";
+          const isRejected = detail.ticket.status === "rejected";
+          const reviewOutcome: "verified" | "rejected" | "review" = isApproved ? "verified" : isRejected ? "rejected" : "review";
+          return {
+            review: {
+              ticketId: detail.ticket.id,
+              batchId: detail.transaction.id,
+              residentAlias: detail.resident.fullName,
+              binId: detail.bin.id,
+              locationName: detail.bin.locationName,
+              state: detail.ticket.status === "awaitingReview" ? "awaiting_review" : "resolved",
+              outcome: reviewOutcome,
+              decisionVersion: 1,
+              reason: detail.ticket.flag,
+              occurredAt: detail.transaction.occurredAt,
+              resolvedAt: detail.ticket.reviewedAt ?? null,
+              reviewerAlias: detail.ticket.reviewedByAdminId ?? null,
+              materialSummary: detail.ticket.predictedMaterialLabel,
+              totalCount: 1,
+            },
+            sessionId: "session-001",
+            resultId: "result-001",
+            pinnedPolicyId: "policy-v1",
+            pinnedPolicyVersion: 1,
+            provisionalSpaceSpc: 10,
+            heldPoints: null,
+            finalSpaceSpc: isApproved ? 10 : 0,
+            awardedPoints: isApproved ? detail.transaction.pointsAwarded : 0,
+            inventoryState: isApproved ? "resolved" : "uncertain",
+            findings: [
+              {
+                objectId: "obj-1",
+                detectedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+                confidence: detail.ticket.confidencePercent / 100,
+                boundingBox: null,
+                resolvedClass: detail.transaction.materialType === "aluminium" ? "aluminium_can" : "plastic_bottle",
+                decision: isApproved ? "accept" : null,
+                note: null,
+              }
+            ],
+            source: {
+              type: "simulated_bin_capture",
+              assetId: "asset-001",
+              modelVersion: "ecoloop-cv-v1",
+            },
+            evidence: {
+              previewAvailable: Boolean(detail.ticket.captureImageUrl),
+              previewUrl: detail.ticket.captureImageUrl ?? null,
+              failureReason: null,
+            },
+            explanation: detail.ticket.reviewedAt ? "Reviewed by operator" : null,
+            history: [],
+          };
+        } catch {
+          return null;
+        }
+      });
+    },
+    async previewResolution(input: {
+      ticketId: string;
+      inventoryState: "resolved" | "empty" | "unreadable" | "uncertain";
+      objects: import("../contracts/adminViewCodecs.ts").ObjectResolutionDecisionInput[];
+    }): Promise<import("../contracts/adminViewCodecs.ts").ReviewResolutionPreview> {
+      await wait(readDelay);
+      const isExcluded = input.inventoryState === "empty" || input.inventoryState === "unreadable";
+      const acceptedCount = isExcluded ? 0 : input.objects.filter((o) => o.decision === "accept").length;
+      const pointsAwarded = acceptedCount * 10;
+      const spaceContributionSpc = isExcluded ? (input.inventoryState === "empty" ? 0 : 50) : acceptedCount * 10;
+      const proposedOutcome = isExcluded ? (input.inventoryState === "empty" ? "empty" : "rejected") : (acceptedCount > 0 ? "verified" : "rejected");
+      return {
+        outcome: proposedOutcome,
+        pointsAwarded,
+        acceptedCount,
+        totalCount: input.objects.length,
+        spaceContributionSpc,
+        spaceDeltaSpc: spaceContributionSpc - 10,
+        lines: [
+          {
+            class: "plastic_bottle",
+            eligible: acceptedCount > 0,
+            count: acceptedCount,
+            points: pointsAwarded,
+            spaceSpc: spaceContributionSpc,
+          }
+        ],
+      };
+    },
+    async resolveReview(input: import("../contracts/adminViewCodecs.ts").ResolveReviewInput): Promise<VerificationDecisionResult> {
+      const isApproved = input.inventoryState === "resolved" && input.objects.some((o) => o.decision === "accept");
+      return verification.decide(input.ticketId, isApproved ? "approve" : "reject", `mock-${Date.now()}`);
     }
   };
 
@@ -1109,7 +1319,7 @@ export function createMockRepositories(options?: {
     if (typeof input.pointsCost !== "number" || !Number.isInteger(input.pointsCost) || input.pointsCost <= 0) {
       throw new RepositoryError({ code: "validation", message: "Points cost must be positive integer", fieldErrors: { pointsCost: "Invalid points cost" } });
     }
-    if (!input.expiresAt || input.expiresAt <= MOCK_NOW) {
+    if (input.isActive !== false && (!input.expiresAt || input.expiresAt <= MOCK_NOW)) {
       throw new RepositoryError({ code: "validation", message: "Expiry must be in the future relative to mock clock", fieldErrors: { expiresAt: "Must be in the future" } });
     }
     if (typeof input.maxRedemptionsPerResident !== "number" || input.maxRedemptionsPerResident < 1) {
@@ -1167,7 +1377,7 @@ export function createMockRepositories(options?: {
       validateRewardInput(input);
 
       const id = defaultIdFactory("rewards");
-      const doc: RewardDocument = {
+      const doc: RewardDocument & { version: number } = {
         id,
         title: input.title,
         description: input.description,
@@ -1180,7 +1390,8 @@ export function createMockRepositories(options?: {
         isActive: Boolean(input.isActive),
         maxRedemptionsPerResident: input.maxRedemptionsPerResident,
         artKey: input.artKey,
-        sortOrder: input.sortOrder
+        sortOrder: input.sortOrder,
+        version: 1,
       };
 
       state.rewards.push(doc);
@@ -1198,7 +1409,18 @@ export function createMockRepositories(options?: {
         throw new RepositoryError({ code: "notFound", message: `Reward not found: ${id}`, fieldErrors: {} });
       }
 
-      const updated: RewardDocument = {
+      const existing = state.rewards[index];
+      const existingVersion = (existing as any).version ?? 1;
+      if (input.expectedVersion !== undefined && input.expectedVersion !== existingVersion) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Reward version mismatch: expected ${input.expectedVersion}, found ${existingVersion}`,
+          fieldErrors: { expectedVersion: "Version conflict" },
+        });
+      }
+
+      const nextVersion = existingVersion + 1;
+      const updated: RewardDocument & { version: number } = {
         id,
         title: input.title,
         description: input.description,
@@ -1211,36 +1433,82 @@ export function createMockRepositories(options?: {
         isActive: Boolean(input.isActive),
         maxRedemptionsPerResident: input.maxRedemptionsPerResident,
         artKey: input.artKey,
-        sortOrder: input.sortOrder
+        sortOrder: input.sortOrder,
+        version: nextVersion,
       };
 
       state.rewards[index] = updated;
       notifyCommit();
       return clone({ ...updated, residentRedemptionCount: 0 });
     },
-    async delete(id: string): Promise<void> {
+    async delete(id: string, expectedVersion?: number): Promise<void> {
       await wait(writeDelay);
       checkFailure("rewards.delete");
       requireAdmin();
-
-      const hasVoucher = state.vouchers.some((v) => v.rewardId === id);
-      const hasRedemption = state.redemptions.some((r) => r.rewardId === id);
-      if (hasVoucher || hasRedemption) {
-        throw new RepositoryError({
-          code: "conflict",
-          message: "Reward has issued vouchers or redemptions",
-          fieldErrors: { id: "Referenced by vouchers or redemptions" }
-        });
-      }
 
       const index = state.rewards.findIndex((r) => r.id === id);
       if (index === -1) {
         throw new RepositoryError({ code: "notFound", message: `Reward not found: ${id}`, fieldErrors: {} });
       }
 
+      const existing = state.rewards[index];
+      const existingVersion = (existing as any).version ?? 1;
+      if (expectedVersion !== undefined && expectedVersion !== existingVersion) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Reward version mismatch: expected ${expectedVersion}, found ${existingVersion}`,
+          fieldErrors: { expectedVersion: "Version conflict" },
+        });
+      }
+
+      const hasVoucher = state.vouchers.some((v) => v.rewardId === id);
+      const hasRedemption = state.redemptions.some((r) => r.rewardId === id);
+      if (hasVoucher || hasRedemption) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: "Reward has issued vouchers or redemptions and cannot be deleted. Deactivate it instead.",
+          fieldErrors: { id: "Referenced by vouchers or redemptions" }
+        });
+      }
+
       state.rewards.splice(index, 1);
       notifyCommit();
-    }
+    },
+    async listVouchers(query: VoucherListQuery): Promise<Page<ResidentVoucher>> {
+      await wait(readDelay);
+      checkFailure("rewards.list");
+      requireAdmin();
+      let list = clone(state.vouchers);
+      if (query.search && query.search.trim()) {
+        const q = query.search.trim().toLowerCase();
+        list = list.filter(v => v.code.toLowerCase().includes(q) || v.title.toLowerCase().includes(q) || v.residentId.toLowerCase().includes(q));
+      }
+      if (query.status && query.status !== "all") {
+        list = list.filter(v => v.status === query.status);
+      }
+      const total = list.length;
+      const pageSize = query.pageSize;
+      const start = (query.page - 1) * pageSize;
+      const items = list.slice(start, start + pageSize);
+      return { items, total, page: query.page, pageSize };
+    },
+    watchVouchers(query: VoucherListQuery): Observable<Page<ResidentVoucher>> {
+      return createObservable("rewards.list", () => {
+        let list = clone(state.vouchers);
+        if (query.search && query.search.trim()) {
+          const q = query.search.trim().toLowerCase();
+          list = list.filter(v => v.code.toLowerCase().includes(q) || v.title.toLowerCase().includes(q) || v.residentId.toLowerCase().includes(q));
+        }
+        if (query.status && query.status !== "all") {
+          list = list.filter(v => v.status === query.status);
+        }
+        const total = list.length;
+        const pageSize = query.pageSize;
+        const start = (query.page - 1) * pageSize;
+        const items = list.slice(start, start + pageSize);
+        return { items, total, page: query.page, pageSize };
+      });
+    },
   };
 
   // ---------------------------------------------------------------------------
@@ -1249,8 +1517,19 @@ export function createMockRepositories(options?: {
   function buildAdminSettings(): AdminSettings {
     return {
       id: "global",
+      version: state.programSettings.version ?? 1,
+      policyVersion: state.programSettings.policyVersion ?? "policy-v1",
       capacityAlertThreshold: state.programSettings.capacityAlertThreshold,
       acceptedMaterials: clone(state.programSettings.acceptedMaterials),
+      acceptedClasses: clone(
+        state.programSettings.acceptedClasses ?? [
+          "plastic_bottle",
+          "aluminium_can",
+          "glass_bottle",
+          "paper_item",
+          "paper_bag",
+        ]
+      ),
       materialRates: clone(state.materialRates),
       updatedAt: state.programSettings.updatedAt
     };
@@ -1271,6 +1550,15 @@ export function createMockRepositories(options?: {
       checkFailure("settings.update");
       requireAdmin();
 
+      const currentVer = state.programSettings.version ?? 1;
+      if (input.expectedVersion !== undefined && input.expectedVersion !== currentVer) {
+        throw new RepositoryError({
+          code: "conflict",
+          message: `Stale settings version. Current operational version is ${currentVer}, but draft expected ${input.expectedVersion}.`,
+          fieldErrors: { expectedVersion: "Version conflict" }
+        });
+      }
+
       if (![75, 80, 85].includes(input.capacityAlertThreshold)) {
         throw new RepositoryError({
           code: "validation",
@@ -1283,6 +1571,13 @@ export function createMockRepositories(options?: {
           code: "validation",
           message: "At least one accepted material is required",
           fieldErrors: { acceptedMaterials: "Select at least one" }
+        });
+      }
+      if (input.acceptedClasses && input.acceptedClasses.includes("cardboard_item")) {
+        throw new RepositoryError({
+          code: "validation",
+          message: "Cardboard cannot be accepted in smart bin automated deposits",
+          fieldErrors: { acceptedClasses: "Cardboard excluded" }
         });
       }
       const knownMat: MaterialType[] = ["plastic", "aluminium", "paper", "glass"];
@@ -1316,8 +1611,12 @@ export function createMockRepositories(options?: {
         }
       }
 
+      state.programSettings.version = currentVer + 1;
       state.programSettings.capacityAlertThreshold = input.capacityAlertThreshold;
       state.programSettings.acceptedMaterials = [...input.acceptedMaterials];
+      if (input.acceptedClasses) {
+        state.programSettings.acceptedClasses = [...input.acceptedClasses];
+      }
       state.programSettings.updatedAt = MOCK_NOW;
       state.materialRates = clone(input.materialRates);
 

@@ -179,11 +179,9 @@
   gap: 10px;
   flex: 1;
   border-bottom: 1px solid var(--line);
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--line) 0 1px,
-    transparent 1px 40px
-  );
+  background: repeating-linear-gradient(to bottom,
+      var(--line) 0 1px,
+      transparent 1px 40px);
   padding-bottom: 0;
 }
 

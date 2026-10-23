@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "admin.v1",
+  "cases": [
+    {
+      "caseId": "err-negative-capacity",
+      "target": "adminCreateBin.payload.capacitySpc",
+      "value": -100,
+      "expectedError": "minimum_capacity_required",
+      "description": "Bin capacity must be a positive integer >= 50 spc."
+    },
+    {
+      "caseId": "err-zero-capacity",
+      "target": "adminCreateBin.payload.capacitySpc",
+      "value": 0,
+      "expectedError": "minimum_capacity_required",
+      "description": "Zero capacity is invalid for smart bins."
+    },
+    {
+      "caseId": "err-invalid-threshold",
+      "target": "adminPublishSettings.payload.capacityAlertThreshold",
+      "value": 90,
+      "expectedError": "valid_threshold_enum_required",
+      "description": "Alert threshold must be one of [75, 80, 85]."
+    },
+    {
+      "caseId": "err-missing-explanation",
+      "target": "adminResolveReview.payload.explanation",
+      "value": "",
+      "expectedError": "explanation_required",
+      "description": "Operator review resolution requires a descriptive explanation."
+    },
+    {
+      "caseId": "err-empty-state-with-objects",
+      "target": "adminResolveReview.payload",
+      "value": {
+        "ticketId": "ticket-123",
+        "expectedDecisionVersion": 0,
+        "inventoryState": "empty",
+        "objects": [
+          { "objectId": "obj-1", "resolvedClass": "plastic_bottle", "decision": "accept" }
+        ],
+        "explanation": "Empty but objects provided"
+      },
+      "expectedError": "inconsistent_empty_inventory_objects",
+      "description": "When inventoryState is 'empty', objects array must be empty."
+    },
+    {
+      "caseId": "err-points-injection-attempt",
+      "target": "adminResolveReview.payload.pointsAwarded",
+      "value": 500,
+      "expectedError": "unexpected_property",
+      "description": "Points cannot be injected by client; recomputed by server from pinned policy."
+    },
+    {
+      "caseId": "err-space-injection-attempt",
+      "target": "adminResolveReview.payload.spaceCorrectionSpc",
+      "value": -10,
+      "expectedError": "unexpected_property",
+      "description": "Space corrections are calculated by server domain logic, never client payloads."
+    },
+    {
+      "caseId": "err-free-fill-percentage-edit",
+      "target": "adminUpdateBin.payload.fillPercent",
+      "value": 40,
+      "expectedError": "unexpected_property",
+      "description": "Fill percentage is derived from cycle accounting and cannot be edited directly."
+    },
+    {
+      "caseId": "err-negative-reward-cost",
+      "target": "adminCreateReward.payload.pointsCost",
+      "value": 0,
+      "expectedError": "positive_cost_required",
+      "description": "Reward points cost must be an integer >= 1."
+    },
+    {
+      "caseId": "err-unsupported-schema-version",
+      "target": "schemaVersion",
+      "value": "admin.v0",
+      "expectedError": "unsupported_version",
+      "description": "Contract version must be 'admin.v1'."
+    }
+  ]
+}

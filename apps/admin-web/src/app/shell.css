@@ -13,7 +13,7 @@
   background: var(--bg);
 }
 
-.admin-shell > aside {
+.admin-shell>aside {
   height: 100vh;
   position: sticky;
   top: 0;
@@ -181,7 +181,7 @@
   flex-direction: column;
 }
 
-.admin-main > header {
+.admin-main>header {
   height: var(--header-height);
   padding: 0 28px;
   display: flex;
@@ -224,7 +224,7 @@
   font-weight: 700;
 }
 
-.admin-main > header .search {
+.admin-main>header .search {
   height: 40px;
   display: flex;
   align-items: center;
@@ -240,13 +240,13 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.admin-main > header .search:focus-within {
+.admin-main>header .search:focus-within {
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(23, 107, 69, 0.12);
   background: var(--surface);
 }
 
-.admin-main > header .search input {
+.admin-main>header .search input {
   border: 0;
   outline: 0;
   background: transparent;
@@ -255,7 +255,7 @@
   color: var(--text);
 }
 
-.admin-main > header .notification {
+.admin-main>header .notification {
   margin-left: auto;
   position: relative;
   width: 40px;
@@ -270,11 +270,11 @@
   transition: border-color 0.15s ease;
 }
 
-.admin-main > header .notification:hover {
+.admin-main>header .notification:hover {
   border-color: var(--green);
 }
 
-.admin-main > header .notification i {
+.admin-main>header .notification i {
   position: absolute;
   right: 8px;
   top: 8px;
@@ -359,7 +359,7 @@
     grid-template-columns: var(--sidebar-collapsed-width) 1fr;
   }
 
-  .side-top .brand > span:last-child {
+  .side-top .brand>span:last-child {
     display: none;
   }
 
@@ -394,7 +394,7 @@
     display: block;
   }
 
-  .admin-shell > aside {
+  .admin-shell>aside {
     display: flex;
     position: fixed;
     left: 0;
@@ -405,7 +405,7 @@
     transition: transform 0.2s ease-in-out;
   }
 
-  .admin-shell.menu-open > aside {
+  .admin-shell.menu-open>aside {
     transform: translateX(0);
   }
 
@@ -429,7 +429,7 @@
     cursor: pointer;
   }
 
-  .admin-main > header {
+  .admin-main>header {
     padding: 0 16px;
   }
 
@@ -437,7 +437,7 @@
     display: block;
   }
 
-  .admin-main > header .search {
+  .admin-main>header .search {
     margin-left: 0;
     max-width: 200px;
   }

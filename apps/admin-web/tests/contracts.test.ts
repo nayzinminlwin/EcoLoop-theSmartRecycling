@@ -656,7 +656,7 @@ describe("Phase 3 — Smart Bins CRUD & Lifecycle", () => {
 });
 
 describe("Phase 3 — Alert Lifecycle & Transitions", () => {
-  it("simulates BIN-004 to 85 twice -> 1 alert -> schedule -> collect to 10% -> resolve", async () => {
+  it("simulates BIN-004 to 85 twice -> 1 alert -> schedule -> collect to 0% -> resolve", async () => {
     let alertCount = 0;
     const bundle = createMockRepositories({
       readDelayMs: 0,
@@ -680,7 +680,7 @@ describe("Phase 3 — Alert Lifecycle & Transitions", () => {
     assert.equal(alertsPage.resolvedCount, 0);
 
     const alertId = alertsPage.items[0].alert.id;
-    assert.equal(alertsPage.items[0].operations.collectionStatus, "pending");
+    assert.equal(alertsPage.items[0].operations.collectionStatus, "notScheduled");
 
     // Cannot resolve or collect directly before scheduled
     await assert.rejects(
@@ -696,10 +696,10 @@ describe("Phase 3 — Alert Lifecycle & Transitions", () => {
     const scheduled = await bundle.repositories.alerts.schedule(alertId);
     assert.equal(scheduled.operations.collectionStatus, "scheduled");
 
-    // Collect -> capacity becomes 10%
+    // Collect -> capacity becomes 0% (corrected canonical requirement)
     const collected = await bundle.repositories.alerts.collect(alertId);
     assert.equal(collected.operations.collectionStatus, "collected");
-    assert.equal(collected.bin.capacityPercent, 10);
+    assert.equal(collected.bin.capacityPercent, 0);
 
     // Resolve
     const resolved = await bundle.repositories.alerts.resolve(alertId);
@@ -901,7 +901,7 @@ describe("Phase 3 — Watch / Observable Contract", () => {
       next(val) {
         emitted.push(val.isSignedIn);
       },
-      error() {}
+      error() { }
     });
 
     await new Promise((r) => setTimeout(r, 20));

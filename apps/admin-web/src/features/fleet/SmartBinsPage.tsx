@@ -1,6 +1,6 @@
 // =============================================================================
 // SmartBinsPage.tsx — Fleet management, live search/filtering & validated CRUD
-// Phase 7 — SmartBinRow data table, server-driven sort, pagination & bin form modals
+// Phase AB-04 — Registered QR codes, positive integer capacity, and shared policies
 // =============================================================================
 
 import * as React from "react";
@@ -10,10 +10,10 @@ import type {
   SmartBinRow,
   BinInput,
   BinSortKey,
-  CapacityBand,
-  CollectionStatus
+  CapacityBand
 } from "../../contracts/admin.ts";
-import type { MaterialType, SmartBin } from "../../contracts/shared.ts";
+import type { SmartBin } from "../../contracts/shared.ts";
+import type { BinQrCode } from "../../data/repositories.ts";
 import {
   AdminPageHeader,
   Button,
@@ -33,6 +33,8 @@ import {
   type FilterId
 } from "../../ui/ListControls.tsx";
 import { Modal, ConfirmDialog } from "../../ui/Modal.tsx";
+import "../../ui/primitives.css";
+import "../../ui/data-table.css";
 import "./fleet.css";
 
 // ---------------------------------------------------------------------------
@@ -41,7 +43,7 @@ import "./fleet.css";
 
 type BinFormErrors = Partial<
   Record<
-    "id" | "locationName" | "locationDetail" | "capacityPercent" | "acceptedMaterials",
+    "id" | "locationName" | "locationDetail" | "capacitySpc",
     string
   >
 >;
@@ -50,8 +52,7 @@ interface BinFormState {
   id: string;
   locationName: string;
   locationDetail: string;
-  capacityPercent: string;
-  acceptedMaterials: MaterialType[];
+  capacitySpc: string;
   isOnline: boolean;
 }
 
@@ -59,24 +60,10 @@ const INITIAL_FORM: BinFormState = {
   id: "",
   locationName: "",
   locationDetail: "",
-  capacityPercent: "0",
-  acceptedMaterials: [],
+  capacitySpc: "1000",
   isOnline: true
 };
 
-const AVAILABLE_MATERIALS: { type: MaterialType; label: string }[] = [
-  { type: "plastic", label: "Plastic" },
-  { type: "aluminium", label: "Aluminium" },
-  { type: "paper", label: "Paper" },
-  { type: "glass", label: "Glass" }
-];
-
-const COLLECTION_LABELS: Record<CollectionStatus, string> = {
-  notScheduled: "Not Scheduled",
-  pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
-  collected: "Collected"
-};
 
 function capacityBand(value: number): CapacityBand {
   if (value >= 85) return "critical";
@@ -114,6 +101,12 @@ export function SmartBinsPage(): React.ReactElement {
   // Delete dialog state
   const [deleteCandidate, setDeleteCandidate] = React.useState<SmartBin | null>(null);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  // QR modal state
+  const [qrModalBin, setQrModalBin] = React.useState<SmartBin | null>(null);
+  const [qrCodeData, setQrCodeData] = React.useState<BinQrCode | null>(null);
+  const [qrLoading, setQrLoading] = React.useState<boolean>(false);
+  const [qrError, setQrError] = React.useState<string | null>(null);
 
   const pageData = listQuery.data;
 
@@ -160,8 +153,7 @@ export function SmartBinsPage(): React.ReactElement {
       id: bin.id,
       locationName: bin.locationName,
       locationDetail: bin.locationDetail,
-      capacityPercent: String(bin.capacityPercent),
-      acceptedMaterials: [...bin.acceptedMaterials],
+      capacitySpc: "1000",
       isOnline: bin.isOnline
     });
     setFormErrors({});
@@ -169,17 +161,42 @@ export function SmartBinsPage(): React.ReactElement {
     setModalOpen(true);
   };
 
-  const handleMaterialToggle = (material: MaterialType) => {
-    setFormState((prev) => {
-      const exists = prev.acceptedMaterials.includes(material);
-      const next = exists
-        ? prev.acceptedMaterials.filter((m) => m !== material)
-        : [...prev.acceptedMaterials, material];
-      return { ...prev, acceptedMaterials: next };
-    });
-    if (formErrors.acceptedMaterials) {
-      setFormErrors((prev) => ({ ...prev, acceptedMaterials: undefined }));
+  const handleOpenQrModal = async (bin: SmartBin) => {
+    setQrModalBin(bin);
+    setQrCodeData(null);
+    setQrError(null);
+    setQrLoading(true);
+    try {
+      const data = await services.repositories.bins.getQrCode(bin.id);
+      setQrCodeData(data);
+    } catch (err) {
+      setQrError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setQrLoading(false);
     }
+  };
+
+  const handleDownloadPng = () => {
+    if (!qrCodeData || !qrModalBin) return;
+    const link = document.createElement("a");
+    link.href = qrCodeData.dataUrl;
+    link.download = `${qrModalBin.id}-qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSvg = () => {
+    if (!qrCodeData || !qrModalBin) return;
+    const blob = new Blob([qrCodeData.svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${qrModalBin.id}-qr.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const validateForm = (): boolean => {
@@ -193,12 +210,11 @@ export function SmartBinsPage(): React.ReactElement {
     if (!formState.locationDetail.trim()) {
       errors.locationDetail = "Location detail is required.";
     }
-    const cap = Number(formState.capacityPercent);
-    if (isNaN(cap) || !Number.isInteger(cap) || cap < 0 || cap > 100) {
-      errors.capacityPercent = "Capacity must be an integer between 0 and 100%.";
-    }
-    if (formState.acceptedMaterials.length === 0) {
-      errors.acceptedMaterials = "Select at least one accepted material.";
+    if (!editingBin) {
+      const cap = Number(formState.capacitySpc);
+      if (isNaN(cap) || !Number.isInteger(cap) || cap < 50 || cap > 5000) {
+        errors.capacitySpc = "Capacity must be an integer between 50 and 5000 spc.";
+      }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -212,8 +228,9 @@ export function SmartBinsPage(): React.ReactElement {
     const input: BinInput = {
       locationName: formState.locationName.trim(),
       locationDetail: formState.locationDetail.trim(),
-      capacityPercent: Number(formState.capacityPercent),
-      acceptedMaterials: formState.acceptedMaterials,
+      capacityPercent: editingBin ? editingBin.capacityPercent : 0,
+      capacitySpc: Number(formState.capacitySpc),
+      acceptedMaterials: ["plastic", "aluminium", "glass", "paper"],
       isOnline: formState.isOnline
     };
 
@@ -307,9 +324,9 @@ export function SmartBinsPage(): React.ReactElement {
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
             <Badge tone={tone}>{band.toUpperCase()}</Badge>
             {row.bin.isOnline ? (
-              <Badge tone="green">ONLINE</Badge>
+              <Badge tone="green">ENABLED</Badge>
             ) : (
-              <Badge tone="gray">OFFLINE</Badge>
+              <Badge tone="gray">DISABLED</Badge>
             )}
           </div>
         );
@@ -318,11 +335,16 @@ export function SmartBinsPage(): React.ReactElement {
     {
       id: "collection",
       header: "Collection Status",
-      cell: (row) => (
-        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-          {COLLECTION_LABELS[row.operations.collectionStatus]}
-        </span>
-      )
+      cell: (row) => {
+        const cs = row.operations.collectionStatus;
+        if (cs === "collected") {
+          return <Badge tone="green">Collected</Badge>;
+        }
+        if (cs === "pending" || cs === "scheduled") {
+          return <Badge tone="amber">Pending Collection</Badge>;
+        }
+        return <Badge tone="gray">Not Scheduled</Badge>;
+      }
     },
     {
       id: "actions",
@@ -330,12 +352,21 @@ export function SmartBinsPage(): React.ReactElement {
       cell: (row) => (
         <div style={{ display: "flex", gap: "6px" }}>
           <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void handleOpenQrModal(row.bin)}
+          >
+            QR
+          </Button>
+          <Button
+            size="sm"
             variant="secondary"
             onClick={() => handleOpenEditModal(row.bin)}
           >
             Edit
           </Button>
           <Button
+            size="sm"
             variant="danger"
             onClick={() => {
               setDeleteCandidate(row.bin);
@@ -369,19 +400,18 @@ export function SmartBinsPage(): React.ReactElement {
       options: [
         { value: "all", label: "All Collections" },
         { value: "notScheduled", label: "Not Scheduled" },
-        { value: "pending", label: "Pending" },
-        { value: "scheduled", label: "Scheduled" },
+        { value: "pending", label: "Pending Collection" },
         { value: "collected", label: "Collected" }
       ]
     },
     {
       id: "online",
-      label: "Connectivity",
+      label: "State",
       value: query.online,
       options: [
-        { value: "all", label: "All Connectivity" },
-        { value: "online", label: "Online Only" },
-        { value: "offline", label: "Offline Only" }
+        { value: "all", label: "All States" },
+        { value: "online", label: "Enabled Only" },
+        { value: "offline", label: "Disabled Only" }
       ]
     }
   ];
@@ -391,7 +421,7 @@ export function SmartBinsPage(): React.ReactElement {
       <AdminPageHeader
         eyebrow="FLEET OPERATIONS"
         title="Smart Bins"
-        description="Monitor bin fill levels, manage registered bins, configure accepted recyclables, and schedule collections."
+        description="Monitor bin fill levels, manage registered receptacles, and export registered QR codes."
         actions={
           <Button variant="primary" onClick={handleOpenCreateModal}>
             <Icon name="plus" size={16} />
@@ -423,7 +453,7 @@ export function SmartBinsPage(): React.ReactElement {
       />
 
       {/* Main Bins Data Table */}
-      <div style={{ background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
+      <div className="table-card">
         <DataTable<SmartBinRow, BinSortKey>
           caption="Smart Bins Fleet List"
           rows={pageData?.items ?? []}
@@ -499,23 +529,38 @@ export function SmartBinsPage(): React.ReactElement {
               hint={editingBin ? "Identifier cannot be changed after registration." : undefined}
             />
 
-            <TextInput
-              id="bin-form-capacity"
-              label="Fill Capacity (%)"
-              type="number"
-              min={0}
-              max={100}
-              value={formState.capacityPercent}
-              onChange={(val) => {
-                setFormState((prev) => ({ ...prev, capacityPercent: val }));
-                if (formErrors.capacityPercent) {
-                  setFormErrors((prev) => ({ ...prev, capacityPercent: undefined }));
-                }
-              }}
-              required
-              disabled={saveMutation.pending}
-              error={formErrors.capacityPercent}
-            />
+            {editingBin ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "var(--text)" }}>
+                  Current Fill & Physical Capacity
+                </label>
+                <div style={{ padding: "8px 12px", background: "var(--surface-muted, #f3f5f3)", borderRadius: "var(--radius-control)", border: "1px solid var(--line)", fontSize: "13px" }}>
+                  <strong>{editingBin.capacityPercent}%</strong> fill level
+                </div>
+                <small style={{ color: "var(--muted)", fontSize: "11px" }}>
+                  Capacity is immutable post-registration. Fill percentage is derived from physical occupancy and resets automatically via collections.
+                </small>
+              </div>
+            ) : (
+              <TextInput
+                id="bin-form-capacity"
+                label="Physical Capacity (spc)"
+                type="number"
+                min={50}
+                max={5000}
+                value={formState.capacitySpc}
+                onChange={(val) => {
+                  setFormState((prev) => ({ ...prev, capacitySpc: val }));
+                  if (formErrors.capacitySpc) {
+                    setFormErrors((prev) => ({ ...prev, capacitySpc: undefined }));
+                  }
+                }}
+                required
+                disabled={saveMutation.pending}
+                error={formErrors.capacitySpc}
+                hint="Total physical space in spc (50–5000). Immutable once registered."
+              />
+            )}
           </div>
 
           <TextInput
@@ -550,35 +595,26 @@ export function SmartBinsPage(): React.ReactElement {
             error={formErrors.locationDetail}
           />
 
-          {/* Accepted Materials Multi-Select */}
-          <div className="material-checkboxes-field">
-            <span className="material-checkboxes-label">Accepted Recyclable Materials *</span>
-            <div className="material-checkboxes-grid">
-              {AVAILABLE_MATERIALS.map((mat) => {
-                const checked = formState.acceptedMaterials.includes(mat.type);
-                return (
-                  <label key={mat.type} className="material-checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => handleMaterialToggle(mat.type)}
-                      disabled={saveMutation.pending}
-                    />
-                    <span>{mat.label}</span>
-                  </label>
-                );
-              })}
+          {/* Accepted Classes Informational Badges */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text)" }}>
+              Accepted Recyclable Classes (Shared Program Policy)
+            </span>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <Badge tone="green">Plastic Bottles</Badge>
+              <Badge tone="amber">Aluminium Cans</Badge>
+              <Badge tone="green">Glass Bottles</Badge>
+              <Badge tone="gray">Paper Items</Badge>
+              <Badge tone="gray">Paper Bags</Badge>
             </div>
-            {formErrors.acceptedMaterials && (
-              <span className="form-error" role="alert">
-                {formErrors.acceptedMaterials}
-              </span>
-            )}
+            <small style={{ color: "var(--muted)", fontSize: "11px" }}>
+              Accepted classes are governed globally by program settings and apply across all active fleet receptacles.
+            </small>
           </div>
 
           <CheckboxInput
             id="bin-form-online"
-            label="Receptacle online & transmitting telemetry"
+            label="Receptacle enabled & accepting resident deposits"
             checked={formState.isOnline}
             onChange={(val) => setFormState((prev) => ({ ...prev, isOnline: val }))}
             disabled={saveMutation.pending}
@@ -586,12 +622,106 @@ export function SmartBinsPage(): React.ReactElement {
         </form>
       </Modal>
 
+      {/* QR Code Preview & Download Modal */}
+      <Modal
+        open={Boolean(qrModalBin)}
+        onClose={() => {
+          setQrModalBin(null);
+          setQrCodeData(null);
+          setQrError(null);
+        }}
+        title={`Registered QR Code: ${qrModalBin?.id ?? ""}`}
+        footer={
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!qrCodeData || qrLoading}
+                onClick={handleDownloadPng}
+              >
+                Download PNG
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!qrCodeData || qrLoading}
+                onClick={handleDownloadSvg}
+              >
+                Download SVG
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setQrModalBin(null);
+                setQrCodeData(null);
+                setQrError(null);
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center", textAlign: "center", padding: "12px 0" }}>
+          {qrError && (
+            <Feedback kind="error" onDismiss={() => setQrError(null)}>
+              {qrError}
+            </Feedback>
+          )}
+
+          {qrLoading && (
+            <div style={{ padding: "40px", color: "var(--muted)" }}>
+              <span>Generating registered QR code...</span>
+            </div>
+          )}
+
+          {qrCodeData && (
+            <>
+              <div style={{ background: "white", padding: "16px", borderRadius: "12px", border: "1px solid var(--line)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <img
+                  src={qrCodeData.dataUrl}
+                  alt={`QR code for ${qrModalBin?.id}`}
+                  style={{ width: "220px", height: "220px", display: "block" }}
+                />
+              </div>
+
+              <div style={{ maxWidth: "100%", width: "100%" }}>
+                <div style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "4px" }}>
+                  Registered Hardware Payload
+                </div>
+                <code
+                  style={{
+                    display: "block",
+                    padding: "8px 12px",
+                    background: "var(--surface-muted, #f3f5f3)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    wordBreak: "break-all",
+                    fontFamily: "monospace"
+                  }}
+                >
+                  {qrCodeData.qrPayload}
+                </code>
+              </div>
+
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
+                {qrModalBin?.locationName} — {qrModalBin?.locationDetail}
+              </p>
+            </>
+          )}
+        </div>
+      </Modal>
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={Boolean(deleteCandidate)}
         onCancel={() => setDeleteCandidate(null)}
         title={`Delete Smart Bin: ${deleteCandidate?.id ?? ""}`}
-        description={`Are you sure you want to delete ${deleteCandidate?.id ?? ""} (${deleteCandidate?.locationName ?? ""}) from the fleet? This operation cannot be undone.`}
+        description={`Are you sure you want to delete ${deleteCandidate?.id ?? ""} (${deleteCandidate?.locationName ?? ""}) from the fleet? This operation cannot be undone and is only allowed for never-used bins.`}
         confirmLabel="Delete Bin"
         variant="danger"
         busy={deleteMutation.pending}

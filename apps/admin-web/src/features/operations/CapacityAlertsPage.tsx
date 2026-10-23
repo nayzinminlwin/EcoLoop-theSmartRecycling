@@ -37,7 +37,7 @@ import "./operations.css";
 const COLLECTION_LABELS: Record<CollectionStatus, string> = {
   notScheduled: "Not Scheduled",
   pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
+  scheduled: "Pending Collection",
   collected: "Collected"
 };
 
@@ -135,12 +135,20 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
   }
 
   const { alert, bin, operations } = row;
-  const isResolved = alert.status === "resolved";
-  const isCollected = operations.collectionStatus === "collected";
-  const isScheduled = operations.collectionStatus === "scheduled";
-  const isPendingOrNot =
-    operations.collectionStatus === "pending" ||
-    operations.collectionStatus === "notScheduled";
+  const rawAlert = alert as unknown as Record<string, unknown>;
+  const alertState = typeof rawAlert.state === "string" ? rawAlert.state : undefined;
+
+  const isResolved = alert.status === "resolved" || alertState === "resolved";
+  const isCollected =
+    !isResolved &&
+    (operations.collectionStatus === "collected" || alertState === "collected");
+  const isScheduled =
+    !isResolved &&
+    !isCollected &&
+    (alertState === "scheduled" ||
+      operations.collectionStatus === "scheduled" ||
+      (operations.collectionStatus === "pending" && alertState !== "pending"));
+  const isBeforeSchedule = !isScheduled && !isCollected && !isResolved;
 
   // 5-step workflow computation:
   // Uses alert.thresholdPercent snapshot rather than hardcoded 85
@@ -159,7 +167,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       services.repositories.alerts.schedule(alert.id)
     );
     if (result) {
-      setLocalFeedback(`Collection dispatched for bin ${bin.id}.`);
+      setLocalFeedback(`Collection scheduled for bin ${bin.id}.`);
     }
   };
 
@@ -174,7 +182,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
     );
     if (result) {
       setShowCollectConfirm(false);
-      setLocalFeedback(`Bin ${bin.id} marked as collected and capacity reset to 10%.`);
+      setLocalFeedback(`Bin ${bin.id} marked as collected and reset to 0% occupancy.`);
     }
   };
 
@@ -278,7 +286,8 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
               tone={
                 operations.collectionStatus === "collected"
                   ? "green"
-                  : operations.collectionStatus === "scheduled"
+                  : operations.collectionStatus === "scheduled" ||
+                    operations.collectionStatus === "pending"
                     ? "amber"
                     : "gray"
               }
@@ -295,7 +304,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
 
       {/* Lifecycle Actions */}
       <div className="alert-actions">
-        {!isResolved && isPendingOrNot && (
+        {!isResolved && isBeforeSchedule && (
           <Button
             variant="primary"
             busy={actionMutation.pending}
@@ -305,7 +314,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
           </Button>
         )}
 
-        {!isResolved && isScheduled && (
+        {!isResolved && isScheduled && !isCollected && (
           <Button
             variant="primary"
             busy={actionMutation.pending}
@@ -331,7 +340,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
         <div className="resolution" role="status">
           <Icon name="check" size={20} />
           <span>
-            Collection completed, capacity reset to 10%, and alert resolved at{" "}
+            Collection completed, cycle closed, and alert resolved at{" "}
             {formatDateTime(alert.resolvedAt)}.
           </span>
         </div>
@@ -341,7 +350,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
       <ConfirmDialog
         open={showCollectConfirm}
         title="Confirm Bin Collection"
-        description="Confirm collection for this smart bin? Marking this bin as collected will reset its current capacity to 10% and update township operations."
+        description="Confirm collection for this smart bin? Marking this bin as collected will close the current cycle, reset occupancy to 0%, and open a new empty collection cycle."
         confirmLabel="Mark collected & reset bin"
         variant="primary"
         busy={actionMutation.pending}
@@ -517,7 +526,7 @@ export function CapacityAlertsPage(): React.ReactElement {
             tone={
               cs === "collected"
                 ? "green"
-                : cs === "scheduled"
+                : cs === "scheduled" || cs === "pending"
                   ? "amber"
                   : "gray"
             }
@@ -558,13 +567,15 @@ export function CapacityAlertsPage(): React.ReactElement {
         title="Capacity alerts"
         description="Monitor automated threshold alerts, schedule collection runs, and verify bin reset workflows."
         actions={
-          <Button
-            variant="primary"
-            busy={simulateMutation.pending}
-            onClick={handleSimulate}
-          >
-            <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
-          </Button>
+          services.mode !== "firebase" ? (
+            <Button
+              variant="primary"
+              busy={simulateMutation.pending}
+              onClick={handleSimulate}
+            >
+              <Icon name="plus" size={16} /> Simulate BIN-004 to 85%
+            </Button>
+          ) : undefined
         }
       />
 
@@ -625,7 +636,7 @@ export function CapacityAlertsPage(): React.ReactElement {
               ? "Resolved collection alerts will appear here once collections are completed."
               : "All smart bins are operating within normal capacity thresholds. Simulate 85% capacity to demonstrate the operational workflow."}
           </p>
-          {query.status === "active" && (
+          {query.status === "active" && services.mode !== "firebase" && (
             <div style={{ marginTop: "12px" }}>
               <Button
                 variant="primary"

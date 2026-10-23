@@ -6,7 +6,7 @@
 import * as React from "react";
 import { NavLink } from "react-router-dom";
 import { services, useObservableQuery } from "../../app/services.ts";
-import type { DashboardSummary, SmartBinRow, CapacityBand, CollectionStatus } from "../../contracts/admin.ts";
+import type { DashboardSummary, SmartBinRow, CapacityBand } from "../../contracts/admin.ts";
 import type { MaterialType } from "../../contracts/shared.ts";
 import { AdminPageHeader, Button, Badge, AsyncState, Icon } from "../../ui/primitives.tsx";
 import { DataTable, type Column } from "../../ui/DataTable.tsx";
@@ -37,17 +37,33 @@ const MATERIAL_COLORS: Record<MaterialType | string, string> = {
   glass: "var(--blue)"
 };
 
-const COLLECTION_LABELS: Record<CollectionStatus, string> = {
-  notScheduled: "Not Scheduled",
-  pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
-  collected: "Collected"
-};
 
 const weekdayFormatter = new Intl.DateTimeFormat("en-MY", {
   timeZone: "Asia/Kuala_Lumpur",
   weekday: "short"
 });
+
+const DAY_ORDER: Record<string, number> = {
+  mon: 0, monday: 0,
+  tue: 1, tuesday: 1,
+  wed: 2, wednesday: 2,
+  thu: 3, thursday: 3,
+  fri: 4, friday: 4,
+  sat: 5, saturday: 5,
+  sun: 6, sunday: 6
+};
+
+function getMondayToSundayIndex(dateStr: string): number {
+  const lower = dateStr.toLowerCase().trim();
+  for (const [key, idx] of Object.entries(DAY_ORDER)) {
+    if (lower.startsWith(key)) return idx;
+  }
+  const dateObj = new Date(dateStr);
+  if (!isNaN(dateObj.getTime())) {
+    return (dateObj.getDay() + 6) % 7;
+  }
+  return 0;
+}
 
 // ---------------------------------------------------------------------------
 // 2. OverviewPage Component
@@ -144,18 +160,28 @@ export function OverviewPage(): React.ReactElement {
     {
       id: "collection",
       header: "Collection",
-      cell: (row) => (
-        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-          {COLLECTION_LABELS[row.operations.collectionStatus]}
-        </span>
-      )
+      cell: (row) => {
+        const cs = row.operations.collectionStatus;
+        if (cs === "collected") {
+          return <Badge tone="green">Collected</Badge>;
+        }
+        if (cs === "pending" || cs === "scheduled") {
+          return <Badge tone="amber">Pending Collection</Badge>;
+        }
+        return <Badge tone="gray">Not Scheduled</Badge>;
+      }
     }
   ];
+
+  // Arrange weekly activity starting with Monday through Sunday (Mon -> Sun)
+  const sortedActivity = [...summary.activity].sort((a, b) => {
+    return getMondayToSundayIndex(a.date) - getMondayToSundayIndex(b.date);
+  });
 
   // Bar chart scale calculation
   const maxActivity = Math.max(
     1,
-    ...summary.activity.map((a) => a.verifiedDepositCount)
+    ...sortedActivity.map((a) => a.verifiedDepositCount)
   );
 
   // Donut chart conic-gradient calculation
@@ -272,7 +298,7 @@ export function OverviewPage(): React.ReactElement {
             </div>
 
             <div className="bars">
-              {summary.activity.map((item) => {
+              {sortedActivity.map((item) => {
                 const dateObj = new Date(item.date);
                 const dayLabel = isNaN(dateObj.getTime())
                   ? item.date
@@ -339,7 +365,7 @@ export function OverviewPage(): React.ReactElement {
         <div className="panel-head">
           <div>
             <h2>Attention Bins</h2>
-            <p>Smart bins approaching capacity thresholds or offline status</p>
+            <p>Smart bins approaching capacity thresholds or offline/disabled status</p>
           </div>
           <NavLink to="/bins">
             <Button variant="ghost">

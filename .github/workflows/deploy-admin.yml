@@ -1,0 +1,84 @@
+name: Deploy Admin Portal to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "apps/admin-web/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-admin.yml"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "apps/admin-web/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-admin.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-admin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Admin Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/admin-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin-web
+        run: npm ci
+
+      - name: Type check & lint
+        working-directory: apps/admin-web
+        run: npm run lint
+
+      - name: Run unit & contract tests
+        working-directory: apps/admin-web
+        run: npm test
+
+      - name: Build production bundle
+        working-directory: apps/admin-web
+        env:
+          VITE_ECOLOOP_BACKEND_MODE: firebase
+          VITE_ECOLOOP_FIREBASE_PROJECT_ID: ecoloop-thesmartrecycling
+          VITE_ECOLOOP_FIRESTORE_DATABASE: ecoloop-db
+          VITE_ECOLOOP_FIREBASE_REGION: us-central1
+          VITE_ECOLOOP_FIREBASE_API_KEY: ${{ secrets.VITE_ECOLOOP_FIREBASE_API_KEY || 'AIzaSyAxqVn5aH6S-PTQQPJmXImXE9TeIkGwPZQ' }}
+          VITE_ECOLOOP_FIREBASE_APP_ID: ${{ secrets.VITE_ECOLOOP_FIREBASE_APP_ID || '1:353725053297:web:f9c407f5c8c886692f5ed0' }}
+          VITE_ECOLOOP_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_ECOLOOP_FIREBASE_AUTH_DOMAIN || 'ecoloop-thesmartrecycling.firebaseapp.com' }}
+          VITE_ECOLOOP_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_ECOLOOP_FIREBASE_STORAGE_BUCKET || 'ecoloop-thesmartrecycling.firebasestorage.app' }}
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting (Production Live)
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'workflow_dispatch'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ECOLOOP_THESMARTRECYCLING || secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: ecoloop-thesmartrecycling
+          target: admin
+
+      - name: Deploy Preview Channel (Pull Request)
+        if: github.event_name == 'pull_request' && (secrets.FIREBASE_SERVICE_ACCOUNT_ECOLOOP_THESMARTRECYCLING != '' || secrets.FIREBASE_SERVICE_ACCOUNT != '')
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ECOLOOP_THESMARTRECYCLING || secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ecoloop-thesmartrecycling
+          target: admin

@@ -9,23 +9,46 @@
    Design tokens
    ---------------------------------------------------------- */
 :root {
-  --green: #176b45; --green-dark: #0f5235;
+  --green: #176b45;
+  --green-dark: #0f5235;
   --sage: #ddebdd;
-  --mint: #edf5ee; --bg: #f8faf6; --surface: #ffffff;
-  --text: #202820; --muted: #687268; --line: #e2e8e0;
-  --amber: #f2b544; --amber-bg: #fff7e5; --amber-text: #875b06;
-  --red: #d9534f; --red-bg: #fff0ef; --red-text: #a23632;
-  --gray-bg: #f0f2ef; --gray-text: #626a62; --blue: #477c91;
-  --sidebar: #102e21; --sidebar-brand: #2b805a;
-  --sidebar-accent: #75c49a; --sidebar-text: #b9cec2;
-  --sidebar-muted: #91ab9c; --scanner: #16251d;
-  --radius: 16px; --radius-control: 12px;
+  --mint: #edf5ee;
+  --bg: #f8faf6;
+  --surface: #ffffff;
+  --text: #202820;
+  --muted: #687268;
+  --line: #e2e8e0;
+  --amber: #f2b544;
+  --amber-bg: #fff7e5;
+  --amber-text: #875b06;
+  --red: #d9534f;
+  --red-bg: #fff0ef;
+  --red-text: #a23632;
+  --gray-bg: #f0f2ef;
+  --gray-text: #626a62;
+  --blue: #477c91;
+  --sidebar: #102e21;
+  --sidebar-brand: #2b805a;
+  --sidebar-accent: #75c49a;
+  --sidebar-text: #b9cec2;
+  --sidebar-muted: #91ab9c;
+  --scanner: #16251d;
+  --radius: 16px;
+  --radius-control: 12px;
   --shadow: 0 8px 28px rgb(24 52 35 / 8%);
-  --sidebar-width: 244px; --sidebar-collapsed-width: 78px;
-  --header-height: 72px; --content-max: 1440px;
-  --space-1: 4px; --space-2: 8px; --space-3: 12px;
-  --space-4: 16px; --space-5: 20px; --space-6: 22px;
-  --space-7: 24px; --space-8: 28px; --space-9: 32px;
+  --sidebar-width: 244px;
+  --sidebar-collapsed-width: 78px;
+  --header-height: 72px;
+  --content-max: 1440px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 22px;
+  --space-7: 24px;
+  --space-8: 28px;
+  --space-9: 32px;
 }
 
 /* ----------------------------------------------------------

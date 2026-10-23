@@ -21,6 +21,7 @@ import type {
   RewardListQuery
 } from "../contracts/admin.ts";
 import { Icon, type SelectOption } from "./primitives.tsx";
+import "./data-table.css";
 
 // ---------------------------------------------------------------------------
 // 1. Types & Interfaces
@@ -230,8 +231,8 @@ export function parseBinQuery(params: URLSearchParams): BinListQuery {
   const rawSort = params.get("sort");
   const sortKey: BinSortKey =
     rawSort === "locationName" ||
-    rawSort === "capacityPercent" ||
-    rawSort === "lastUpdatedAt"
+      rawSort === "capacityPercent" ||
+      rawSort === "lastUpdatedAt"
       ? rawSort
       : "id";
 
@@ -246,9 +247,9 @@ export function parseBinQuery(params: URLSearchParams): BinListQuery {
   const rawColl = params.get("collectionStatus");
   const collectionStatus: CollectionStatus | "all" =
     rawColl === "notScheduled" ||
-    rawColl === "pending" ||
-    rawColl === "scheduled" ||
-    rawColl === "collected"
+      rawColl === "pending" ||
+      rawColl === "scheduled" ||
+      rawColl === "collected"
       ? rawColl
       : "all";
 
