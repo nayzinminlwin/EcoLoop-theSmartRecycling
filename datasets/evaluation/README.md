@@ -30,7 +30,7 @@ The labeling owner must:
 6. Have a second reviewer inspect ambiguous, overlapping, empty and excluded cases.
 7. Preserve the original annotation disagreement and resolution rather than silently overwriting it.
 
-The first image used for the provider smoke probe is `img-0014`; its smoke result is documented in [MODEL_ACCESS.md](../../docs/backend_evidence/MODEL_ACCESS.md). That result does not supply expected labels for this evaluation manifest.
+The first image used for the provider smoke probe is `img-0014`; its smoke result is documented in [MODEL_ACCESS.md](../../docs/archive/backend_evidence/MODEL_ACCESS.md). That result does not supply expected labels for this evaluation manifest.
 
 ## Annotation boundary
 

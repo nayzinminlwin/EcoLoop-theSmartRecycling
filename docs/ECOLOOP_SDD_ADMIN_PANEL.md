@@ -10,7 +10,7 @@
 | Status | Approved design baseline; integration qualifications recorded in Section 16 |
 | Platforms | Desktop and mobile web browsers |
 | Requirements baseline | [EcoLoop SRS](ECOLOOP_SRS.md) |
-| Primary source | [`apps/admin-web/`](../apps/admin-web/), with relevant Firebase configuration and tests |
+| Primary source | [`../apps/admin-web`](../apps/admin-web), with relevant Firebase configuration and tests |
 
 > **Reading guide:** Start with Sections 2–6 for the structural blueprint.
 > Section 7 follows the administrator's operational journeys. Sections 8–12
@@ -20,7 +20,7 @@
 
 This document defines the administrative web panel as an approved design
 baseline for EcoLoop AI PoC development. It is not a proposal created after
-implementation. The implementation in [`apps/admin-web/`](../apps/admin-web/)
+implementation. The implementation in [`../apps/admin-web`](../apps/admin-web)
 was developed against this design, and the final section records integration
 qualifications where the implemented client depends on shared backend or
 Firebase deployment decisions.

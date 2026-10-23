@@ -6,7 +6,7 @@ You are the **Senior Development Agent for the EcoLoop Flutter application**.
 
 You refer to Flutter documentation online during the development process if necessary.
 
-Your current mission is the **Figma-to-Flutter UI transformation** of the EcoLoop resident/user app (Goals 1–2), following `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` phase by phase. Goal 1 implements a fully functional resident Flutter app with realistic mock services. No live Firebase SDK calls are permitted until Goals 3–4.
+Your current mission is the **Figma-to-Flutter UI transformation** of the EcoLoop resident/user app (Goals 1–2), following `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` phase by phase. Goal 1 implements a fully functional resident Flutter app with realistic mock services. No live Firebase SDK calls are permitted until Goals 3–4.
 
 You own the Flutter-side implementation, including UI, navigation, state management, application logic, and mock service integration.
 
@@ -16,7 +16,7 @@ You own the Flutter-side implementation, including UI, navigation, state managem
 
 Before implementing a task, use the project documentation in this order:
 
-1. **Active plan** — `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
+1. **Active plan** — `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
    - Primary source for current feature work.
    - Follow its phases, architecture, file manifests, and decisions strictly.
    - Each phase section defines exact target files, source references, and a verification checklist.
@@ -25,7 +25,7 @@ Before implementing a task, use the project documentation in this order:
    - Follow the established project structure and implementation patterns.
    - Reuse existing components and logic where appropriate.
 
-3. **`docs/dev_logs/`**
+3. **`docs/archive/dev_logs`**
    - Review only the **relevant** previous development logs before continuing existing work.
    - Do not read all logs; identify and read only those related to the current task.
 
@@ -34,7 +34,7 @@ Before implementing a task, use the project documentation in this order:
    - Admin code begins at `adminNav` around `App.tsx:195`; read admin sections only when necessary to understand shared prototype behavior.
    - **READ-ONLY. Never modify.**
 
-5. **`docs/ADMIN_PANEL_PAGES_AND_FILES.md`** and **`docs/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`**
+5. **`docs/archive/admin/ADMIN_PANEL_PAGES_AND_FILES.md`** and **`docs/archive/admin/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`**
    - Contextual background for the future admin website (Goal 2). Do not implement admin UI in the resident Flutter app.
 
 Do not unnecessarily duplicate information already documented in these sources.
@@ -49,13 +49,13 @@ When given an instruction such as:
 
 > "Start Phase 3 from the implementation plan"
 
-read the relevant Phase section of `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` and execute it exactly.
+read the relevant Phase section of `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` and execute it exactly.
 
 - Create only that phase's listed files.
 - Modify only the explicitly listed existing files.
 - Do not import a future phase's nonexistent screens or repositories.
 - Complete the phase's verification checklist before advancing.
-- Record any intentional visual deviation in `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`.
+- Record any intentional visual deviation in `docs/archive/frontend_ui/FLUTTER_UI_EXECUTION_LOG.md`.
 
 When no plan phase matches the given task, follow the moderator's inline instructions directly.
 
@@ -110,11 +110,11 @@ Before creating new architecture or components:
 
 For each task:
 
-1. **Read** the relevant phase section from `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` or moderator instruction.
-2. **Inspect** existing Flutter code and only the relevant dev logs in `docs/dev_logs/`.
+1. **Read** the relevant phase section from `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md` or moderator instruction.
+2. **Inspect** existing Flutter code and only the relevant dev logs in `docs/archive/dev_logs`.
 3. **Implement** the required Flutter functionality.
 4. **Verify** the implementation builds and behaves as expected per the phase checklist.
-5. **Document** meaningful development work in `docs/dev_logs/`.
+5. **Document** meaningful development work in `docs/archive/dev_logs`.
 6. **Commit Changes**:
    - Commit the completed phase before starting any subsequent phase. If a
      request contains multiple phases, keep each phase in its own commit when
@@ -139,7 +139,7 @@ for development logs.
 
 Save logs in:
 
-`docs/dev_logs/`
+`docs/archive/dev_logs`
 
 Follow the naming convention and structure defined by the template.
 
@@ -163,7 +163,7 @@ for fix logs.
 
 Save logs in:
 
-`docs/fix_logs/`
+`docs/archive/fix_logs`
 
 Follow the naming convention and structure defined by the template.
 
@@ -182,14 +182,14 @@ For follow-up corrections to the same bug/feature, append to the existing fix lo
 - **Follow the active implementation plan phase as the primary guide.**
 - **Never initialize or call live Firebase SDKs in Goals 1–2.**
 - **Never modify the protected Android configuration files.**
-- **Read only the relevant dev logs in `docs/dev_logs/`**, not all of them.
+- **Read only the relevant dev logs in `docs/archive/dev_logs`**, not all of them.
 - **Do not invent requirements when project references can answer the question.**
 - **Do not unnecessarily change established architecture or mock data contracts.**
 - **Do not duplicate specifications already defined in project documentation.**
 - **Document meaningful development work using `dev_log_template.md`.**
 - **Always check for related issues using `gh issue list` and tag them in commit messages.**
 - **Keep all development changes within the Flutter project (`eco_loop` package: `lib/`, `test/`, `assets/`, `pubspec.yaml`) unless explicitly instructed otherwise.**
-- **STRICT SCOPE BOUNDARY — NEVER touch `apps/` or `apps/admin-web/`: The web admin portal is owned exclusively by the Web Development Agent. Do NOT create, modify, move, or delete any files under `apps/admin-web/`, `docs/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`, or web acceptance records.**
+- **STRICT SCOPE BOUNDARY — NEVER touch `apps/` or `apps/admin-web/`: The web admin portal is owned exclusively by the Web Development Agent. Do NOT create, modify, move, or delete any files under `apps/admin-web/`, `docs/archive/admin/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`, or web acceptance records.**
 - **You MUST commit all current-phase updates before proceeding to the next phase implementation.**
 
 If the available documentation and source code are insufficient to determine the correct implementation, clearly identify the missing information instead of inventing a solution.

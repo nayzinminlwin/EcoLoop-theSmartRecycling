@@ -60,27 +60,27 @@ void main() {
 
     // V01 — home, top position at 390.
     await pumpAt(tester, 390);
-    await capture(tester, 'docs/refactor_visuals/phase2/home_390_top.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase2/home_390_top.png');
 
     // V02 — home scrolled to the recent activity section.
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -560));
     await tester.pumpAndSettle();
-    await capture(tester, 'docs/refactor_visuals/phase2/home_390_activity.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase2/home_390_activity.png');
 
     // V03 — history page.
     await tester.drag(find.byType(Scrollable).first, const Offset(0, 800));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Recycling history').first, warnIfMissed: false);
     await tester.pumpAndSettle();
-    await capture(tester, 'docs/refactor_visuals/phase2/history_390.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase2/history_390.png');
 
     // Home at 480 for the constrained-frame check.
     await pumpAt(tester, 480);
-    await capture(tester, 'docs/refactor_visuals/phase2/home_480_top.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase2/home_480_top.png');
 
     // 320 spot check.
     await pumpAt(tester, 320);
     expect(tester.takeException(), isNull);
-    await capture(tester, 'docs/refactor_visuals/phase2/home_320_top.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase2/home_320_top.png');
   });
 }

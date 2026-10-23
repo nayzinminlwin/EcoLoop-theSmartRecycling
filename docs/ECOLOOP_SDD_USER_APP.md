@@ -11,7 +11,7 @@
 | Status | Approved design baseline; integration qualifications recorded in Section 19 |
 | Platforms | Android and Flutter web |
 | Requirements baseline | [EcoLoop SRS](ECOLOOP_SRS.md) |
-| Primary source | [`lib/`](../lib/), with relevant web/platform configuration and tests |
+| Primary source | [`../lib`](../lib), with relevant web/platform configuration and tests |
 
 > **Reading guide:** Start with Sections 2–6 for the structural blueprint. Sections 7–14 follow the resident's journeys. Sections 15–19 explain presentation, deployment, verification, and the boundaries that still need alignment.
 
@@ -50,7 +50,7 @@ The design is based on the inspected source rather than the root README's earlie
 | --- | --- | --- |
 | **Resident app SDD — this document** | Flutter composition, resident screens, state, navigation, client-side models/adapters, lifecycle, platform interfaces. | Defines the resident client and its external contracts. |
 | **Administrative web SDD — separate future document** | Admin frontend architecture, operational screens, administrative state, and admin integration. | The admin portal is a sibling client, not a Flutter branch or embedded role-switching screen. |
-| [Backend and Computer Vision Specification](ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) | Existing backend/CV design and specification: jobs, inference, taxonomy, trusted settlement, capacity, retention, service authorization. | Owns server-side algorithms and accounting; this SDD describes their resident-facing boundary. |
+| [Backend and Computer Vision Specification](archive/backend/ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) | Existing backend/CV design and specification: jobs, inference, taxonomy, trusted settlement, capacity, retention, service authorization. | Owns server-side algorithms and accounting; this SDD describes their resident-facing boundary. |
 
 ### 1.2 Interpreting the diagrams
 
@@ -1239,14 +1239,14 @@ Server-side inspection, review settlement, retention execution, and administrati
 
 | Design concern | Existing verification source |
 | --- | --- |
-| Route/auth/shell | [`test/app/`](../test/app/), [`test/features/account/firebase_auth_flow_test.dart`](../test/features/account/firebase_auth_flow_test.dart) |
-| Command contract and durable storage | [`test/core/firebase/command_client_test.dart`](../test/core/firebase/command_client_test.dart), [`test/core/data/`](../test/core/data/) |
-| Runtime/logging/model parsing | [`test/core/config/`](../test/core/config/), [`test/core/diagnostics/`](../test/core/diagnostics/), [`test/core/domain/`](../test/core/domain/) |
-| Scan camera, selection, flow, resume | [`test/features/scan/`](../test/features/scan/) |
-| Dashboard/wallet/history | [`test/features/home/`](../test/features/home/), [`test/features/wallet/`](../test/features/wallet/), [`test/features/activity/`](../test/features/activity/) |
-| Guide/rewards/vouchers | [`test/features/recycling_guide/`](../test/features/recycling_guide/), [`test/features/rewards/`](../test/features/rewards/) |
+| Route/auth/shell | [`test/app/`](../test/app), [`test/features/account/firebase_auth_flow_test.dart`](../test/features/account/firebase_auth_flow_test.dart) |
+| Command contract and durable storage | [`test/core/firebase/command_client_test.dart`](../test/core/firebase/command_client_test.dart), [`test/core/data/`](../test/core/data) |
+| Runtime/logging/model parsing | [`test/core/config/`](../test/core/config), [`test/core/diagnostics/`](../test/core/diagnostics), [`test/core/domain/`](../test/core/domain) |
+| Scan camera, selection, flow, resume | [`test/features/scan/`](../test/features/scan) |
+| Dashboard/wallet/history | [`test/features/home/`](../test/features/home), [`test/features/wallet/`](../test/features/wallet), [`test/features/activity/`](../test/features/activity) |
+| Guide/rewards/vouchers | [`test/features/recycling_guide/`](../test/features/recycling_guide), [`test/features/rewards/`](../test/features/rewards) |
 | Messaging | [`test/features/notifications/notification_lifecycle_test.dart`](../test/features/notifications/notification_lifecycle_test.dart) |
-| Shared visuals/layout | [`test/shared/widgets/`](../test/shared/widgets/), [`test/refactor_visuals/`](../test/refactor_visuals/) |
+| Shared visuals/layout | [`test/shared/widgets/`](../test/shared/widgets), [`test/refactor_visuals/`](../test/refactor_visuals) |
 | Resident integration | [`integration_test/resident_journey_test.dart`](../integration_test/resident_journey_test.dart) |
 
 These paths document available checks; no prior test count is treated as current proof. Fixture/widget tests cannot establish deployed OAuth, private backend inference, device push, or server-rule correctness by themselves.
@@ -1311,21 +1311,21 @@ Use this index to move from each design view to its implementation. Paths are re
 | Entry/composition | [`main.dart`](../lib/main.dart), [`bootstrap.dart`](../lib/app/bootstrap.dart), [`eco_loop_app.dart`](../lib/app/eco_loop_app.dart), [`app_providers.dart`](../lib/app/providers/app_providers.dart) |
 | Runtime/SDK | [`runtime_config.dart`](../lib/core/config/runtime_config.dart), [`firebase_clients.dart`](../lib/core/firebase/firebase_clients.dart), [`pubspec.yaml`](../pubspec.yaml) |
 | Navigation | [`app_router.dart`](../lib/app/router/app_router.dart), [`app_routes.dart`](../lib/app/router/app_routes.dart), [`route_guards.dart`](../lib/app/router/route_guards.dart), [`route_parameter_parsers.dart`](../lib/app/router/route_parameter_parsers.dart), [`leave_decision_coordinator.dart`](../lib/app/router/leave_decision_coordinator.dart) |
-| Shared frame | [`resident_shell.dart`](../lib/app/presentation/resident_shell.dart), [`resident_bottom_navigation.dart`](../lib/app/presentation/resident_bottom_navigation.dart), [`app_page.dart`](../lib/shared/widgets/app_page.dart), [`core/theme/`](../lib/core/theme/) |
-| Authentication/account | [`firebase_account_repository.dart`](../lib/features/account/data/firebase_account_repository.dart), [`account_repository.dart`](../lib/features/account/domain/repositories/account_repository.dart), [`account controllers`](../lib/features/account/presentation/controllers/), [`account screens`](../lib/features/account/presentation/screens/) |
+| Shared frame | [`resident_shell.dart`](../lib/app/presentation/resident_shell.dart), [`resident_bottom_navigation.dart`](../lib/app/presentation/resident_bottom_navigation.dart), [`app_page.dart`](../lib/shared/widgets/app_page.dart), [`core/theme/`](../lib/core/theme) |
+| Authentication/account | [`firebase_account_repository.dart`](../lib/features/account/data/firebase_account_repository.dart), [`account_repository.dart`](../lib/features/account/domain/repositories/account_repository.dart), [`account controllers`](../lib/features/account/presentation/controllers), [`account screens`](../lib/features/account/presentation/screens) |
 | Home | [`home_controller.dart`](../lib/features/home/presentation/controllers/home_controller.dart), [`resident_work_card.dart`](../lib/features/home/presentation/widgets/resident_work_card.dart), [`firebase_wallet_repository.dart`](../lib/features/wallet/data/firebase_wallet_repository.dart) |
 | Guide | [`firebase_recycling_guide_repository.dart`](../lib/features/recycling_guide/data/firebase_recycling_guide_repository.dart), [`recycling_guide_controller.dart`](../lib/features/recycling_guide/presentation/controllers/recycling_guide_controller.dart) |
 | Scan orchestration | [`scan_screen.dart`](../lib/features/scan/presentation/screens/scan_screen.dart), [`scan_session_screen.dart`](../lib/features/scan/presentation/screens/scan_session_screen.dart), [`scan_controller.dart`](../lib/features/scan/presentation/controllers/scan_controller.dart) |
-| Scan adapters/models | [`scan_repository.dart`](../lib/features/scan/domain/repositories/scan_repository.dart), [`firebase_scan_repository.dart`](../lib/features/scan/data/firebase_scan_repository.dart), [`backend_scan_mapper.dart`](../lib/features/scan/data/backend_scan_mapper.dart), [`scan models`](../lib/features/scan/domain/models/) |
+| Scan adapters/models | [`scan_repository.dart`](../lib/features/scan/domain/repositories/scan_repository.dart), [`firebase_scan_repository.dart`](../lib/features/scan/data/firebase_scan_repository.dart), [`backend_scan_mapper.dart`](../lib/features/scan/data/backend_scan_mapper.dart), [`scan models`](../lib/features/scan/domain/models) |
 | Camera/receipt/progress | [`qr_capture_view.dart`](../lib/features/scan/presentation/widgets/qr_capture_view.dart), [`deposit_result_card.dart`](../lib/features/scan/presentation/widgets/deposit_result_card.dart), [`scan_progress_card.dart`](../lib/features/scan/presentation/widgets/scan_progress_card.dart) |
-| Commands/contracts | [`command_client.dart`](../lib/core/firebase/command_client.dart), [`backend_envelope.dart`](../lib/core/firebase/backend_envelope.dart), [`json_readers.dart`](../lib/core/data/json_readers.dart), [`backend schemas`](../contracts/backend/v1/) |
+| Commands/contracts | [`command_client.dart`](../lib/core/firebase/command_client.dart), [`backend_envelope.dart`](../lib/core/firebase/backend_envelope.dart), [`json_readers.dart`](../lib/core/data/json_readers.dart), [`backend schemas`](../contracts/backend/v1) |
 | Local journals | [`pending_operation_store.dart`](../lib/core/data/pending_operation_store.dart), [`resident_work_store.dart`](../lib/core/data/resident_work_store.dart), [`exit_intent_coordinator.dart`](../lib/core/data/exit_intent_coordinator.dart), [`exit_intent_store.dart`](../lib/core/data/exit_intent_store.dart) |
 | Mock execution | [`mock_seed_loader.dart`](../lib/core/mock/mock_seed_loader.dart), [`mock_data_store.dart`](../lib/core/mock/mock_data_store.dart), [`mock_api.dart`](../lib/core/mock/mock_api.dart), [`mock_scenario.dart`](../lib/core/mock/mock_scenario.dart) |
-| History/materials | [`history_controller.dart`](../lib/features/activity/presentation/controllers/history_controller.dart), [`firebase_activity_repository.dart`](../lib/features/activity/data/firebase_activity_repository.dart), [`deposit_transaction.dart`](../lib/features/activity/domain/models/deposit_transaction.dart), [`core/domain/`](../lib/core/domain/) |
-| Rewards/vouchers | [`firebase_rewards_repository.dart`](../lib/features/rewards/data/firebase_rewards_repository.dart), [`rewards controllers`](../lib/features/rewards/presentation/controllers/), [`rewards screens`](../lib/features/rewards/presentation/screens/), [`reward/voucher models`](../lib/features/rewards/domain/models/) |
+| History/materials | [`history_controller.dart`](../lib/features/activity/presentation/controllers/history_controller.dart), [`firebase_activity_repository.dart`](../lib/features/activity/data/firebase_activity_repository.dart), [`deposit_transaction.dart`](../lib/features/activity/domain/models/deposit_transaction.dart), [`core/domain/`](../lib/core/domain) |
+| Rewards/vouchers | [`firebase_rewards_repository.dart`](../lib/features/rewards/data/firebase_rewards_repository.dart), [`rewards controllers`](../lib/features/rewards/presentation/controllers), [`rewards screens`](../lib/features/rewards/presentation/screens), [`reward/voucher models`](../lib/features/rewards/domain/models) |
 | Messaging | [`firebase_notification_service.dart`](../lib/features/notifications/data/firebase_notification_service.dart), [`notification_coordinator.dart`](../lib/features/notifications/presentation/notification_coordinator.dart), [`web worker`](../web/firebase-messaging-sw.js) |
 | Diagnostics/platform | [`app_logger.dart`](../lib/core/diagnostics/app_logger.dart), [`firebase.json`](../firebase.json), [`web/index.html`](../web/index.html), [`firestore.rules`](../firestore.rules), [`storage.rules`](../storage.rules) |
-| Requirements and server contract | [`ECOLOOP_SRS.md`](ECOLOOP_SRS.md), [`ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md`](ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) |
+| Requirements and server contract | [`ECOLOOP_SRS.md`](ECOLOOP_SRS.md), [`ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md`](archive/backend/ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) |
 
 ---
 

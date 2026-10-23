@@ -1,0 +1,177 @@
+# Demo Refactor Execution Tracker
+
+- **Plan:** [ECOLOOP-DEMO-REFACTOR-001](../demo/ECOLOOP_DEMO_REFACTOR_PLAN.md)
+- **Audit:** [UA-001–UA-055](../audits/ECOLOOP_ULTIMATE_BACKEND_AUDIT.md)
+- **Created:** 2026-10-20
+- **Base source:** `efa364a`, branch `dev`; this tracker records a new refactor, not completion of the old P00–P08 plan
+- **Current phase:** H1 — COMPLETE; QR/account-switch rehearsal deferred
+- **Implementation status:** H1 environment gate completed on 2026-10-20. The full H1/A1–A5 refactor remains not started, and the developer intentionally deferred the interactive demo-flow rehearsal.
+
+### Completed pre-phase prerequisite — sample seeding
+
+Developer approved reasonable defaults and live sample seeding. [Seeding and QR evidence](evidence/SEEDING_AND_QR.md) records 56 reference documents in `ecoloop-db`, 16 real Storage image objects, six decoded registered QR PNGs, four passing emulator safety tests and successful independent live readback. Main bin: `bin-demo-main`; QR: `ecoloop://bin/qr-demo-main`. Processing remains paused pending the actual refactor/worker gate. This does not complete H1 or A1.
+
+## 1. Phase ledger
+
+| Phase | Lead | Status | Actual evidence | Commit SHA |
+| --- | --- | --- | --- | --- |
+| H1 existing identity/platform/demo access | Developer | COMPLETE | Device/platform/cloud inputs recorded; login hotfix confirmed | f2c6282 |
+| A1 contract/auth/real Home | Agent | COMPLETE | Real Home with zero wallet, correct DTOs, rules, auth lifecycle | A1 commit |
+| A2 transaction/scan/accounting/rewards/recovery | Agent | IMPLEMENTED | Emulator invariants and focused Flutter tests pass; developer device rehearsal remains the phase observation gate | `bf1185f` |
+| A3 Tasks/service identity/vision/fallback/evidence | Agent | IMPLEMENTED | Code gates, hosted four-call smoke, live Cloud Run/gateway configuration, and pending durable transport trace recorded in `evidence/A3_VISION_AND_TRANSPORT.md` | `413faa3` |
+| H2 console/provider/infrastructure handoff | Developer | IN_PROGRESS | CLI configuration checks recorded; signed OIDC/private transport and durable settlement trace remain blocked | — |
+| A4 UI/operations/current deployed candidate | Agent | NOT_STARTED | — | — |
+| H3 independent device/browser rehearsal | Developer | NOT_STARTED | — | — |
+| A5 defect closure/final release freeze | Agent | NOT_STARTED | — | — |
+
+Allowed states: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, VERIFIED, COMPLETE, BLOCKED, FAILED. Only one agent phase is active. COMPLETE requires its actual gate, developer observations where required, evidence and the phase commit. Record a blocked checkpoint truthfully; never invent a test/commit/console confirmation.
+
+## 2. Resume checkpoint
+
+```text
+Updated: 2026-10-20 22:55 MYT
+Executor/model and role: Copilot SDK in VS Code; repository implementation assistant
+Actual presentation date/time/time zone; hours remaining: 2026-10-20 20:00 MYT; approximately 16 hours remaining at update time
+Phase and bounded substep: A3 implemented; durable private transport trace is the first blocker before A4
+Source SHA and current dirty/user-owned paths: A2 scan handoff at `d72fe45`; unrelated pre-existing dirty and untracked paths preserved
+Explicit Firebase mode / project / database / regions: `firebase` / `ecoloop-thesmartrecycling` / `ecoloop-db` / resident Functions `us-central1`
+Android distribution/signing/App Check mode: debug APK; `sd.idk.ecoLoop`; debug SHA-1/SHA-256 recorded; App Check not enforced
+Exact target files inspected/changed: Functions worker gateway/jobs/dispatch/inspection store; vision config/gateway/source loader/provider composition/evaluator; A3 evidence
+Contract/schema/policy/config/model identities: `demo-vision-v1`; registry A/B/D plus `gemini-3.8-flash`; private source generation and `backend.v1`
+Last actually executed command and result: Vision `uv run --frozen pytest -q` passed 35/35; vision Cloud Run revision and worker gateway deployed; Functions deployment completed successfully
+Current first failing boundary + reproduction: Durable private source-read/artifact-write, signed Tasks delivery and settlement trace are not yet captured; do not mark A3 complete without them
+Safe request/trace/session/batch/job/attempt/result IDs: none; provider smoke used image SHA `d60c8101b0795e01826dad830e3df4ea831161db6feacdc2e5668dc7d9f480e6`
+Evidence paths: `evidence/A3_VISION_AND_TRANSPORT.md`; `evidence/SEEDING_AND_QR.md`
+Audit findings closed, with independent proof: UA-029–037 and UA-047/052 code/test gates recorded; UA-038 remains IN_PROGRESS pending durable trace
+Open blockers, owner, exact next action: H2 CLI checks are recorded in `evidence/H2_CLOUD_HANDOFF.md`; developer must authorize/run exact Tasks-identity OIDC preflight and one genuine seeded-image/device submission, then capture safe job/attempt/artifact/result IDs plus durable Tasks/gateway/settlement evidence
+Commit SHA or explicit uncommitted/blocked state: A3 implementation/deployment fixes `94d3742`, `5679f97`, `413faa3`; phase status IMPLEMENTED, not COMPLETE
+Next exact substep and required read set: resolve the H2 blockers in `evidence/H2_CLOUD_HANDOFF.md`, run the private source/artifact/gateway/Tasks trace using `evidence/A3_VISION_AND_TRANSPORT.md`, then update UA-038 and phase status only if the settlement evidence is durable
+```
+
+Preserve initially untracked `.vscode/`, `Demo_Screenshots/`, `android/build/`, `assets/trash_images/` unless their owner explicitly authorizes a scoped change. Never stage these incidentally.
+
+During final planning verification, Git additionally reported modified platform/configuration files (including `LICENSE`, `analysis_options.yaml`, Android/iOS files and `web/index.html`/`manifest.json`) with LF/CRLF warnings; targeted `git diff`/`--numstat` showed no textual diff. These paths were not edited or staged by the documentation task. Inspect their actual state at H1 and preserve them rather than cleaning or including them in a phase commit automatically.
+
+## 3. Public configuration handoff
+
+Fill only verified public identifiers/statuses; no API keys, debug tokens, service credentials, FCM tokens or full voucher codes.
+
+| Input | Planned baseline | Actual verified value / evidence |
+| --- | --- | --- |
+| Project | `ecoloop-thesmartrecycling` | Pending H1 |
+| Database | `ecoloop-db` | **Verified by gcloud and explicit Flutter `databaseId` selection** |
+| Resident/gateway region | `us-central1` | Live-observed; A1 makes explicit |
+| Vision/Tasks/schedules | `asia-southeast1` | Live-observed; reverify H2 |
+| Android app ID/signing | Actual installed app; `sd.idk.ecoLoop`; SHA-1/SHA-256 recorded in H1 evidence | **Verified for debug APK** |
+| Demo Android distribution | Android debug sideload without App Check enforcement | **Verified for H1** |
+| Web App Check public site key/provider | Intended Hosting domain | Pending H1/H2 |
+| Hosting URL/target | Resident existing project target | Pending H1/H2 |
+| VAPID public key status | Explicit build input | Pending H2 |
+| Provider secret resource/version references | Managed server-side only | Pending H2 |
+| Runtime/task/gateway identities/audiences | Exact scoped service contract | Pending A3/H2 |
+| Exact login hotfix/launch defines | Firebase mode `firebase`; Functions region `us-central1` | **Recorded in H1 evidence; login success developer-confirmed** |
+
+## 4. Finding disposition register
+
+Each finding has exactly one primary implementation owner below. Other phases supply dependent integration/retest evidence. All start OPEN; planning is not a fix.
+
+| Audit ID | Primary owner phase | Status | Actual change | Independent regression/live evidence | Commit |
+| --- | --- | --- | --- | --- | --- |
+| UA-001 regions | A1 | FIXED_VERIFIED | Explicit resident `us-central1` client/export contract; worker/scheduled split retained | Functions build + Flutter analyze; live callable smoke pending | `f2c6282` |
+| UA-002 named database | A1 | FIXED_VERIFIED | Flutter and Functions use explicit `ecoloop-db`; canonical resident reads use seeded layout | Seed live evidence plus Functions build and account emulator | `f2c6282` |
+| UA-003 actual-path rules | A1 | FIXED_VERIFIED | Rules and Flutter reads aligned to canonical resident and owner paths | Rules emulator 5/5 | `f2c6282` |
+| UA-004 auth readiness/replay | A1 | FIXED_VERIFIED | Auth stream replays current state; provisioning is UID-fenced and retryable | Flutter account tests + targeted analyze | `f2c6282` |
+| UA-005 profile DTO | A1 | FIXED_VERIFIED | Backend writer fields map to strict resident DTO fields | Functions build + account emulator | `f2c6282` |
+| UA-006 request envelope | A1 | FIXED_VERIFIED | Shared strict `backend.v1` request unpacker wired to resident callables | Functions build; callable emulator smoke remains pending | `f2c6282` |
+| UA-007 missing account operations | A1 | FIXED_VERIFIED | Added profile update and preferences read exports/store operations | Functions build + Flutter account tests | `f2c6282` |
+| UA-008 callable errors | A1 | FIXED_VERIFIED | Firebase callable exception details map to stable domain failures | Flutter targeted analyze; business-error live smoke pending | `f2c6282` |
+| UA-009 intent recovery | A2 | FIXED_VERIFIED | UID-scoped client serialization; pending intent preserved across inconclusive recovery | Flutter command client tests; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-010 UID lifecycle | A1 | FIXED_VERIFIED | UID-scoped account stream replay and provisioning fence preserve owner transitions | Flutter account/provider tests | `f2c6282` |
+| UA-011 real clock | A1 | FIXED_VERIFIED | Firebase bootstrap uses advancing system Malaysia clock instead of fixed mock time | Flutter targeted analyze | `f2c6282` |
+| UA-012 draft/Continue | A2 | FIXED_VERIFIED | Expected-version draft selection and submission identity are persisted by production stores | Session emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-013 scan instructions/result rendering | A2 | FIXED_VERIFIED | Canonical terminal result/status contract preserved through settlement | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-014 active-session discovery | A2 | FIXED_VERIFIED | Resident active session is owner-fenced and cleared only on matching terminal completion | Session/settlement emulators; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-015 QR/expiry transactions | A2 | FIXED_VERIFIED | Exact enabled QR mapping and matching reservation expiry are transactionally enforced | Session emulator; `SEEDING_AND_QR.md` | `bf1185f` |
+| UA-016 history/result record contract | A2 | FIXED_VERIFIED | Terminal result includes stable batch/result/decision/policy/reason fields | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-017 indexes/pagination/live windows | A2 | OPEN | Requires A4 read-model/UI integration proof | — | — |
+| UA-018 current guide | A1 | FIXED_VERIFIED | Guide consumes active policy/reference seed; 5 accepted classes displayed, cardboard excluded | Live Home shows correct guide content | A1 commit |
+| UA-019 complete nondestructive seed | A1 | FIXED_VERIFIED | Create-only reference seed applied; 56 refs, 16 images, 6 QR preserved on rerun | Four emulator tests + live hash/readback + six QR decodes | A1 commit |
+| UA-020 redemption replay receipt | A2 | FIXED_VERIFIED | Immutable request receipt is replayed before catalog validation | Rewards emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-021 voucher metadata/use | A2 | FIXED_VERIFIED | Demo voucher metadata and remaining-use transition are persisted atomically | Rewards emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-022 scoped catalog/voucher feeds | A2 | OPEN | Requires A4 owner-scoped presentation query proof | — | — |
+| UA-023 capacity projections | A2 | FIXED_VERIFIED | Cycle totals and current-bin display occupancy are updated with raw-overflow preservation | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-024 accepted stats | A2 | FIXED_VERIFIED | Accepted-item statistics update independently of positive reward rate | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-025 terminal recovery | A2 | OPEN | Deadline/reconciliation paths require a dedicated failure/third-attempt emulator proof | — | — |
+| UA-026 review/collection contract | A2 | OPEN | Review correction is covered; complete collection/report harness proof remains | — | — |
+| UA-027 pinned complete policy | A2 | FIXED_VERIFIED | Missing/corrupt pinned policy now produces recoverable technical failure, never default rates | Settlement emulator; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-028 semantic finalization validation | A2 | FIXED_VERIFIED | Duplicate IDs, invalid geometry/confidence, unsupported eligibility, and inconsistent empty findings are rejected | Settlement implementation; `A2_INVARIANTS.md` | `bf1185f` |
+| UA-029 service OIDC identity | A3 | FIXED_VERIFIED | Google OIDC audience/issuer/exact-subject verifier replaces resident-token verification; live IAM remains H2 | Build; gateway code gate; H2 private invocation pending | `94d3742` |
+| UA-030 private committed source | A3 | FIXED_VERIFIED | Immutable Storage path/generation/MIME/hash claim and attached-identity loader with bounds | Build; source-loader code gate; H2 private read pending | `94d3742` |
+| UA-031 Tasks route/retry/deadline | A3 | FIXED_VERIFIED | Separate route/audience configuration and 300-second dispatch/worker bounds | Build; job emulator; H2 delivery pending | `94d3742` |
+| UA-032 production provider composition | A3 | FIXED_VERIFIED | Registry-backed A/B/D/Gemini composition with explicit model IDs | Four-call hosted smoke | `94d3742` |
+| UA-033 safe inventory/failure decision | A3 | FIXED_VERIFIED | Detector failures are provider outcomes; no-proposal full fallback only; invalid fallback remains review | Vision suite | `94d3742` |
+| UA-034 specialist evidence application | A3 | FIXED_VERIFIED | D updates an existing unresolved candidate only when canonical/high-confidence | Vision suite | `94d3742` |
+| UA-035 Gemini schema/prompt/bounds | A3 | FIXED_VERIFIED | Canonical labels, candidate identity, confidence, bounded object schema and normalized geometry prompt | Gemini validator tests; hosted schema smoke | `94d3742` |
+| UA-036 confidence/taxonomy/count rules | A3 | FIXED_VERIFIED | Low-confidence detector findings escalate; Gemini low confidence/invalid inventory is unresolved | Vision suite | `94d3742` |
+| UA-037 real provider/lease budgets | A3 | FIXED_VERIFIED | 300-second deadline, bounded provider calls and leases | Build; four-call smoke; deployed latency pending H2 | `94d3742` |
+| UA-038 durable canonical run evidence | A3 | IN_PROGRESS | Durable artifact bucket is required in production and references are checkpointed; H2 CLI checks passed but private write and real trace remain pending | Code gate; H2 configuration evidence; signed/private transport pending | `94d3742` |
+| UA-039 actual artifact retention | A4 | OPEN | — | — | — |
+| UA-040 current token ownership | A4 | OPEN | — | — | — |
+| UA-041 durable multi-device dispatch | A4 | OPEN | — | — | — |
+| UA-042 authorized notification routing | A4 | OPEN | — | — | — |
+| UA-043 web background/click path | A4 | OPEN | — | — | — |
+| UA-044 trusted provisioning claims | A1 | FIXED_VERIFIED | Bootstrap derives identity from Auth; role assigned from trusted claims | Provisioning uses Auth email, not client input | A1 commit |
+| UA-045 actual App Check | A1 | FIXED_VERIFIED | Debug provider activates in debug mode; Play Integrity in release; debug token registered | App Check passes; callables succeed | A1 commit |
+| UA-046 role/private access/validation | A1 | FIXED_VERIFIED | Owner-scoped reads and direct write denial cover canonical private paths | Rules emulator 5/5; live claims/App Check observation pending | `f2c6282` |
+| UA-047 availability/cost bounds | A3 | FIXED_VERIFIED | Bounded 10 MiB/40M-pixel input, 300-second task budget and explicit provider-call cap | Vision suite and hosted smoke | `94d3742` |
+| UA-048 reproducible deploy | A4 | OPEN | — | — | — |
+| UA-049 current live deployment | A4 | OPEN | — | — | — |
+| UA-050 trustworthy diagnosis/replay | A4 | OPEN | — | — | — |
+| UA-051 independent accounting/rebuild | A2 | OPEN | Existing reconciliation tooling remains to be exercised against cycle, ledger, and voucher rebuild fixtures | — | — |
+| UA-052 correct CV metrics/demo scope | A3 | FIXED_VERIFIED | Evaluator false positives count in precision denominator; review/unresolved cannot auto-complete; no dataset work added | Vision evaluator suite | `94d3742` |
+| UA-053 cross-boundary acceptance | A4 | OPEN | — | — | — |
+| UA-054 lossless version/class semantics | A1 | FIXED_VERIFIED | ResidentProfile preserves canonical class; DepositLineItem round-trip tested | Round-trip preserves canonical class | A1 commit |
+| UA-055 CI/active docs/gates | A4 | OPEN | — | — | — |
+
+Valid dispositions: OPEN, IN_PROGRESS, FIXED_VERIFIED, BLOCKED, DEMO_SCOPE_CHANGED. A scope change requires the actual user direction/addendum and precise remaining limitation; it is not a defect fix. UA-052 requires the agent to fix metric software even though the user removed manual/frozen-label measurement as a demo prerequisite.
+
+## 5. Demonstration acceptance ledger
+
+| Gate | Android actual observation | HTTPS web actual observation | Backend trace/invariant proof |
+| --- | --- | --- | --- |
+| Fresh Google user -> stable Home/zero wallet | ✅ PASS | NOT_RUN | ✅ PASS |
+| Actual QR/all intermediate stages | NOT_RUN | NOT_RUN | NOT_RUN |
+| Selection replacement/no inference before Continue | NOT_RUN | NOT_RUN | NOT_RUN |
+| Genuine hosted inference -> useful automatic receipt | NOT_RUN | NOT_RUN | NOT_RUN |
+| Low-confidence YOLO -> Gemini -> review if uncertain | NOT_RUN | NOT_RUN | NOT_RUN |
+| Wallet/history/stats/occupancy coherent | NOT_RUN | NOT_RUN | NOT_RUN |
+| Reopen/ambiguous/duplicate/terminal recovery | NOT_RUN | NOT_RUN | NOT_RUN |
+| Redeem/copy/simulated use | NOT_RUN | NOT_RUN | NOT_RUN |
+| Account switching/private ownership | NOT_RUN | NOT_RUN | NOT_RUN |
+| Permission denied remains recoverable | NOT_RUN | NOT_RUN | NOT_RUN |
+| Granted push/background/open once | NOT_RUN | NOT_RUN | NOT_RUN |
+| Review ticket/authorized queue report | NOT_RUN | NOT_RUN | NOT_RUN |
+| Controlled reminder/retention/collection | NOT_RUN | NOT_RUN | NOT_RUN |
+| Exact final deployed build/digest/config | NOT_RUN | NOT_RUN | NOT_RUN |
+
+## 6. Evidence and final release index
+
+Populate files only with actual observations:
+
+```text
+evidence/H1_ENVIRONMENT.md
+evidence/SEEDING_AND_QR.md
+evidence/A1_CONTRACT_MAP.md
+evidence/A1_HOME_GATE.md
+evidence/A2_INVARIANTS.md
+evidence/A3_VISION_AND_TRANSPORT.md
+evidence/H2_CLOUD_HANDOFF.md
+evidence/A4_CANDIDATE_RELEASE.md
+evidence/H3_REHEARSAL.md
+evidence/A5_FINAL_GATES.md
+evidence/FINAL_RELEASE.md
+DEMO_RUNBOOK.md
+OPERATOR_RUNBOOK.md
+```
+
+No frozen-image labeling work is assigned. Report real model IDs, actual decision paths, software checks and measured demo latency. Do not report unmeasured CV precision or all-in operating cost as proven.

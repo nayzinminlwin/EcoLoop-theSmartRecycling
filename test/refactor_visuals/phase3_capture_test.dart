@@ -89,7 +89,7 @@ void main() {
     // QR scanner — no supplied pair; compared against the source composition.
     router.go(AppRoutes.scan);
     await tester.pump(const Duration(milliseconds: 350));
-    await capture(tester, 'docs/refactor_visuals/phase3/scanner_390.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase3/scanner_390.png');
 
     // V04 — bin found.
     await tester.tap(find.text('Simulate QR scan'));
@@ -98,7 +98,7 @@ void main() {
     }
     await capture(
       tester,
-      'docs/refactor_visuals/phase3/scan_bin_found_390.png',
+      'docs/archive/refactor_visuals/phase3/scan_bin_found_390.png',
     );
 
     // V05 — ready.
@@ -106,7 +106,7 @@ void main() {
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 350));
     }
-    await capture(tester, 'docs/refactor_visuals/phase3/scan_ready_390.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase3/scan_ready_390.png');
 
     // V06 — item detected.
     await tester.tap(find.text('I pressed the finish button'));
@@ -115,7 +115,7 @@ void main() {
     }
     await capture(
       tester,
-      'docs/refactor_visuals/phase3/scan_item_detected_390.png',
+      'docs/archive/refactor_visuals/phase3/scan_item_detected_390.png',
     );
 
     // V07 — processing, captured while the classification actually runs.
@@ -130,7 +130,7 @@ void main() {
     expect(find.text('Processing'), findsOneWidget);
     await capture(
       tester,
-      'docs/refactor_visuals/phase3/scan_processing_390.png',
+      'docs/archive/refactor_visuals/phase3/scan_processing_390.png',
     );
 
     // V08 — result, after automatic completion.
@@ -143,7 +143,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
     }
     expect(find.text('Back to home'), findsOneWidget);
-    await capture(tester, 'docs/refactor_visuals/phase3/scan_result_390.png');
+    await capture(tester, 'docs/archive/refactor_visuals/phase3/scan_result_390.png');
     await tester.pumpAndSettle();
   });
 }

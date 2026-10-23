@@ -154,7 +154,7 @@ the acceptance work described in the design documents.
 ## Demo and Screenshots
 
 The following demonstrations show the main resident journeys. The GIFs are
-stored in [`Demo_Screenshots/`](./Demo_Screenshots/).
+stored in [`Demo_Screenshots/`](Demo_Screenshots).
 
 ### Home and Recycling Guide
 
@@ -245,7 +245,7 @@ easy to review.
 | *Placeholder: `Admin_Settings.png`* |
 
 The repository currently also contains static design and implementation
-comparisons in [`Demo_Screenshots/`](./Demo_Screenshots/), including:
+comparisons in [`Demo_Screenshots/`](Demo_Screenshots), including:
 
 - Figma and Flutter home pages
 - How-to-recycle pages
@@ -351,8 +351,8 @@ reward settlement remain separate decisions.
 | Testing | Flutter tests, Dart analysis, Node tests, Playwright, Python tests | Unit, contract, integration, UI, and service verification. |
 
 The resident package versions and admin package scripts are maintained in
-[`pubspec.yaml`](./pubspec.yaml) and
-[`apps/admin-web/package.json`](./apps/admin-web/package.json).
+[`pubspec.yaml`](pubspec.yaml) and
+[`apps/admin-web/package.json`](apps/admin-web/package.json).
 
 ## Getting Started
 
@@ -389,11 +389,11 @@ flutter run -d chrome \
 The application also supports `emulator` and `firebase` modes through
 `ECOLOOP_FIREBASE_MODE`. Emulator hosts and ports are configured through the
 runtime inputs documented in the
-[resident SDD](./docs/ECOLOOP_SDD_USER_APP.md).
+[resident SDD](docs/ECOLOOP_SDD_USER_APP.md).
 
 ### Administrative Web Portal
 
-From [`apps/admin-web/`](./apps/admin-web/):
+From [`apps/admin-web/`](apps/admin-web):
 
 ```bash
 npm install
@@ -414,14 +414,14 @@ authorization setup.
 
 ### Computer-Vision Service
 
-The vision worker is located in [`services/vision/`](./services/vision/). Its
+The vision worker is located in [`services/vision/`](services/vision). Its
 deployed design targets Python 3.12 on Cloud Run, with Cloud Tasks dispatch
 and hosted provider APIs. Local provider probes and service tests require
 the service's documented Python environment and configured credentials.
 
 The deployment configuration is maintained in
-[`infra/cloudbuild.vision.yaml`](./infra/cloudbuild.vision.yaml) and
-[`infra/cloudrun.vision.yaml`](./infra/cloudrun.vision.yaml).
+[`infra/cloudbuild.vision.yaml`](infra/cloudbuild.vision.yaml) and
+[`infra/cloudrun.vision.yaml`](infra/cloudrun.vision.yaml).
 
 ## Mock and Demo Scenarios
 
@@ -518,13 +518,13 @@ not write secrets to source or committed output.
 
 The detailed project baselines are:
 
-- [Software Requirements Specification](./docs/ECOLOOP_SRS.md)
-- [Resident Application SDD](./docs/ECOLOOP_SDD_USER_APP.md)
-- [Administrative Panel SDD](./docs/ECOLOOP_SDD_ADMIN_PANEL.md)
-- [Computer Vision SDD](./docs/ECOLOOP_SDD_COMPUTER_VISION.md)
-- [Backend and Computer Vision Specification](./docs/ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
-- [Admin Web Acceptance](./docs/ADMIN_WEB_ACCEPTANCE.md)
-- [README restructuring plan](./README_RESTRUCTURE_PLAN.md)
+- [Software Requirements Specification](docs/ECOLOOP_SRS.md)
+- [Resident Application SDD](docs/ECOLOOP_SDD_USER_APP.md)
+- [Administrative Panel SDD](docs/ECOLOOP_SDD_ADMIN_PANEL.md)
+- [Computer Vision SDD](docs/ECOLOOP_SDD_COMPUTER_VISION.md)
+- [Backend and Computer Vision Specification](docs/archive/backend/ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md)
+- [Admin Web Acceptance](docs/archive/admin/ADMIN_WEB_ACCEPTANCE.md)
+- README restructuring notes are not included in this repository.
 
 These documents contain the detailed requirements, architecture, contracts,
 acceptance conditions, qualifications, and source traceability that are

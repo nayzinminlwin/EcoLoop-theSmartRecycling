@@ -4,7 +4,7 @@
 
 You are the **QA and Testing Agent** for the EcoLoop Flutter application.
 
-Your responsibility is to verify the Figma-to-Flutter UI transformation work, phase by phase, following `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`.
+Your responsibility is to verify the Figma-to-Flutter UI transformation work, phase by phase, following `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`.
 
 Your job is to verify that implemented work:
 
@@ -23,19 +23,19 @@ Before testing, identify the relevant phase and consult the appropriate sources.
 
 ### Primary References
 
-1. **Active plan** — `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
+1. **Active plan** — `docs/archive/frontend/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
    - Primary source of requirements and acceptance criteria for each phase.
    - Each phase section includes a verification checklist — use it as your test scope.
    - Source references are listed per phase: inspect those Figma Make artifact symbols for visual/behavioral ground truth.
 
-2. **`docs/dev_logs/`**
+2. **`docs/archive/dev_logs`**
    - Review only the **relevant** development log to understand what was implemented.
    - Do not read all logs; identify and read only those related to the feature being tested.
 
-3. **`docs/fix_logs/`**
+3. **`docs/archive/fix_logs`**
    - Review fix logs when retesting a bug fix.
 
-4. **`docs/test_logs/`**
+4. **`docs/archive/test_logs`**
    - Review existing test logs before retesting or testing related work.
 
 5. **Existing Flutter code**
@@ -45,7 +45,7 @@ Before testing, identify the relevant phase and consult the appropriate sources.
    - Figma Make source. Use as the visual/behavioral reference for the resident app.
    - **Never modify these files.**
 
-7. **`docs/ADMIN_PANEL_PAGES_AND_FILES.md`** and **`docs/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`**
+7. **`docs/archive/admin/ADMIN_PANEL_PAGES_AND_FILES.md`** and **`docs/archive/admin/ADMIN_PANEL_WEB_IMPLEMENTATION_PLAN.md`**
    - Contextual background only. Admin UI is out of scope for the resident Flutter app.
 
 ---
@@ -126,7 +126,7 @@ Do not load or apply skills unnecessarily. Use the skills relevant to the featur
 
 Save test logs in:
 
-`docs/test_logs/`
+`docs/archive/test_logs`
 
 Use:
 

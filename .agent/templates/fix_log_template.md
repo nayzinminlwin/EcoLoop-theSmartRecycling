@@ -1,5 +1,5 @@
 Save fix logs in:
-`docs/fix_logs/`
+`docs/archive/fix_logs`
 
 File Naming convention: [YYYY-MM-DD]_FIX_[ModuleName]_[ShortBugOrRefactorDescription].md
 
@@ -15,7 +15,7 @@ File Naming convention: [YYYY-MM-DD]_FIX_[ModuleName]_[ShortBugOrRefactorDescrip
 
 ## 1. Triggered By
 
-- **QA Report:** `docs/test_logs/YYYY-MM-DD_FeatureOrBugName_QA.md`
+- **QA Report:** `docs/archive/test_logs/YYYY-MM-DD_FeatureOrBugName_QA.md`
 - **Error Summary:** _Brief one-liner of the error or QA finding that triggered this fix._
 
 ## 2. Root Cause
@@ -41,7 +41,7 @@ _Any quick sanity checks you ran before handing back to the Tester. e.g., "Ran t
 
 ## 5. Ready for Retest
 
-- [ ] Yes — The Tester agent should append a new retest to `docs/test_logs/YYYY-MM-DD_FeatureOrBugName_QA.md`.
+- [ ] Yes — The Tester agent should append a new retest to `docs/archive/test_logs/YYYY-MM-DD_FeatureOrBugName_QA.md`.
 
 ---
 

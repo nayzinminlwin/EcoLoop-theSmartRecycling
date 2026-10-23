@@ -10,7 +10,7 @@
 | Status | Approved design baseline; integration qualifications recorded in Section 16 |
 | Platforms | Python 3.12 service on Google Cloud Run; hosted model APIs |
 | Requirements baseline | [EcoLoop SRS](ECOLOOP_SRS.md) |
-| Primary source | [`services/vision/`](../services/vision/), with worker orchestration in [`functions/`](../functions/) and deployment configuration in [`infra/`](../infra/) |
+| Primary source | [`../services/vision`](../services/vision), with worker orchestration in [`../functions`](../functions) and deployment configuration in [`../infra`](../infra) |
 
 > **Reading guide:** Start with Sections 2–5 for the engine boundary, runtime
 > architecture, and processing lifecycle. Sections 6–10 describe model
@@ -191,13 +191,13 @@ objects.
 
 | Area | Responsibility | Main source |
 | --- | --- | --- |
-| `domain` | Provider-neutral models, taxonomy, matching, resolution | [`domain/`](../services/vision/src/ecoloop_vision/domain/) |
-| `adapters` | Roboflow and Gemini calls/normalization | [`adapters/`](../services/vision/src/ecoloop_vision/adapters/) |
+| `domain` | Provider-neutral models, taxonomy, matching, resolution | [`domain/`](../services/vision/src/ecoloop_vision/domain) |
+| `adapters` | Roboflow and Gemini calls/normalization | [`adapters/`](../services/vision/src/ecoloop_vision/adapters) |
 | `application` | Inspection orchestration and worker execution | [`inspect_image.py`](../services/vision/src/ecoloop_vision/application/inspect_image.py), [`run_job.py`](../services/vision/src/ecoloop_vision/application/run_job.py) |
-| `infrastructure` | Images, artifacts, gateway, contract checks | [`infrastructure/`](../services/vision/src/ecoloop_vision/infrastructure/) |
-| `tools` | Probe, benchmark, evaluation, replay | [`tools/`](../services/vision/src/ecoloop_vision/tools/) |
-| `functions` | Submission, job records, leases, finalization, settlement | [`functions/src/`](../functions/src/) |
-| `contracts` | Cross-service JSON schemas and golden cases | [`contracts/backend/v1/`](../contracts/backend/v1/) |
+| `infrastructure` | Images, artifacts, gateway, contract checks | [`infrastructure/`](../services/vision/src/ecoloop_vision/infrastructure) |
+| `tools` | Probe, benchmark, evaluation, replay | [`tools/`](../services/vision/src/ecoloop_vision/tools) |
+| `functions` | Submission, job records, leases, finalization, settlement | [`functions/src/`](../functions/src) |
+| `contracts` | Cross-service JSON schemas and golden cases | [`contracts/backend/v1/`](../contracts/backend/v1) |
 
 ## 5. Processing lifecycle
 
@@ -716,13 +716,13 @@ flowchart LR
 
 | Concern | Source |
 | --- | --- |
-| Existing backend/CV authority | [`ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md`](./ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) |
+| Existing backend/CV authority | [`ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md`](archive/backend/ECOLOOP_BACKEND_AND_CV_SPECIFICATION.md) |
 | Vision service package | [`pyproject.toml`](../services/vision/pyproject.toml) |
 | Model registry | [`model_registry.json`](../services/vision/model_registry.json) |
 | Worker orchestration | [`run_job.py`](../services/vision/src/ecoloop_vision/application/run_job.py) |
 | Inspection pipeline | [`inspect_image.py`](../services/vision/src/ecoloop_vision/application/inspect_image.py) |
-| Provider adapters | [`adapters/`](../services/vision/src/ecoloop_vision/adapters/) |
-| Domain matching and taxonomy | [`domain/`](../services/vision/src/ecoloop_vision/domain/) |
+| Provider adapters | [`adapters/`](../services/vision/src/ecoloop_vision/adapters) |
+| Domain matching and taxonomy | [`domain/`](../services/vision/src/ecoloop_vision/domain) |
 | Job gateway | [`job_gateway.py`](../services/vision/src/ecoloop_vision/infrastructure/job_gateway.py) |
 | Image and artifact handling | [`images.py`](../services/vision/src/ecoloop_vision/infrastructure/images.py), [`artifacts.py`](../services/vision/src/ecoloop_vision/infrastructure/artifacts.py) |
 | Backend findings contract | [`findings.schema.json`](../contracts/backend/v1/findings.schema.json) |
