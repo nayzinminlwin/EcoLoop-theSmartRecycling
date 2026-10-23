@@ -6,7 +6,7 @@
 import * as React from "react";
 import { NavLink } from "react-router-dom";
 import { services, useObservableQuery } from "../../app/services.ts";
-import type { DashboardSummary, SmartBinRow, CapacityBand, CollectionStatus } from "../../contracts/admin.ts";
+import type { DashboardSummary, SmartBinRow, CapacityBand } from "../../contracts/admin.ts";
 import type { MaterialType } from "../../contracts/shared.ts";
 import { AdminPageHeader, Button, Badge, AsyncState, Icon } from "../../ui/primitives.tsx";
 import { DataTable, type Column } from "../../ui/DataTable.tsx";
@@ -37,12 +37,6 @@ const MATERIAL_COLORS: Record<MaterialType | string, string> = {
   glass: "var(--blue)"
 };
 
-const COLLECTION_LABELS: Record<CollectionStatus, string> = {
-  notScheduled: "Not Scheduled",
-  pending: "Pending Collection",
-  scheduled: "Pending Collection",
-  collected: "Collected"
-};
 
 const weekdayFormatter = new Intl.DateTimeFormat("en-MY", {
   timeZone: "Asia/Kuala_Lumpur",
@@ -174,11 +168,7 @@ export function OverviewPage(): React.ReactElement {
         if (cs === "pending" || cs === "scheduled") {
           return <Badge tone="amber">Pending Collection</Badge>;
         }
-        return (
-          <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-            Not Scheduled
-          </span>
-        );
+        return <Badge tone="gray">Not Scheduled</Badge>;
       }
     }
   ];

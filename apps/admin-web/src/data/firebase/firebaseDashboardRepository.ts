@@ -19,7 +19,7 @@ import type {
   Observer,
   Unsubscribe,
 } from "../repositories.ts";
-import type { DashboardSummary, SmartBinRow } from "../../contracts/admin.ts";
+import type { DashboardSummary, SmartBinRow, CollectionStatus } from "../../contracts/admin.ts";
 import {
   decodeAdminDashboardView,
   adminDashboardViewToSummary,
@@ -352,6 +352,25 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       const allBins = Array.from(binMap.values());
       if (allBins.length === 0) return;
 
+      // Read active alert states
+      const alertStateByBin = new Map<string, string>();
+      try {
+        const capAlertsSnap = await getDocs(collection(this.firestore, "capacityAlerts"));
+        for (const d of capAlertsSnap.docs) {
+          const a = d.data();
+          const bId = String(a.binId ?? "");
+          const state = String(a.state ?? "");
+          if (bId && state) {
+            const prev = alertStateByBin.get(bId);
+            if (!prev || prev === "resolved") {
+              alertStateByBin.set(bId, state);
+            } else if (state === "collected" && prev !== "collected") {
+              alertStateByBin.set(bId, state);
+            }
+          }
+        }
+      } catch { }
+
       const attentionBins: SmartBinRow[] = [];
       let alertCount = 0;
 
@@ -362,6 +381,8 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         const isEnabled = b.enabled !== false;
         const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
         const isOnline = isEnabled && isLogicalOnline;
+        const alertState = alertStateByBin.get(binId);
+
         const colState = (b.collectionState as "normal" | "warning" | "critical" | "collection_pending") ||
           (fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal");
 
@@ -371,7 +392,21 @@ export class FirebaseDashboardRepository implements DashboardRepository {
 
         const needsAttention = fill >= 75 || colState === "critical" || colState === "warning" || !isOnline;
         if (needsAttention) {
-          const band = fill >= 85 ? "critical" : fill >= 75 ? "warning" : "normal";
+          const explicitStatus = typeof b.collectionStatus === "string" ? b.collectionStatus : undefined;
+          let collectionStatus: CollectionStatus = "notScheduled";
+
+          if (alertState === "collected" || explicitStatus === "collected" || b.collectionState === "collected") {
+            collectionStatus = "collected";
+          } else if (
+            alertState === "scheduled" ||
+            explicitStatus === "scheduled" ||
+            explicitStatus === "collection_pending" ||
+            (b.collectionState === "collection_pending" && alertState !== "pending" && alertState !== "triggered") ||
+            (explicitStatus === "pending" && alertState !== "pending" && alertState !== "triggered")
+          ) {
+            collectionStatus = "pending";
+          }
+
           attentionBins.push({
             bin: {
               id: binId,
@@ -384,12 +419,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
             },
             operations: {
               binId,
-              collectionStatus:
-                b.collectionStatus === "collected" || b.collectionState === "collected"
-                  ? "collected"
-                  : b.collectionStatus === "pending" || b.collectionStatus === "scheduled" || b.collectionState === "collection_pending"
-                    ? "pending"
-                    : "notScheduled",
+              collectionStatus,
             },
           });
         }
@@ -443,6 +473,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       // 1. Direct dynamic computation from live collections first
       const computed = await this.computeSummaryFromFirestore();
       if (computed) {
+        await this.enrichWithLiveFleetData(computed);
         return computed;
       }
 

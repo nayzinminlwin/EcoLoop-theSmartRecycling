@@ -84,8 +84,8 @@ export class FirebaseBinRepository implements BinsRepository {
   }
 
   private deriveBinCollectionStatus(
-    binId: string,
-    capacityPercent: number,
+    _binId: string,
+    _capacityPercent: number,
     alertState?: string,
     explicitStatus?: string
   ): CollectionStatus {
@@ -342,7 +342,7 @@ export class FirebaseBinRepository implements BinsRepository {
 
       if (viewsSnap && !viewsSnap.empty) {
         rows = viewsSnap.docs.map((d) => {
-          const viewData = { binId: d.id, ...d.data() };
+          const viewData: Record<string, unknown> = { binId: d.id, ...d.data() };
           const canon = canonicalMap.get(d.id);
           if (canon) {
             const canonFill = typeof canon.fillPercent === "number" && canon.fillPercent > 0
@@ -534,7 +534,7 @@ export class FirebaseBinRepository implements BinsRepository {
         }
 
         if (viewDoc && viewDoc.exists()) {
-          const viewData = { binId: viewDoc.id, ...viewDoc.data() };
+          const viewData: Record<string, unknown> = { binId: viewDoc.id, ...viewDoc.data() };
           let explicitStatus: string | undefined;
           if (binDoc && binDoc.exists()) {
             const canon = binDoc.data();

@@ -25,60 +25,103 @@ export interface FirebaseClientConfig {
   readonly functionsEmulatorPort?: number;
 }
 
-function getEnv(): Record<string, string | undefined> {
-  const meta = import.meta as unknown as { env?: Record<string, string | undefined> };
-  if (meta && typeof meta === "object" && meta.env) {
-    return meta.env;
+function readEnv(key: string, metaVal?: string): string | undefined {
+  if (metaVal !== undefined) {
+    return metaVal;
   }
-  if (typeof process !== "undefined" && process.env) {
-    return process.env;
+  if (typeof process !== "undefined" && process.env && process.env[key]) {
+    return process.env[key];
   }
-  return {};
+  return undefined;
 }
 
 function resolveBackendMode(rawMode?: string): BackendMode {
   if (rawMode === "firebase" || rawMode === "emulator" || rawMode === "mock") {
     return rawMode;
   }
-  const meta = import.meta as unknown as { env?: { PROD?: boolean } };
-  if (meta?.env?.PROD) {
+  if (typeof import.meta !== "undefined" && import.meta.env?.PROD) {
     return "firebase";
   }
   return "mock";
 }
 
 export function loadFirebaseConfig(): FirebaseClientConfig {
-  const env = getEnv();
-  const mode = resolveBackendMode(env.VITE_ECOLOOP_BACKEND_MODE);
-  const projectId = env.VITE_ECOLOOP_FIREBASE_PROJECT_ID || "ecoloop-thesmartrecycling";
-  const database = env.VITE_ECOLOOP_FIRESTORE_DATABASE || "ecoloop-db";
-  const region = env.VITE_ECOLOOP_FIREBASE_REGION || "us-central1";
+  const mode = resolveBackendMode(
+    readEnv("VITE_ECOLOOP_BACKEND_MODE", typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_BACKEND_MODE : undefined)
+  );
+  const projectId =
+    readEnv("VITE_ECOLOOP_FIREBASE_PROJECT_ID", typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_PROJECT_ID : undefined) ||
+    "ecoloop-thesmartrecycling";
+  const database =
+    readEnv("VITE_ECOLOOP_FIRESTORE_DATABASE", typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIRESTORE_DATABASE : undefined) ||
+    "ecoloop-db";
+  const region =
+    readEnv("VITE_ECOLOOP_FIREBASE_REGION", typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_REGION : undefined) ||
+    "us-central1";
 
   // Parse emulator ports
-  const firestorePortStr = env.VITE_ECOLOOP_FIRESTORE_EMULATOR_PORT;
-  const functionsPortStr = env.VITE_ECOLOOP_FUNCTIONS_EMULATOR_PORT;
+  const firestorePortStr = readEnv(
+    "VITE_ECOLOOP_FIRESTORE_EMULATOR_PORT",
+    typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIRESTORE_EMULATOR_PORT : undefined
+  );
+  const functionsPortStr = readEnv(
+    "VITE_ECOLOOP_FUNCTIONS_EMULATOR_PORT",
+    typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FUNCTIONS_EMULATOR_PORT : undefined
+  );
 
   const config: FirebaseClientConfig = {
     mode,
     projectId,
     database,
     region,
-    apiKey: env.VITE_ECOLOOP_FIREBASE_API_KEY,
-    authDomain: env.VITE_ECOLOOP_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
-    storageBucket: env.VITE_ECOLOOP_FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`,
-    messagingSenderId: env.VITE_ECOLOOP_FIREBASE_MESSAGING_SENDER_ID,
-    appId: env.VITE_ECOLOOP_FIREBASE_APP_ID,
-    appCheckSiteKey: env.VITE_ECOLOOP_APP_CHECK_SITE_KEY,
-    authEmulatorUrl: env.VITE_ECOLOOP_AUTH_EMULATOR_URL || "http://127.0.0.1:9099",
-    firestoreEmulatorHost: env.VITE_ECOLOOP_FIRESTORE_EMULATOR_HOST || "127.0.0.1",
+    apiKey: readEnv(
+      "VITE_ECOLOOP_FIREBASE_API_KEY",
+      typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_API_KEY : undefined
+    ),
+    authDomain:
+      readEnv(
+        "VITE_ECOLOOP_FIREBASE_AUTH_DOMAIN",
+        typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_AUTH_DOMAIN : undefined
+      ) || `${projectId}.firebaseapp.com`,
+    storageBucket:
+      readEnv(
+        "VITE_ECOLOOP_FIREBASE_STORAGE_BUCKET",
+        typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_STORAGE_BUCKET : undefined
+      ) || `${projectId}.firebasestorage.app`,
+    messagingSenderId: readEnv(
+      "VITE_ECOLOOP_FIREBASE_MESSAGING_SENDER_ID",
+      typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_MESSAGING_SENDER_ID : undefined
+    ),
+    appId: readEnv(
+      "VITE_ECOLOOP_FIREBASE_APP_ID",
+      typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIREBASE_APP_ID : undefined
+    ),
+    appCheckSiteKey: readEnv(
+      "VITE_ECOLOOP_APP_CHECK_SITE_KEY",
+      typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_APP_CHECK_SITE_KEY : undefined
+    ),
+    authEmulatorUrl:
+      readEnv(
+        "VITE_ECOLOOP_AUTH_EMULATOR_URL",
+        typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_AUTH_EMULATOR_URL : undefined
+      ) || "http://127.0.0.1:9099",
+    firestoreEmulatorHost:
+      readEnv(
+        "VITE_ECOLOOP_FIRESTORE_EMULATOR_HOST",
+        typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FIRESTORE_EMULATOR_HOST : undefined
+      ) || "127.0.0.1",
     firestoreEmulatorPort: firestorePortStr ? parseInt(firestorePortStr, 10) : 8080,
-    functionsEmulatorHost: env.VITE_ECOLOOP_FUNCTIONS_EMULATOR_HOST || "127.0.0.1",
+    functionsEmulatorHost:
+      readEnv(
+        "VITE_ECOLOOP_FUNCTIONS_EMULATOR_HOST",
+        typeof import.meta.env !== "undefined" ? import.meta.env.VITE_ECOLOOP_FUNCTIONS_EMULATOR_HOST : undefined
+      ) || "127.0.0.1",
     functionsEmulatorPort: functionsPortStr ? parseInt(functionsPortStr, 10) : 5001,
   };
 
   // Fail-fast validation in live production mode
   if (mode === "firebase") {
-    if (!config.apiKey && import.meta.env.PROD) {
+    if (!config.apiKey && typeof import.meta !== "undefined" && import.meta.env?.PROD) {
       throw new Error(
         "[EcoLoop Admin] Production build requires VITE_ECOLOOP_FIREBASE_API_KEY. Live configuration is incomplete."
       );

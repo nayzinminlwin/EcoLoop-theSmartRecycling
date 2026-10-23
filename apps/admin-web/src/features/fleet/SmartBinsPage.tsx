@@ -10,8 +10,7 @@ import type {
   SmartBinRow,
   BinInput,
   BinSortKey,
-  CapacityBand,
-  CollectionStatus
+  CapacityBand
 } from "../../contracts/admin.ts";
 import type { SmartBin } from "../../contracts/shared.ts";
 import type { BinQrCode } from "../../data/repositories.ts";
@@ -65,12 +64,6 @@ const INITIAL_FORM: BinFormState = {
   isOnline: true
 };
 
-const COLLECTION_LABELS: Record<CollectionStatus, string> = {
-  notScheduled: "Not Scheduled",
-  pending: "Pending Collection",
-  scheduled: "Pending Collection",
-  collected: "Collected"
-};
 
 function capacityBand(value: number): CapacityBand {
   if (value >= 85) return "critical";
