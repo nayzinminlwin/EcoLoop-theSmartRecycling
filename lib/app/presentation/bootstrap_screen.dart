@@ -21,11 +21,7 @@ class BootstrapScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AppLogo(
-                    size: 72,
-                    iconSize: 40,
-                    borderRadius: AppRadii.prominent,
-                  ),
+                  const AppLogo(size: 84, borderRadius: AppRadii.prominent),
                   const SizedBox(height: 20),
                   Text(
                     AppCopy.appName,

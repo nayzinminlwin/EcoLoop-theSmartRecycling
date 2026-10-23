@@ -1,5 +1,6 @@
 import 'package:eco_loop/app/eco_loop_app.dart';
 import 'package:eco_loop/app/providers/app_providers.dart';
+import 'package:eco_loop/app/presentation/bootstrap_screen.dart';
 import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 import 'package:eco_loop/core/mock/mock_scenario.dart';
@@ -11,13 +12,16 @@ import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
 import 'package:eco_loop/core/data/exit_intent_store.dart';
 import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
+import 'package:eco_loop/core/theme/app_theme.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
 import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(const _BootstrapApp());
+
   final pendingOperationStore = PendingOperationStore();
   final exitIntentCoordinator = ExitIntentCoordinator(
     store: ExitIntentStore(
@@ -89,5 +93,16 @@ Future<void> bootstrap() async {
       ],
       child: const EcoLoopApp(),
     ),
+  );
+}
+
+class _BootstrapApp extends StatelessWidget {
+  const _BootstrapApp();
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    home: const BootstrapScreen(),
   );
 }

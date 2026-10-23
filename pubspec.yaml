@@ -36,6 +36,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icons/
+    - assets/icon/ecoLoop_icon_transparent.png
     - assets/mock/metadata.json
     - assets/mock/account/
     - assets/mock/wallet/

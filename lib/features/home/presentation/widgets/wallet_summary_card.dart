@@ -7,7 +7,6 @@ import 'package:eco_loop/features/wallet/domain/models/wallet_snapshot.dart';
 
 import '../controllers/home_controller.dart';
 
-import 'package:eco_loop/shared/widgets/app_brand.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:eco_loop/shared/widgets/app_progress_bar.dart';
 import 'package:flutter/material.dart';
@@ -63,7 +62,9 @@ class WalletSummaryCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24),
                 ),
-                child: Center(child: AppLogo(size: 44, iconSize: 26)),
+                child: Center(
+                  child: AppIcon('leaf', size: 34, color: AppColors.leafOrbit),
+                ),
               ),
             ),
             Padding(
