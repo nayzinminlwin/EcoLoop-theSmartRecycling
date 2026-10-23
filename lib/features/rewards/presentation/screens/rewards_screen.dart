@@ -6,7 +6,7 @@ import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_error_view.dart';
 import 'package:eco_loop/shared/widgets/app_loading_view.dart';
 import 'package:eco_loop/shared/widgets/app_page.dart';
-import 'package:eco_loop/shared/widgets/app_icon.dart';
+import 'package:eco_loop/shared/widgets/app_brand.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -86,7 +86,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const AppIcon('leaf', size: 16, color: AppColors.primary),
+                      const AppLogo(size: 16, iconSize: 10),
                       const SizedBox(width: 6),
                       Text(
                         '${value?.balance ?? 0} pts',
