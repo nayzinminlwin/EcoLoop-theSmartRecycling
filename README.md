@@ -222,27 +222,27 @@ easy to review.
 
 | Overview page |
 | --- |
-| *Placeholder: `Admin_Overview.png`* |
+| <img src="Demo_Screenshots/Admin_Overview0.png" alt="EcoLoop admin overview page, first section" width="700" /><br /><img src="Demo_Screenshots/Admin_Overview1.png" alt="EcoLoop admin overview page, second section" width="700" /> |
 
 | Smart Bins page |
 | --- |
-| *Placeholder: `Admin_Smart_Bins.png`* |
+| <img src="Demo_Screenshots/Admin_Smart_Bins.png" alt="EcoLoop admin smart bins page" width="700" /> |
 
 | Capacity Alerts page |
 | --- |
-| *Placeholder: `Admin_Capacity_Alerts.png`* |
+| <img src="Demo_Screenshots/Admin_Capacity_Alerts.png" alt="EcoLoop admin capacity alerts page" width="700" /> |
 
 | Deposit Verification page |
 | --- |
-| *Placeholder: `Admin_Deposit_Verification.png`* |
+| <img src="Demo_Screenshots/Admin_Deposit_Verification.png" alt="EcoLoop admin deposit verification page" width="700" /> |
 
 | Rewards & Vouchers page |
 | --- |
-| *Placeholder: `Admin_Rewards_Vouchers.png`* |
+| <img src="Demo_Screenshots/Admin_Rewards_Vouchers.png" alt="EcoLoop admin rewards and vouchers page" width="700" /> |
 
 | Settings page |
 | --- |
-| *Placeholder: `Admin_Settings.png`* |
+| <img src="Demo_Screenshots/Admin_Settings.png" alt="EcoLoop admin settings page" width="700" /> |
 
 The repository currently also contains static design and implementation
 comparisons in [`Demo_Screenshots/`](Demo_Screenshots), including:
