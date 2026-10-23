@@ -57,6 +57,7 @@ The platform is designed around a traceable journey:
 - [Current Development Status](#current-development-status)
 - [Known Limitations](#known-limitations)
 - [Documentation](#documentation)
+- [Team](#team)
 - [Project Vision](#project-vision)
 
 ## Project Overview
@@ -283,7 +284,7 @@ role-switching application. Clients request operations and observe committed
 read models; trusted services own authorization, settlement, accounting,
 capacity, durable job processing, and recovery.
 
-### Trash Classification Engine
+### Trash Classification Engine with Computer Vision
 
 The classification engine receives the committed image selected for a
 submitted recycling batch. It validates the pixels, runs the two primary
@@ -529,6 +530,16 @@ The detailed project baselines are:
 These documents contain the detailed requirements, architecture, contracts,
 acceptance conditions, qualifications, and source traceability that are
 intentionally summarized here.
+
+## Team
+
+| Team member | Role |
+| --- | --- |
+| [Faris Rezza](https://github.com/rezzafr) | Team Leader & Frontend Designer |
+| [Nay Zin @ Alex](https://github.com/nayzinminlwin) | Mobile App & Backend Developer |
+| [Abil](https://github.com/BigBoyJac) | Web Developer |
+| Ili | Presenter |
+| [Safwan](https://github.com/masafwan2005-maker) | Presentation Lead |
 
 ## Project Vision
 
