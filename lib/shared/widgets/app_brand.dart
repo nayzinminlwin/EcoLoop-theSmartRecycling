@@ -6,6 +6,37 @@ import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/shared/widgets/app_icon.dart';
 import 'package:flutter/material.dart';
 
+class AppLogo extends StatelessWidget {
+  const AppLogo({
+    super.key,
+    this.size = 34,
+    this.iconSize = 20,
+    this.borderRadius = AppRadii.icon,
+  });
+
+  final double size;
+  final double iconSize;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(borderRadius),
+    ),
+    child: Center(
+      child: AppIcon(
+        'leaf',
+        size: iconSize,
+        color: Colors.white,
+        semanticLabel: AppCopy.appName,
+      ),
+    ),
+  );
+}
+
 class AppBrand extends StatelessWidget {
   const AppBrand({super.key, this.compact = false});
 
@@ -15,23 +46,10 @@ class AppBrand extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Container(
-        width: compact ? 28 : 34,
-        height: compact ? 28 : 34,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(
-            compact ? AppRadii.button : AppRadii.icon,
-          ),
-        ),
-        child: Center(
-          child: AppIcon(
-            'leaf',
-            size: compact ? 16 : 20,
-            color: Colors.white,
-            semanticLabel: AppCopy.appName,
-          ),
-        ),
+      AppLogo(
+        size: compact ? 28 : 34,
+        iconSize: compact ? 16 : 20,
+        borderRadius: compact ? AppRadii.button : AppRadii.icon,
       ),
       SizedBox(width: compact ? AppSpacing.sm : 10),
       Text.rich(
