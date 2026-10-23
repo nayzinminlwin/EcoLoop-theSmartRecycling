@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import recycleSymbolImg from "../assets/recycle-symbol.png";
+import appIconImg from "../assets/ecoloop-icon.png";
 import "./primitives.css";
 
 // 1. Icon & Brand
@@ -150,7 +151,7 @@ export function Brand(): React.ReactElement {
   return (
     <div className="brand">
       <span className="brand-mark">
-        <Icon name="leaf" />
+        <img src={appIconImg} alt="" aria-hidden="true" />
       </span>
       <span>
         EcoLoop <b>AI</b>

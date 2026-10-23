@@ -41,7 +41,7 @@
 }
 
 .side-top .brand-mark {
-  background: var(--sidebar-brand);
+  background: transparent;
 }
 
 .mobile-close {
