@@ -393,6 +393,27 @@ The application also supports `emulator` and `firebase` modes through
 runtime inputs documented in the
 [resident SDD](docs/ECOLOOP_SDD_USER_APP.md).
 
+### QR codes for testing
+
+Use the generated [printable QR-code page](functions/.seed-output/demo-v1/PRINT_QR_CODES.html)
+when testing the resident recycling flow. Open the page in a browser, then
+display the QR code on a second screen or print it. In the resident app, open
+**Scan** and point the camera at the QR code for the bin you want to test.
+
+The QR page is generated output and is ignored by Git. If it is not present in
+your checkout, generate the local demo artifacts from the repository root:
+
+```bash
+cd functions
+npm install
+npm run seed:dry-run
+```
+
+For a live Firebase environment, seed the corresponding live project instead
+of using the dry run, then open the generated page at the same path. The QR
+payload must belong to a registered and enabled bin in the Firebase project
+used by the resident app.
+
 ### Live QR scan deployment contract
 
 The live resident scanner sends the QR value through the versioned callable
@@ -550,6 +571,27 @@ Firebase rules, and the vision worker. Use the service-specific commands and
 environment requirements documented in the relevant project folders and
 design documents. Live provider tests require configured credentials and must
 not write secrets to source or committed output.
+
+### Android APK release
+
+Push a semantic-version tag such as `v1.0.0` to run
+[Android APK Release](.github/workflows/android-release.yml). The workflow
+builds the resident app with the live Firebase configuration used for device
+verification:
+
+```text
+ECOLOOP_FIREBASE_MODE=firebase
+ECOLOOP_FIREBASE_REGION=us-central1
+ECOLOOP_FIRESTORE_DATABASE=ecoloop-db
+ECOLOOP_APP_CHECK_MODE=demo-debug
+```
+
+It attaches the resulting APK to a GitHub release. The workflow can also be
+started manually from GitHub Actions by supplying the release tag. The current
+Android Gradle configuration uses the debug signing key, so this artifact is
+installable for demonstrations but must not be submitted to Google Play.
+Configure a private release keystore and GitHub Actions secrets before
+distributing the APK as a production app.
 
 ## Current Development Status
 
