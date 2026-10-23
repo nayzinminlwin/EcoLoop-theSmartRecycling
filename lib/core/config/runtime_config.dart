@@ -23,7 +23,7 @@ class RuntimeConfig {
   factory RuntimeConfig.fromEnvironment() {
     final rawMode = const String.fromEnvironment(
       'ECOLOOP_FIREBASE_MODE',
-      defaultValue: 'mock',
+      defaultValue: 'firebase',
     );
     final mode = FirebaseMode.values.firstWhere(
       (candidate) => candidate.name == rawMode,

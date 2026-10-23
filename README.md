@@ -376,10 +376,11 @@ From the repository root:
 
 ```bash
 flutter pub get
-flutter run -d chrome --dart-define=ECOLOOP_FIREBASE_MODE=mock
+flutter run -d chrome --dart-define=ECOLOOP_FIREBASE_MODE=firebase
 ```
 
-The default resident runtime mode is `mock`. To select a mock scenario:
+The default resident runtime mode is `firebase`. To select a mock scenario
+explicitly:
 
 ```bash
 flutter run -d chrome \
@@ -391,6 +392,69 @@ The application also supports `emulator` and `firebase` modes through
 `ECOLOOP_FIREBASE_MODE`. Emulator hosts and ports are configured through the
 runtime inputs documented in the
 [resident SDD](docs/ECOLOOP_SDD_USER_APP.md).
+
+### Live QR scan deployment contract
+
+The live resident scanner sends the QR value through the versioned callable
+envelope:
+
+```text
+scanBinQr
+  schemaVersion: backend.v1
+  operation: scanBinQr
+  payload.qrPayload: <non-empty scanned QR value>
+```
+
+The Firebase configuration runs `npm run build` in `functions/` before every
+functions deployment. This is required because Firebase deploys the compiled
+`functions/lib/` output, not the TypeScript source in `functions/src/`.
+Never deploy a functions change by relying on an existing `functions/lib/`
+directory. If the build fails, deployment must stop and the TypeScript errors
+must be fixed first.
+
+For live Android verification:
+
+```bash
+flutter run -d <android-device> \
+  --dart-define=ECOLOOP_FIREBASE_MODE=firebase
+```
+
+Then open **Scan** from the resident home page and scan a real bin QR code.
+The app logs only QR payload metadata (length, scheme, and a short prefix), not
+the QR contents. A healthy scan has a non-zero payload length and calls the
+deployed `scanBinQr` function with that value.
+
+Check the preceding log event when a scan action fails. The
+`scan.qr_payload_received` event proves the camera and barcode callback worked;
+a following `qrPayload is required` response indicates a stale or
+contract-mismatched deployed function and must be fixed by rebuilding and
+redeploying `scanBinQr`. Camera lifecycle errors should only be investigated
+when no payload event was emitted.
+
+Session renewals are lease refreshes, not user actions, and are intentionally
+not stored as durable pending operations. This prevents a background renewal
+from blocking image selection or session cancellation with a local
+`pendingOperation.payloadChanged` conflict. If a previously installed build
+has a stale renewal intent, the next image-selection, submission, or
+cancellation action safely supersedes that renewal and clears the local
+pending state before calling Firebase.
+
+Bin reservations follow the resident confirmation boundary:
+
+- Scanning a QR code creates a resident-owned session but leaves the bin
+  operation `available`.
+- Confirming the bin atomically acquires the reservation for five minutes.
+- Cancellation, processing settlement, review referral, and expiry
+  reconciliation release the reservation.
+- The resident app does not renew the reservation, so it cannot remain
+  occupied beyond the five-minute lease.
+
+Dashboard activity records are decoded defensively for live data. Older deposit
+records may not contain item-level `lines`; those records remain visible as
+review/legacy activity instead of preventing the entire dashboard from
+loading. When diagnosing a dashboard load failure, inspect the first Flutter
+`command.call_*` event and the activity record schema before retrying or
+signing out.
 
 ### Administrative Web Portal
 

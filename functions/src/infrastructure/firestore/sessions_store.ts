@@ -6,7 +6,7 @@ import type { BinSnapshot, DepositSession, Instant, SessionStage } from "../../d
 import type { StructuredLogger } from "../logger.js";
 
 const unsubmittedStages = new Set<SessionStage>(["binFound", "ready", "itemDetected"]);
-const RESERVATION_SECONDS = 600;
+const RESERVATION_SECONDS = 300;
 
 export interface SessionCommandIdentity {
   readonly uid: string;
@@ -282,17 +282,16 @@ export class FirestoreSessionsStore implements SessionsStore {
     }
     const sessionId = `session-${hash(`${uid}:${operation.requestId}`)}`;
     const sessionRef = this.firestore.doc(`depositSessions/${sessionId}`);
-    const expiresAt = addSeconds(now, RESERVATION_SECONDS);
     const session: Record<string, unknown> = {
       id: sessionId, ownerId: uid, binId, stage: "binFound", version: 0,
-      createdAt: now, updatedAt: now, reservationExpiresAt: expiresAt,
+      createdAt: now, updatedAt: now, reservationExpiresAt: null,
       draftAssetId: null, draftAssetVersion: null, batchId: null,
       creationRequestId: operation.requestId,
     };
     transaction.create(sessionRef, session);
     transaction.set(reservationRef, {
-      binId, ownerId: uid, sessionId, phase: "binFound", simulatedAccess: "open",
-      expiresAt, version: 0, updatedAt: now,
+      binId, ownerId: null, sessionId: null, phase: "available", simulatedAccess: "open",
+      expiresAt: null, version: 0, updatedAt: now,
     }, { merge: true });
     transaction.set(residentRef, { activeSessionId: sessionId, updatedAt: now }, { merge: true });
     return this.result(session, toBinSnapshot(binId, bin), operation, "applied");
@@ -310,7 +309,34 @@ export class FirestoreSessionsStore implements SessionsStore {
     assertOwner(current, uid);
     assertVersion(current, expectedVersion);
     assertUnsubmitted(current);
+    if (current.stage !== from) throw new DomainError("invalid_transition", `Session must be ${from} before it can become ${to}`);
     const reservation = reservationSnapshot.data() ?? {};
+    if (from === "binFound") {
+      if (reservationSnapshot.exists &&
+          reservation.phase !== "available" &&
+          !(reservation.sessionId === sessionId && reservation.ownerId === uid) &&
+          !isExpired(reservation.expiresAt, now)) {
+        throw new DomainError("bin_busy", "This bin is already reserved");
+      }
+      const expiresAt = addSeconds(now, RESERVATION_SECONDS);
+      transaction.set(reservationRef, {
+        binId: current.binId,
+        phase: to,
+        ownerId: uid,
+        sessionId,
+        expiresAt,
+        version: (reservation.version ?? 0) + 1,
+        simulatedAccess: "open",
+        updatedAt: now,
+      }, { merge: true });
+      const updated = updateSession(current, now, {
+        stage: to,
+        version: current.version + 1,
+        reservationExpiresAt: expiresAt,
+      });
+      updateDocument(transaction, sessionRef, updated);
+      return this.result(updated, null, operation, "applied");
+    }
     if (!reservationSnapshot.exists || reservation.sessionId !== sessionId || reservation.ownerId !== uid) {
       throw new DomainError("session_expired", "The scan reservation is no longer active", { retryability: "after_refresh" });
     }
@@ -320,7 +346,6 @@ export class FirestoreSessionsStore implements SessionsStore {
         stage: "cancelled", terminationReason: "reservation_expired", version: current.version + 1,
       }), null, operation, "applied");
     }
-    if (current.stage !== from) throw new DomainError("invalid_transition", `Session must be ${from} before it can become ${to}`);
     const updated = updateSession(current, now, { stage: to, version: current.version + 1 });
     updateDocument(transaction, sessionRef, updated);
     transaction.update(reservationRef, { phase: to, simulatedAccess: to === "itemDetected" ? "closed" : "open", updatedAt: now });

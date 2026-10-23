@@ -4,7 +4,6 @@ import 'dart:developer' as developer;
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/data/resident_work_store.dart';
-import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/deposit_result.dart';
@@ -389,7 +388,7 @@ final scanCompletionProvider =
     >(ScanCompletionController.new);
 
 /// Maps repository failure identities to resident-facing copy.
-String scanFailureCopy(Object error) {
+String scanFailureCopy(Object error, {String action = 'processing the scan'}) {
   final messageKey = error is AppFailure ? error.messageKey : '';
 
   // Prefix matches for contract validation errors
@@ -404,6 +403,14 @@ String scanFailureCopy(Object error) {
       'This bin is currently in use. Please try again later.',
     'backend.bin_unavailable' => 'This bin is unavailable right now.',
     'backend.active_session_exists' => 'You already have an active scan. Return to it or cancel it before scanning another bin.',
+    'backend.session_expired' =>
+      'The scan session timed out. Return to the scanner and scan the bin again.',
+    'backend.invalid_transition' =>
+      'The scan session changed, so $action is no longer available. Return to the current scan step and try again.',
+    'backend.asset_unavailable' =>
+      'The selected recycling image was rejected by the backend. Choose another image.',
+    'backend.asset_version_changed' =>
+      'The selected recycling image changed on the server. Choose it again.',
     'backend.unauthenticated' => 'Please sign in again before scanning.',
     'backend.permission_denied' =>
       'This scan is not permitted for the current account.',
@@ -412,6 +419,8 @@ String scanFailureCopy(Object error) {
     'backend.aborted' =>
       'The scan session changed. Please try the image again.',
     'backend.already-exists' => 'This scan has already been submitted.',
+    'pendingOperation.payloadChanged' =>
+      'Another scan action is still being processed. Wait a moment, then try again.',
     'backend.transportUnavailable' =>
       'The scan service is temporarily unavailable. Try again.',
     'backend.not_found' =>
@@ -424,12 +433,16 @@ String scanFailureCopy(Object error) {
     'scan.binFull' => 'This bin is full right now. Please try another bin.',
     'scan.binOffline' => 'This bin is offline. Please try again later.',
     'scan.invalidTransition' =>
-      'That action is not available for the current session.',
+      'The scan session changed, so $action is no longer available. Try again.',
     'scan.cannotCancel' =>
       'The deposit is already being verified and cannot be cancelled.',
     'mock.session.notFound' => 'This scan session is no longer available.',
     'mock.bin.notFound' => 'This smart bin is no longer available.',
     'mock.result.notFound' => 'This deposit result is no longer available.',
-    _ => AppCopy.scanUnavailable,
+    _ when error is AppFailure && messageKey.startsWith('backend.') =>
+      'The backend rejected $action (${error.code}). Try again or return to the scanner.',
+    _ when error is AppFailure =>
+      'EcoLoop could not complete $action (${error.code}). Try again.',
+    _ => 'EcoLoop could not complete $action because of an unexpected error. Try again.',
   };
 }

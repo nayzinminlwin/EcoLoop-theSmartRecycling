@@ -94,10 +94,12 @@ class DepositTransaction {
   }
 
   factory DepositTransaction.fromBackendJson(JsonMap json) {
-    final lines = JsonReaders.maps(
-      json,
-      'lines',
-    ).map(DepositLineItem.fromJson).toList(growable: false);
+    final lines = json['lines'] is List
+        ? JsonReaders.maps(
+            json,
+            'lines',
+          ).map(DepositLineItem.fromJson).toList(growable: false)
+        : const <DepositLineItem>[];
     return DepositTransaction(
       id: JsonReaders.string(json, 'id'),
       residentId: JsonReaders.string(json, 'ownerId'),

@@ -4,6 +4,7 @@ import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/config/runtime_config.dart';
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_session.dart';
@@ -32,6 +33,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   bool _busy = false;
   String? _error;
   String? _requestId;
+  final AppLogger _logger = AppLogger();
 
   @override
   void initState() {
@@ -143,6 +145,25 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   Future<void> _scan(String payload) async {
+    if (_busy || _error != null) return;
+    final normalized = payload.trim();
+    _logger.log(
+      AppLogLevel.debug,
+      'scan.qr_payload_received',
+      fields: <String, Object?>{
+        'length': normalized.length,
+        'hasScheme': normalized.contains('://'),
+        'prefix': normalized.isEmpty
+            ? ''
+            : normalized.substring(0, normalized.length.clamp(0, 16)),
+      },
+    );
+    if (normalized.isEmpty) {
+      if (mounted) {
+        setState(() => _error = 'No QR code content was detected. Try again.');
+      }
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -150,7 +171,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     try {
       final repository = ref.read(scanRepositoryProvider);
       _requestId ??= 'scan-${DateTime.now().microsecondsSinceEpoch}';
-      final session = await repository.scanBinQr(payload, _requestId!);
+      final session = await repository.scanBinQr(normalized, _requestId!);
       _requestId = null;
       if (mounted) context.go(AppRoutes.scanBinPath(session.id));
     } on Object catch (error) {

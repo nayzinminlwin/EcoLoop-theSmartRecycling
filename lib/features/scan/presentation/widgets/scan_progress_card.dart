@@ -60,7 +60,9 @@ class _ScanProgressCardState extends State<ScanProgressCard> {
         !_now.isBefore(deadline) &&
         progress.detailMessage == null) {
       progress = progress.withDetail(
-        'Checking whether your request completed...',
+        'The 5-minute verification deadline has passed. '
+        'The backend is finalizing this request; leave this page and check '
+        'Home or History for the final status.',
       );
     } else if (widget.streamError && progress.detailMessage == null) {
       progress = progress.withDetail(

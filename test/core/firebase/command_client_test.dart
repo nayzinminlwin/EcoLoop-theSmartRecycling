@@ -134,6 +134,41 @@ void main() {
     expect(await store.read('resident-1'), isNull);
   });
 
+  test('session actions supersede a stale renewal intent', () async {
+    final store = PendingOperationStore(preferences: MemoryPreferences());
+    await store.save(
+      const PendingOperation(
+        uid: 'resident-1',
+        operation: 'renewSession',
+        requestId: 'request-renew',
+        payload: <String, Object?>{
+          'sessionId': 'session-1',
+          'expectedVersion': 2,
+        },
+      ),
+    );
+    final calls = <String>[];
+    final client = CommandClient(
+      uid: 'resident-1',
+      store: store,
+      requestIdFactory: () => 'request-save',
+      transport: (operation, payload) async {
+        calls.add(operation);
+        return _committed('request-save', operation);
+      },
+    );
+
+    await client.execute('saveImageSelection', <String, Object?>{
+      'sessionId': 'session-1',
+      'assetId': 'asset-1',
+      'assetVersion': 'version-1',
+      'expectedVersion': 2,
+    });
+
+    expect(calls, ['saveImageSelection']);
+    expect(await store.read('resident-1'), isNull);
+  });
+
   test('account switching cannot recover another UID intent', () async {
     final preferences = MemoryPreferences();
     final store = PendingOperationStore(preferences: preferences);

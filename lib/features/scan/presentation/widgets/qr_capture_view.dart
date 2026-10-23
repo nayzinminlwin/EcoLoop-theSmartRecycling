@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -49,13 +50,16 @@ class _QrCaptureViewState extends State<QrCaptureView>
   bool _cameraTransition = false;
   bool _cameraError = false;
   Timer? _syncDebounce;
+  final AppLogger _logger = AppLogger();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _active = widget.visible && !widget.commandActive;
-    _syncCamera();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncCamera();
+    });
   }
 
   @override
@@ -70,11 +74,10 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _active =
-        widget.visible &&
-        !widget.commandActive &&
-        state == AppLifecycleState.resumed;
-    _debouncedSyncCamera();
+    if (state == AppLifecycleState.resumed) {
+      _active = widget.visible && !widget.commandActive;
+      _debouncedSyncCamera();
+    }
   }
 
   void _debouncedSyncCamera() {
@@ -103,7 +106,10 @@ class _QrCaptureViewState extends State<QrCaptureView>
           return const _CameraDenied();
         }
         if (_cameraError) {
-          return _CameraStartError(onRetry: _retryCamera);
+          return _CameraStartError(
+            message: _cameraErrorMessage(),
+            onRetry: _retryCamera,
+          );
         }
         return ScannerStage(child: child!);
       },
@@ -113,7 +119,6 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   Widget _productionSurface() => MobileScanner(
     controller: _controller,
-    useAppLifecycleState: false,
     onDetect: (capture) {
       for (final barcode in capture.barcodes) {
         final value = barcode.rawValue;
@@ -134,9 +139,28 @@ class _QrCaptureViewState extends State<QrCaptureView>
       unawaited(
         _controller.start().then((_) {
           if (mounted) {
-            setState(() => _cameraError = _controller.value.error != null);
+            final error = _controller.value.error;
+            if (error != null) {
+              _logger.error(
+                'scan.camera_start_failed',
+                error,
+                fields: <String, Object?>{
+                  'errorCode': error.errorCode.name,
+                  'platformCode': error.errorDetails?.code,
+                  'platformMessage': error.errorDetails?.message,
+                },
+              );
+            }
+            setState(() => _cameraError = error != null);
           }
-        }).catchError((_) {
+        }).catchError((Object error, StackTrace stackTrace) {
+          _logger.error(
+            'scan.camera_start_threw',
+            error,
+            fields: <String, Object?>{
+              'stackTrace': stackTrace.toString(),
+            },
+          );
           if (mounted) setState(() => _cameraError = true);
         }).whenComplete(() {
           _cameraTransition = false;
@@ -158,7 +182,18 @@ class _QrCaptureViewState extends State<QrCaptureView>
     if (!mounted) return;
     setState(() => _cameraError = false);
     _active = widget.visible && !widget.commandActive;
-    _syncCamera();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncCamera();
+    });
+  }
+
+  String _cameraErrorMessage() {
+    final error = _controller.value.error;
+    if (error == null) return 'Camera could not be started. Check that no other app is using it.';
+    final detail = error.errorDetails?.message;
+    return detail == null || detail.trim().isEmpty
+        ? 'Camera could not be started (${error.errorCode.name}). Check that no other app is using it.'
+        : 'Camera could not be started: $detail';
   }
 
   void _handleCode(String value) {
@@ -202,8 +237,12 @@ class _CameraDenied extends StatelessWidget {
 }
 
 class _CameraStartError extends StatelessWidget {
-  const _CameraStartError({required this.onRetry});
+  const _CameraStartError({
+    required this.message,
+    required this.onRetry,
+  });
 
+  final String message;
   final VoidCallback onRetry;
 
   @override
@@ -213,8 +252,8 @@ class _CameraStartError extends StatelessWidget {
       children: [
         const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 42),
         const SizedBox(height: 10),
-        const Text(
-          'We could not start a scan.',
+        Text(
+          message,
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white),
         ),

@@ -81,9 +81,6 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         .read(accountRepositoryProvider)
         .watchAuthState()
         .listen(_onAuthState, onError: (_) => _stopRenewal());
-    _renewalTimer = Timer.periodic(_renewalInterval, (_) {
-      unawaited(_renewIfEligible());
-    });
   }
 
   @override
@@ -110,9 +107,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _isForeground = state == AppLifecycleState.resumed;
-    if (_isForeground) {
-      unawaited(_renewIfEligible());
-    } else {
+    if (!_isForeground) {
       _stopRenewal();
     }
   }
@@ -869,7 +864,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       }
       // The session stream emits the new stage; canonicalization navigates.
     } on Object catch (error) {
-      if (mounted) setState(() => _actionError = scanFailureCopy(error));
+      if (mounted) {
+        final action = switch (session.stage) {
+          ScanStage.binFound => 'confirming the bin session',
+          ScanStage.ready => 'starting the recycling step',
+          ScanStage.itemDetected => 'submitting the recycling image',
+          _ => 'updating the scan session',
+        };
+        setState(() => _actionError = scanFailureCopy(error, action: action));
+      }
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -949,17 +952,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     coordinator.fenceSession(currentSession.id);
     ref.read(activeScanSessionProvider.notifier).clearIf(currentSession.id);
     _stopRenewal();
-    unawaited(
-      _reconcileCancellation(
-        intent.id,
-        currentSession.id,
-        currentSession.sessionVersion,
-      ),
+    final cancelled = await _reconcileCancellation(
+      intent.id,
+      currentSession.id,
+      currentSession.sessionVersion,
     );
-    return LeaveDecision.leave;
+    return cancelled ? LeaveDecision.leave : LeaveDecision.stay;
   }
 
-  Future<void> _reconcileCancellation(
+  Future<bool> _reconcileCancellation(
     String intentId,
     String sessionId,
     int expectedVersion,
@@ -971,11 +972,19 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           .read(scanRepositoryProvider)
           .cancelSession(sessionId, expectedVersion);
       coordinator.markResolved(intentId);
-    } on Object {
+      return true;
+    } on Object catch (error) {
       coordinator.markRetryWait(
         intentId,
         DateTime.now().toUtc().add(const Duration(seconds: 30)),
       );
+      if (mounted) {
+        setState(() => _actionError = scanFailureCopy(
+          error,
+          action: 'cancelling the scan session',
+        ));
+      }
+      return false;
     }
   }
 

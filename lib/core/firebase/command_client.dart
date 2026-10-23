@@ -37,7 +37,6 @@ class CommandClient {
   static const _durableOperations = <String>{
     'scanBinQr',
     'confirmSession',
-    'renewSession',
     'reportFinishPressed',
     'saveImageSelection',
     'submitInspection',
@@ -55,15 +54,19 @@ class CommandClient {
     final durable = _durableOperations.contains(operation);
     final existing = durable ? await store.read(uid) : null;
     if (existing != null) {
-      if (existing.operation != operation ||
-          !_samePayload(existing.payload, payload)) {
-        throw const AppFailure(
-          code: AppFailureCodes.conflict,
-          messageKey: 'pendingOperation.payloadChanged',
-          retryable: false,
-        );
+      if (_canSupersede(existing.operation, operation)) {
+        await store.clear(uid);
+      } else {
+        if (existing.operation != operation ||
+            !_samePayload(existing.payload, payload)) {
+          throw const AppFailure(
+            code: AppFailureCodes.conflict,
+            messageKey: 'pendingOperation.payloadChanged',
+            retryable: false,
+          );
+        }
+        return _attempt(existing, recoverOnAmbiguous: true);
       }
-      return _attempt(existing, recoverOnAmbiguous: true);
     }
 
     final intent = PendingOperation(
@@ -100,6 +103,12 @@ class CommandClient {
       }
     }
   }
+
+  bool _canSupersede(String existingOperation, String requestedOperation) =>
+      existingOperation == 'renewSession' &&
+      (requestedOperation == 'saveImageSelection' ||
+          requestedOperation == 'submitInspection' ||
+          requestedOperation == 'cancelSession');
 
   Future<BackendEnvelope> _attempt(
     PendingOperation intent, {
