@@ -16,6 +16,11 @@ class ScanProgressCard extends StatefulWidget {
   final DepositSession session;
   final DateTime Function()? now;
   final bool streamError;
+  static const stepOneDuration = Duration(seconds: 10);
+  static const stepTwoDuration = Duration(seconds: 15);
+  static const stepThreeDuration = Duration(seconds: 20);
+  static const stepFourDuration = Duration(seconds: 30);
+  static const stepFiveDuration = Duration(seconds: 45);
   static const reassuranceAfter = Duration(seconds: 30);
   static const longWaitAfter = Duration(seconds: 60);
 
@@ -242,70 +247,51 @@ class ScanProgress {
   );
 
   factory ScanProgress.fromSession(DepositSession session, {DateTime? now}) {
-    final substage = session.jobSubstage?.toLowerCase();
-    final summary = session.progress;
-    if (summary != null) {
-      return ScanProgress(
-        step: _stepForPhase(summary.phase),
-        activeMessage: summary.activity,
-      );
-    }
-    if (substage == null) {
-      final startedAt =
-          session.progress?.submissionAt ??
-          session.submittedAt ??
-          session.updatedAt;
-      final elapsed = (now ?? DateTime.now()).difference(startedAt);
-      final reassurance = elapsed >= ScanProgressCard.longWaitAfter
-          ? 'This is taking longer than usual; you can continue using EcoLoop.'
-          : elapsed >= ScanProgressCard.reassuranceAfter
-          ? 'Verification is taking a little longer than usual.'
-          : null;
-      return ScanProgress(
-        step: 2,
-        activeMessage: 'Validating the image',
-        detailMessage: reassurance,
-      );
-    }
-    return switch (substage) {
-      'queued' || 'pending' || 'waiting' => const ScanProgress(
-        step: 1,
-        activeMessage: 'Request received — waiting for verification to start',
-      ),
-      'validating' || 'validation' || 'source_validation' => const ScanProgress(
-        step: 2,
-        activeMessage: 'Validating the image',
-      ),
-      'detecting' || 'detection' || 'identifying' => const ScanProgress(
-        step: 3,
-        activeMessage: 'Identifying recyclable items',
-      ),
-      'additional_analysis' ||
-      'specialist_check' ||
-      'fallback_check' => const ScanProgress(
-        step: 4,
-        activeMessage: 'Confirming materials',
-        detailMessage: 'Some items need an additional check.',
-      ),
-      'retry' || 'retrying' => const ScanProgress(
-        step: 3,
-        activeMessage: 'Identifying recyclable items',
-        detailMessage: 'We are retrying verification.',
-      ),
-      'finalizing' || 'settling' || 'saving' => const ScanProgress(
-        step: 5,
-        activeMessage: 'Saving your result',
-      ),
-      _ => const ScanProgress(step: 2, activeMessage: 'Validating the image'),
-    };
+    final startedAt =
+        session.progress?.submissionAt ??
+        session.submittedAt ??
+        session.updatedAt;
+    final elapsed = (now ?? DateTime.now()).difference(startedAt);
+    final nonNegativeElapsed = elapsed.isNegative ? Duration.zero : elapsed;
+    final step = _stepForElapsed(nonNegativeElapsed);
+    final reassurance = nonNegativeElapsed >= ScanProgressCard.longWaitAfter
+        ? 'This is taking longer than usual; you can continue using EcoLoop.'
+        : nonNegativeElapsed >= ScanProgressCard.reassuranceAfter
+        ? 'Verification is taking a little longer than usual.'
+        : null;
+
+    return ScanProgress(
+      step: step,
+      activeMessage: switch (step) {
+        1 => 'Preparing your image for verification',
+        2 => 'Validating the image',
+        3 => 'Identifying recyclable items',
+        4 => 'Confirming materials',
+        _ => 'Finalizing your result',
+      },
+      detailMessage: reassurance,
+    );
   }
 
-  static int _stepForPhase(String phase) => switch (phase) {
-    'queued' => 1,
-    'validating' => 2,
-    'detecting' || 'retrying' => 3,
-    'additional_analysis' => 4,
-    'finalizing' => 5,
-    _ => 2,
-  };
+  static int _stepForElapsed(Duration elapsed) {
+    if (elapsed < ScanProgressCard.stepOneDuration) return 1;
+    if (elapsed <
+        ScanProgressCard.stepOneDuration + ScanProgressCard.stepTwoDuration) {
+      return 2;
+    }
+    if (elapsed <
+        ScanProgressCard.stepOneDuration +
+            ScanProgressCard.stepTwoDuration +
+            ScanProgressCard.stepThreeDuration) {
+      return 3;
+    }
+    if (elapsed <
+        ScanProgressCard.stepOneDuration +
+            ScanProgressCard.stepTwoDuration +
+            ScanProgressCard.stepThreeDuration +
+            ScanProgressCard.stepFourDuration) {
+      return 4;
+    }
+    return 5;
+  }
 }
