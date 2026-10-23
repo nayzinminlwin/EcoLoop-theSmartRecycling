@@ -23,6 +23,9 @@ export interface JobClaim {
     readonly assetId: string;
     readonly assetVersion: string;
     readonly contentSha256: string;
+    readonly storagePath?: string;
+    readonly storageGeneration?: string;
+    readonly mimeType?: string;
   };
   readonly policyVersion: string;
   readonly configurationVersion: string;
@@ -37,6 +40,20 @@ export interface JobCheckpoint {
   readonly stage: string;
   readonly outputReference: string;
   readonly state: "checkpointed";
+}
+
+export type ProgressPhase =
+  | "queued"
+  | "validating"
+  | "detecting"
+  | "additional_analysis"
+  | "retrying"
+  | "finalizing";
+
+export interface JobProgress {
+  readonly phase: ProgressPhase;
+  readonly activity: string;
+  readonly completedStages: readonly string[];
 }
 
 export interface JobReadResult {
@@ -57,6 +74,13 @@ export interface JobsStore {
     outputReference: string,
     now: Instant,
   ): Promise<JobCheckpoint>;
+  progress(
+    jobId: string,
+    attemptId: string,
+    identity: WorkerIdentity,
+    progress: JobProgress,
+    now: Instant,
+  ): Promise<void>;
   renew(jobId: string, attemptId: string, identity: WorkerIdentity, now: Instant): Promise<JobClaim>;
   fail(jobId: string, attemptId: string, identity: WorkerIdentity, reason: string, now: Instant): Promise<JobReadResult>;
   readCurrentResult(jobId: string, identity: WorkerIdentity): Promise<JobReadResult>;
@@ -97,7 +121,7 @@ export class FirestoreJobsStore implements JobsStore {
       const artifactPrefix = `${ARTIFACT_ROOT}/${jobId}/${attemptId}/`;
       const attemptRef = this.firestore.doc(`inferenceJobs/${jobId}/attempts/${attemptId}`);
       const source = requireSource(job.source);
-      const configurationVersion = String(job.configurationVersion ?? "inspection-v1");
+      const configurationVersion = String(job.configurationVersion ?? "demo-vision-v1");
       void batchSnapshot;
       transaction.create(attemptRef, {
         id: attemptId, attemptNumber, workerSubject: identity.subject, state: "claimed",
@@ -137,12 +161,54 @@ export class FirestoreJobsStore implements JobsStore {
       if (!outputReference.startsWith(String(attempt.artifactPrefix))) {
         throw new DomainError("permission_denied", "Checkpoint output is outside the allowed artifact prefix");
       }
+
       transaction.set(attemptRef, {
         checkpoints: { [stage]: { outputReference, recordedAt: now } },
         updatedAt: now,
       }, { merge: true });
       transaction.update(jobRef, { lastStage: stage, updatedAt: now });
       return { jobId, attemptId, stage, outputReference, state: "checkpointed" };
+    });
+  }
+
+  progress(
+    jobId: string,
+    attemptId: string,
+    identity: WorkerIdentity,
+    progress: JobProgress,
+    now: Instant,
+  ): Promise<void> {
+    return this.firestore.runTransaction(async (transaction) => {
+      const jobRef = this.firestore.doc(`inferenceJobs/${jobId}`);
+      const jobSnapshot = await transaction.get(jobRef);
+      const job = requireJob(jobSnapshot.data(), jobId);
+      const attemptRef = this.firestore.doc(`inferenceJobs/${jobId}/attempts/${attemptId}`);
+      const attemptSnapshot = await transaction.get(attemptRef);
+      const attempt = requireAttempt(attemptSnapshot.data(), attemptId);
+      verifyIdentity(job, identity);
+      verifyFence(job, attempt, now);
+      const sessionRef = this.firestore.doc(`depositSessions/${String(job.sessionId)}`);
+      const sessionSnapshot = await transaction.get(sessionRef);
+      const session = requireData(sessionSnapshot.data(), "The scan session no longer exists");
+      const previous = session.progress;
+      const revision = Number(previous?.revision ?? 0) + 1;
+      const summary = {
+        phase: progress.phase,
+        activity: progress.activity.slice(0, 120),
+        revision,
+        attemptNumber: Number(attempt.attemptNumber ?? 0),
+        completedStages: [...new Set(progress.completedStages)].slice(0, 5),
+        submissionAt: String(previous?.submissionAt ?? session.submittedAt ?? now),
+        stageStartedAt: now,
+        updatedAt: now,
+        deadlineAt: session.deadlineAt ?? job.deadlineAt ?? null,
+      };
+      transaction.update(sessionRef, { progress: summary, updatedAt: now });
+      transaction.update(jobRef, {
+        progress: summary,
+        lastStage: progress.phase,
+        updatedAt: now,
+      });
     });
   }
 
@@ -206,19 +272,47 @@ function requireJob(value: DocumentData | undefined, jobId: string): DocumentDat
   return value;
 }
 
+function requireData(value: DocumentData | undefined, message: string): DocumentData {
+  if (value === undefined) throw new DomainError("invalid_input", message);
+  return value;
+}
+
 function requireAttempt(value: DocumentData | undefined, attemptId: string): DocumentData {
   if (value === undefined) throw new DomainError("invalid_input", `Attempt ${attemptId} does not exist`);
   return value;
 }
 
-function requireSource(value: unknown): { assetId: string; assetVersion: string; contentSha256: string } {
+function requireSource(value: unknown): {
+  assetId: string;
+  assetVersion: string;
+  contentSha256: string;
+  storagePath?: string;
+  storageGeneration?: string;
+  mimeType?: string;
+} {
   if (value === null || typeof value !== "object") throw new DomainError("invalid_input", "Job source is invalid");
   const source = value as Record<string, unknown>;
   if (typeof source.assetId !== "string" || typeof source.assetVersion !== "string" ||
       typeof source.contentSha256 !== "string" || !/^[a-f0-9]{64}$/.test(source.contentSha256)) {
     throw new DomainError("invalid_input", "Job source identity is invalid");
   }
-  return { assetId: source.assetId, assetVersion: source.assetVersion, contentSha256: source.contentSha256 };
+  if (source.storagePath !== undefined && (typeof source.storagePath !== "string" || !source.storagePath.startsWith("simulation-assets/"))) {
+    throw new DomainError("invalid_input", "Job source storage path is invalid");
+  }
+  if (source.storageGeneration !== undefined && (typeof source.storageGeneration !== "string" || !/^\d+$/.test(source.storageGeneration))) {
+    throw new DomainError("invalid_input", "Job source generation is invalid");
+  }
+  if (source.mimeType !== undefined && (source.mimeType !== "image/jpeg" && source.mimeType !== "image/png" && source.mimeType !== "image/webp")) {
+    throw new DomainError("invalid_input", "Job source MIME type is invalid");
+  }
+  return {
+    assetId: source.assetId,
+    assetVersion: source.assetVersion,
+    contentSha256: source.contentSha256,
+    ...(source.storagePath === undefined ? {} : { storagePath: source.storagePath }),
+    ...(source.storageGeneration === undefined ? {} : { storageGeneration: source.storageGeneration }),
+    ...(source.mimeType === undefined ? {} : { mimeType: source.mimeType }),
+  };
 }
 
 function verifyIdentity(job: DocumentData, identity: WorkerIdentity): void {
@@ -253,7 +347,7 @@ function claimFromJob(
     jobId, batchId: String(job.batchId), attemptId, attemptNumber: Number(attempt?.attemptNumber ?? job.attemptCount ?? 0),
     leaseExpiresAt: String(attempt?.leaseExpiresAt ?? job.activeLeaseExpiresAt ?? job.deadlineAt),
     deadlineAt: String(job.deadlineAt), source, policyVersion: String(job.policyVersion),
-    configurationVersion: String(job.configurationVersion ?? "inspection-v1"),
+    configurationVersion: String(job.configurationVersion ?? "demo-vision-v1"),
     artifactPrefix: String(attempt?.artifactPrefix ?? `${ARTIFACT_ROOT}/${jobId}/${attemptId}/`),
     traceId: String(job.traceId), state,
   };

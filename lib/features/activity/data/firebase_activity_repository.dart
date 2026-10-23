@@ -131,13 +131,17 @@ class FirebaseActivityRepository implements ActivityRepository {
            FirestoreActivityReadTransport(
              firestore ?? FirebaseFirestore.instance,
            ),
-       _stats =
-           stats ??
-           FirebaseStatsReadTransport(firestore ?? FirebaseFirestore.instance);
+       _stats = stats, // ignore: prefer_initializing_formals
+       _firestore = firestore;
 
   final String uid;
   final ActivityReadTransport _reads;
-  final StatsReadTransport _stats;
+  final StatsReadTransport? _stats;
+  final FirebaseFirestore? _firestore;
+
+  StatsReadTransport get _statsTransport =>
+      _stats ??
+      FirebaseStatsReadTransport(_firestore ?? FirebaseFirestore.instance);
 
   @override
   Future<List<DepositTransaction>> getDeposits({
@@ -195,7 +199,7 @@ class FirebaseActivityRepository implements ActivityRepository {
 
   @override
   Future<RecyclingSummary> getSummary() async {
-    final data = await _stats.read(uid);
+    final data = await _statsTransport.read(uid);
     if (data == null) {
       throw StateError('Resident stats $uid does not exist');
     }
@@ -203,9 +207,10 @@ class FirebaseActivityRepository implements ActivityRepository {
   }
 
   @override
-  Stream<RecyclingSummary> watchSummary() => _stats.watch(uid).map((data) {
-    return _summaryFromStats(Map<String, Object?>.from(data));
-  });
+  Stream<RecyclingSummary> watchSummary() =>
+      _statsTransport.watch(uid).map((data) {
+        return _summaryFromStats(Map<String, Object?>.from(data));
+      });
 
   RecyclingSummary _summaryFromStats(Map<String, Object?> data) {
     final rawCounts = data['acceptedItemCounts'];
@@ -249,15 +254,14 @@ class FirebaseStatsReadTransport implements StatsReadTransport {
 
   @override
   Future<Map<String, Object?>?> read(String uid) async {
-    final snapshot = await firestore.collection('residentStats').doc(uid).get();
+    final snapshot = await firestore.doc('residents/$uid/stats/current').get();
     final data = snapshot.data();
     return data == null ? null : Map<String, Object?>.from(data);
   }
 
   @override
   Stream<Map<String, Object?>> watch(String uid) => firestore
-      .collection('residentStats')
-      .doc(uid)
+      .doc('residents/$uid/stats/current')
       .snapshots()
       .map((snapshot) {
         final data = snapshot.data();

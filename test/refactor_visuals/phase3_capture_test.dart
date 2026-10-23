@@ -57,7 +57,7 @@ void main() {
     final api = MockApi(
       readDelay: Duration.zero,
       writeDelay: const Duration(milliseconds: 30),
-      classificationDelay: const Duration(seconds: 30),
+      classificationDelay: const Duration(seconds: 5),
     );
     MockDataStore? loadedStore;
     await tester.runAsync(() async {
@@ -119,6 +119,10 @@ void main() {
     );
 
     // V07 — processing, captured while the classification actually runs.
+    await tester.tap(find.text('PET plastic bottles'));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 350));
+    }
     await tester.tap(find.text('Continue'));
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 350));
@@ -130,11 +134,16 @@ void main() {
     );
 
     // V08 — result, after automatic completion.
-    await tester.pump(const Duration(seconds: 30));
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+    expect(store.sessions.single['stage'], 'completed');
+    router.go(AppRoutes.scanResultPath(store.sessions.single['id'].toString()));
+    for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 350));
     }
     expect(find.text('Back to home'), findsOneWidget);
     await capture(tester, 'docs/refactor_visuals/phase3/scan_result_390.png');
+    await tester.pumpAndSettle();
   });
 }

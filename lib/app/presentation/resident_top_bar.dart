@@ -35,7 +35,7 @@ class ResidentTopBar extends StatelessWidget implements PreferredSizeWidget {
           button: true,
           label: 'Notifications',
           child: InkWell(
-            onTap: () => context.go(AppRoutes.history),
+            onTap: () => context.push(AppRoutes.history),
             customBorder: const CircleBorder(),
             child: Tooltip(
               message: 'Notifications',

@@ -7,6 +7,8 @@ setGlobalOptions({
 export {
   bootstrapResident,
   getResidentProfile,
+  updateResidentProfile,
+  getResidentPreferences,
   saveResidentPreferences,
   registerResidentDevice,
   unregisterResidentDevice,

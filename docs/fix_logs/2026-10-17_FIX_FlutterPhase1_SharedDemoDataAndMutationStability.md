@@ -10,7 +10,7 @@
 
 ## 1. Triggered By
 
-- **QA Report:** `docs/FLUTTER_UI_REFACTOR_PLAN.md` Phase 1 acceptance gate.
+- **QA Report:** `docs/archive/FLUTTER_UI_REFACTOR_PLAN.md` Phase 1 acceptance gate.
 - **Error Summary:** Resident mock data was seeded in multiple places, write
   operations could partially mutate independent projections, and several
   account, scan, and redemption failure paths could lose retryable state.
@@ -49,7 +49,7 @@ during writes, which discarded the projection needed for inline retry.
   `lib/features/rewards/`, `lib/features/scan/`, `lib/main.dart`,
   `assets/mock/account/profile.json`, `assets/mock/activity/deposits.json`,
   `assets/mock/scan/bins.json`
-- **Files Created:** `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`,
+- **Files Created:** `docs/archive/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`,
   `docs/fix_logs/2026-10-17_FIX_FlutterPhase1_SharedDemoDataAndMutationStability.md`
 
 ## 4. Verification Notes
@@ -64,7 +64,7 @@ during writes, which discarded the projection needed for inline retry.
 ## 5. Ready for Retest
 
 - [ ] Yes — The remaining Phase 1 acceptance items are documented in
-  `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`.
+  `docs/archive/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md`.
 
 ---
 

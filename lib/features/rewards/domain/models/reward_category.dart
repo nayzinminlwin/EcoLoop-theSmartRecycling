@@ -13,7 +13,10 @@ class RewardCategory {
 
   factory RewardCategory.fromJson(JsonMap json) => RewardCategory(
     id: JsonReaders.string(json, 'id'),
-    label: JsonReaders.string(json, 'label'),
+    label: JsonReaders.string(
+      json,
+      json['label'] != null ? 'label' : 'displayName',
+    ),
     sortOrder: JsonReaders.integer(json, 'sortOrder'),
   );
 

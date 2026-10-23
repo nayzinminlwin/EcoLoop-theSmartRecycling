@@ -12,14 +12,19 @@ from ecoloop_vision.infrastructure.images import original_box
 from ecoloop_vision.logging import emit_event
 
 
+class TransientProviderError(RuntimeError):
+    """Provider failure that may be retried within the inspection deadline."""
+
+
 def run_roboflow(
     *,
     image_path: Path,
     model_id: str,
     config: ProbeConfig,
+    client: InferenceHTTPClient | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    client = InferenceHTTPClient(
+    client = client or InferenceHTTPClient(
         api_url=config.roboflow_api_url,
         api_key=config.roboflow_api_key,
     )
@@ -70,11 +75,14 @@ def normalize_detector_response(
             raise ValueError("Detector prediction class must be a non-empty string")
         if not isinstance(score, (int, float)) or not 0 <= score <= 1:
             raise ValueError("Detector confidence must be between zero and one")
+        width = _number(item, "width")
+        height = _number(item, "height")
+        # Roboflow's x/y values identify the center of the prediction box.
         box = original_box(
-            x=_number(item, "x"),
-            y=_number(item, "y"),
-            width=_number(item, "width"),
-            height=_number(item, "height"),
+            x=_number(item, "x") - width / 2,
+            y=_number(item, "y") - height / 2,
+            width=width,
+            height=height,
             source_width=source_width,
             source_height=source_height,
             original_width=original_width,

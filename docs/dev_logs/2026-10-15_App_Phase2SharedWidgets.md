@@ -15,7 +15,7 @@ interaction logic.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/index.css`
 - `.agent/developer/agent.md`
@@ -54,7 +54,7 @@ resident shared layer.
   - `test/shared/widgets/shared_components_test.dart`
   - `docs/dev_logs/2026-10-15_App_Phase2SharedWidgets.md`
 - **Files Modified:**
-  - `docs/FLUTTER_UI_EXECUTION_LOG.md`
+  - `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - **Impact to other modules:**
   - No existing feature screen, route, repository, provider, domain model, or
     Firebase boundary was changed.

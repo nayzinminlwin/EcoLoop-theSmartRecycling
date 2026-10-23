@@ -65,9 +65,34 @@ void main() {
       await controller.close();
     },
   );
+
+  test('reads legacy deposits without a trace id', () async {
+    final repository = FirebaseActivityRepository(
+      uid: 'resident-1',
+      reads: _FakeReads([
+        ActivityRawPage(
+          rows: [
+            _row('legacy-batch', '2026-10-19T04:02:00Z', includeTraceId: false),
+          ],
+        ),
+      ]),
+    );
+
+    final page = await repository.getDepositsPage(
+      filter: const DepositFilter(),
+      limit: 1,
+    );
+
+    expect(page.items.single.traceId, isNull);
+  });
 }
 
-Map<String, Object?> _row(String id, String updatedAt, {int version = 1}) => {
+Map<String, Object?> _row(
+  String id,
+  String updatedAt, {
+  int version = 1,
+  bool includeTraceId = true,
+}) => {
   'id': id,
   'ownerId': 'resident-1',
   'sessionId': 'session-1',
@@ -87,7 +112,7 @@ Map<String, Object?> _row(String id, String updatedAt, {int version = 1}) => {
   'updatedAt': updatedAt,
   'totalDetectedObjectCount': 1,
   'pointsAwarded': version == 1 ? null : 1,
-  'traceId': '0123456789abcdef0123456789abcdef',
+  if (includeTraceId) 'traceId': '0123456789abcdef0123456789abcdef',
   'decisionVersion': version,
 };
 

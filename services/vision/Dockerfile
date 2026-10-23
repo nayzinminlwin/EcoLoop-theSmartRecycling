@@ -13,6 +13,7 @@ RUN apt-get update \
 COPY services/vision/pyproject.toml services/vision/uv.lock /app/
 COPY services/vision/src /app/src
 COPY services/vision/model_registry.json /app/model_registry.json
+COPY contracts/backend/v1 /app/contracts/backend/v1
 
 RUN pip install --no-cache-dir uv==0.13.1 \
     && uv sync --frozen --no-dev

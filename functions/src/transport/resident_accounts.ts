@@ -3,15 +3,16 @@ import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { bootstrapAccount } from "../application/accounts.js";
 import { getComposition } from "../composition.js";
+import { residentCallableOptions, requireResident } from "./request.js";
 
-export const bootstrapResident = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const requestId = requireRequestId(request.data);
+export const bootstrapResident = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "bootstrapResident");
+  const requestId = identity.requestId;
   const result = await bootstrapAccount(
     getComposition().accounts,
     identity,
     requestId,
-    payload(request.data),
+    identity.payload,
     new Date().toISOString(),
   );
   return envelope("bootstrapResident", requestId, {
@@ -23,25 +24,52 @@ export const bootstrapResident = onCall(async (request) => {
   });
 });
 
-export const getResidentProfile = onCall(async (request) => {
-  const identity = requireIdentity(request);
+export const getResidentProfile = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "getResidentProfile");
   const profile = await getComposition().accounts.getProfile(identity.uid);
   if (profile === null) throw new HttpsError("not-found", "Resident profile is not provisioned");
-  return envelope("getProfile", requestIdOrGenerated(request.data), {
+  return envelope("getResidentProfile", identity.requestId, {
     residentId: identity.uid,
     recordIds: [`residents/${identity.uid}`],
     version: 0,
-    profile,
+    profile: toProfileDto(profile),
   });
 });
 
-export const saveResidentPreferences = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+export const updateResidentProfile = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "updateResidentProfile");
+  const profile = await getComposition().accounts.updateProfile(
+    identity.uid,
+    identity.payload,
+    new Date().toISOString(),
+  );
+  return envelope("updateResidentProfile", identity.requestId, {
+    residentId: identity.uid,
+    recordIds: [`residents/${identity.uid}`],
+    version: 0,
+    profile: toProfileDto(profile),
+  });
+});
+
+export const getResidentPreferences = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "getResidentPreferences");
+  const preferences = await getComposition().accounts.getPreferences(identity.uid);
+  if (preferences === null) throw new HttpsError("not-found", "Resident preferences are not provisioned");
+  return envelope("getResidentPreferences", identity.requestId, {
+    residentId: identity.uid,
+    recordIds: [`residents/${identity.uid}/preferences/current`],
+    version: 0,
+    preferences,
+  });
+});
+
+export const saveResidentPreferences = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "saveResidentPreferences");
+  const data = identity.payload;
   const preferences = data.preferences;
   if (!isBooleanMap(preferences)) throw new HttpsError("invalid-argument", "preferences must contain boolean values");
   const result = await getComposition().accounts.savePreferences(identity.uid, preferences, new Date().toISOString());
-  return envelope("saveNotificationPreferences", requestIdOrGenerated(request.data), {
+  return envelope("saveResidentPreferences", identity.requestId, {
     residentId: identity.uid,
     recordIds: [`residents/${identity.uid}/preferences/current`],
     version: 0,
@@ -49,16 +77,16 @@ export const saveResidentPreferences = onCall(async (request) => {
   });
 });
 
-export const registerResidentDevice = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+export const registerResidentDevice = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "registerResidentDevice");
+  const data = identity.payload;
   if (typeof data.deviceId !== "string" || typeof data.platform !== "string" || typeof data.token !== "string") {
     throw new HttpsError("invalid-argument", "deviceId, platform and token are required");
   }
   const result = await getComposition().accounts.registerDevice(
     identity.uid, data.deviceId, data.platform, data.token, new Date().toISOString(),
   );
-  return envelope("registerDevice", requestIdOrGenerated(request.data), {
+  return envelope("registerResidentDevice", identity.requestId, {
     residentId: identity.uid,
     recordIds: [`residents/${identity.uid}/devices/${data.deviceId}`],
     version: 0,
@@ -66,9 +94,9 @@ export const registerResidentDevice = onCall(async (request) => {
   });
 });
 
-export const unregisterResidentDevice = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+export const unregisterResidentDevice = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "unregisterResidentDevice");
+  const data = identity.payload;
   if (typeof data.deviceId !== "string" || data.deviceId.trim() === "") {
     throw new HttpsError("invalid-argument", "deviceId is required");
   }
@@ -77,44 +105,21 @@ export const unregisterResidentDevice = onCall(async (request) => {
     data.deviceId,
     new Date().toISOString(),
   );
-  return envelope("unregisterDevice", requestIdOrGenerated(request.data), {
+  return envelope("unregisterResidentDevice", identity.requestId, {
     residentId: identity.uid,
     recordIds: [`residents/${identity.uid}/devices/${data.deviceId}`],
     version: 0,
   });
 });
 
-function requireIdentity(request: CallableRequest<unknown>) {
-  if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
+function requireIdentity(request: CallableRequest<unknown>, operation: string) {
+  const resident = requireResident(request, operation);
   return {
-    uid: request.auth.uid,
-    claims: request.auth.token as Record<string, unknown>,
-    displayName: typeof request.auth.token.name === "string" ? request.auth.token.name : null,
-    email: typeof request.auth.token.email === "string" ? request.auth.token.email : null,
-    avatarUrl: typeof request.auth.token.picture === "string" ? request.auth.token.picture : null,
+    ...resident,
+    displayName: typeof resident.claims.name === "string" ? resident.claims.name : null,
+    email: typeof resident.claims.email === "string" ? resident.claims.email : null,
+    avatarUrl: typeof resident.claims.picture === "string" ? resident.claims.picture : null,
   };
-}
-
-function payload(data: unknown): Record<string, unknown> {
-  if (data === null || typeof data !== "object" || Array.isArray(data)) {
-    throw new HttpsError("invalid-argument", "Request payload must be an object");
-  }
-  return data as Record<string, unknown>;
-}
-
-function requireRequestId(data: unknown): string {
-  const value = payload(data).requestId;
-  if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(value)) {
-    throw new HttpsError("invalid-argument", "A valid requestId is required");
-  }
-  return value;
-}
-
-function requestIdOrGenerated(data: unknown): string {
-  const value = data !== null && typeof data === "object" && !Array.isArray(data)
-    ? (data as Record<string, unknown>).requestId
-    : undefined;
-  return typeof value === "string" && value.length >= 8 ? value : `req-${randomBytes(12).toString("hex")}`;
 }
 
 function envelope(operation: string, requestId: string, data: Record<string, unknown>) {
@@ -124,6 +129,16 @@ function envelope(operation: string, requestId: string, data: Record<string, unk
 function isBooleanMap(value: unknown): value is Record<string, boolean> {
   return value !== null && typeof value === "object" && !Array.isArray(value) &&
     Object.values(value as Record<string, unknown>).every((entry) => typeof entry === "boolean");
+}
+
+function toProfileDto(profile: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: profile.residentId,
+    fullName: profile.displayName,
+    email: profile.email,
+    avatarUrl: profile.avatarUrl ?? null,
+    createdAt: profile.createdAt,
+  };
 }
 
 export function mapAccountError(error: unknown): never {

@@ -1,8 +1,8 @@
 # Test Log: Flutter Phase 2 — Shell, Home, and History Restoration
 
-**Date:** 2026-10-17  
-**Tester:** opencode (GLM)  
-**Phase:** Phase 2 — "Restore the shell, Home, and History" (`docs/FLUTTER_UI_REFACTOR_PLAN.md`)  
+**Date:** 2026-10-17
+**Tester:** opencode (GLM)
+**Phase:** Phase 2 — "Restore the shell, Home, and History" (`docs/archive/FLUTTER_UI_REFACTOR_PLAN.md`)
 **Task / Implementation:** Verification of commits `06b30a9` ("refactor(phase2): restore shell, Home, and History presentation") and `4a90c32` ("refactor(phase2): harden shell and history details from self-review")
 
 ---
@@ -26,11 +26,11 @@
 
 **References:**
 
-- `docs/FLUTTER_UI_REFACTOR_PLAN.md` — Phase 2 section and acceptance gate
+- `docs/archive/FLUTTER_UI_REFACTOR_PLAN.md` — Phase 2 section and acceptance gate
 - `docs/fix_logs/2026-10-17_FIX_FlutterPhase2_ShellHomeHistoryRestoration.md`
-- `docs/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` — Phase 2 section
-- `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`
-- `docs/FLUTTER_UI_IMPLEMENTATION_AUDIT.md` (F04, F07, F08, F12, F14, F15 — background)
+- `docs/archive/FLUTTER_UI_REFACTOR_EXECUTION_LOG.md` — Phase 2 section
+- `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md`
+- `docs/archive/FLUTTER_UI_IMPLEMENTATION_AUDIT.md` (F04, F07, F08, F12, F14, F15 — background)
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`, `src/index.css` (READ-ONLY ground truth)
 - `Demo_Screenshots/Figma_HomePage1.png`, `Figma_HomePage2.png`, `Figma_RecyclingHistoryPage.png`
 
@@ -60,8 +60,8 @@
 | T-18 | Shared leave-decision coordinator | Exists at `lib/app/router/leave_decision_coordinator.dart`; consulted before every branch transition | PASS | `ResidentBottomNavigation._select` awaits `coordinator.confirmLeave()` before any `goBranch` call (`resident_bottom_navigation.dart:20-23`); no branch-specific dialogs duplicated in the shell |
 | T-19 | Scan label emphasis reflects actual branch | No permanently-emphasized Scan label | PASS | `selected = navigationShell.currentIndex == 1`; captures show Home/Settings emphasized on their own branches; mandated semantic difference per plan §2 |
 | T-20 | Mock-only boundary | No live Firebase SDK calls; deterministic mock services | PASS | Repo-wide grep of `lib/` for `Firebase|firebase` returns no matches; services use `MockApi` delays and the seeded `MockDataStore` |
-| T-21 | Documentation artifacts | Visual checklist with V01–V03 reviewed, fix log, execution log updated | PASS | `docs/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md` marks V01–V03 and shared shell pass with capture links; fix log exists with appended self-review follow-up; execution log Phase 2 section present |
-| T-22 | Protected Android config files | Unchanged | PASS | `git status` clean — no modifications to `android/` files; only untracked pre-existing moderator files (`Demo_Screenshots/`, `docs/recycle_bin_multi_model_orchestrator_plan.md`) |
+| T-21 | Documentation artifacts | Visual checklist with V01–V03 reviewed, fix log, execution log updated | PASS | `docs/archive/FLUTTER_UI_REFACTOR_VISUAL_CHECKLIST.md` marks V01–V03 and shared shell pass with capture links; fix log exists with appended self-review follow-up; execution log Phase 2 section present |
+| T-22 | Protected Android config files | Unchanged | PASS | `git status` clean — no modifications to `android/` files; only untracked pre-existing moderator files (`Demo_Screenshots/`, `docs/archive/recycle_bin_multi_model_orchestrator_plan.md`) |
 
 **Deliberate semantic differences (per plan §2 — NOT defects):** 105 remaining / 70% (not 55/82%), 1.04 kg (not 3.2 kg), count-derived per-row kg (0.05 kg for 2 pcs PET), scan label emphasis reflects actual branch, bell routes to History. All confirmed present and correctly implemented.
 

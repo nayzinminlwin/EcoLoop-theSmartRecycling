@@ -3,6 +3,11 @@ import 'package:flutter/foundation.dart';
 enum FirebaseMode { mock, emulator, firebase }
 
 class RuntimeConfig {
+  static const residentFunctionsRegion = 'us-central1';
+  static const workerFunctionsRegion = 'us-central1';
+  static const visionTasksRegion = 'asia-southeast1';
+  static const firestoreDatabaseId = 'ecoloop-db';
+
   const RuntimeConfig({
     required this.mode,
     required this.region,
@@ -12,6 +17,7 @@ class RuntimeConfig {
     required this.storageHost,
     required this.emulatorPort,
     required this.useAppCheck,
+    required this.webAppCheckSiteKey,
   });
 
   factory RuntimeConfig.fromEnvironment() {
@@ -31,7 +37,7 @@ class RuntimeConfig {
       mode: mode,
       region: const String.fromEnvironment(
         'ECOLOOP_FIREBASE_REGION',
-        defaultValue: 'asia-southeast1',
+        defaultValue: residentFunctionsRegion,
       ),
       firestoreHost: const String.fromEnvironment(
         'ECOLOOP_FIRESTORE_HOST',
@@ -60,6 +66,10 @@ class RuntimeConfig {
         'ECOLOOP_USE_APP_CHECK',
         defaultValue: false,
       ),
+      webAppCheckSiteKey: const String.fromEnvironment(
+        'ECOLOOP_WEB_APP_CHECK_SITE_KEY',
+        defaultValue: '',
+      ),
     );
     config.validate();
     return config;
@@ -73,6 +83,7 @@ class RuntimeConfig {
   final String storageHost;
   final int emulatorPort;
   final bool useAppCheck;
+  final String webAppCheckSiteKey;
 
   bool get usesFirebase => mode != FirebaseMode.mock;
   bool get usesEmulator => mode == FirebaseMode.emulator;

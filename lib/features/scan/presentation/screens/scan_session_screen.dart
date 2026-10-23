@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/router/leave_decision_coordinator.dart';
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/core/presentation/app_copy.dart';
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/data/exit_intent.dart';
 import 'package:eco_loop/core/theme/app_colors.dart';
 import 'package:eco_loop/core/theme/app_typography.dart';
 import 'package:eco_loop/features/scan/domain/models/deposit_result.dart';
@@ -28,6 +30,7 @@ import '../widgets/bin_details_card.dart';
 import '../widgets/bin_session_visual.dart';
 import '../widgets/deposit_result_card.dart';
 import '../widgets/scanner_frame.dart';
+import '../widgets/scan_progress_card.dart';
 import '../widgets/simulation_asset_picker.dart';
 
 /// One reliable stateful scan flow.
@@ -60,6 +63,11 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   bool _busy = false;
   String? _actionError;
   String? _selectedAssetId;
+  DepositSession? _confirmedSession;
+  DepositSession? _draftAcknowledgement;
+  Future<DepositSession>? _draftSaveFuture;
+  Stopwatch? _continueStopwatch;
+  String? _measuredResultId;
   bool _isForeground = true;
   bool _isOwnedBySignedInResident = true;
 
@@ -67,6 +75,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    ref.read(activeScanSessionProvider.notifier).observe(widget.sessionId);
     _leaveGuardDisposer = ref.read(leaveDecisionProvider).register(_leaveGuard);
     _authSubscription = ref
         .read(accountRepositoryProvider)
@@ -125,6 +134,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     if (!_isForeground ||
         !_isOwnedBySignedInResident ||
         session == null ||
+        _draftSaveFuture != null ||
         !_isPreProcessing(session.stage) ||
         !_isVisible(session)) {
       _stopRenewal();
@@ -218,6 +228,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   );
 
   Widget _sessionPage(BuildContext context, DepositSession session) {
+    session = _preferredSession(session);
     _latestSession = session;
     if (_isForeground &&
         _isOwnedBySignedInResident &&
@@ -234,6 +245,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         ? null
         : ref.watch(scanResultWatchProvider(session.resultId!));
     final result = resultAsync?.valueOrNull;
+    _recordReceiptTiming(session, result);
     final instructions = instructionsAsync.valueOrNull;
     final bin = binAsync.valueOrNull;
     final assets = ref.watch(scanAssetsProvider).valueOrNull ?? const [];
@@ -244,22 +256,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          binAsync.when(
-            loading: () => const ScannerStage(
-              child: SizedBox.square(
-                dimension: 28,
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
-            error: (error, _) => _binError(context, error, session),
-            data: (bin) => bin == null
-                ? _binError(context, null, session)
-                : ScanStageVisual(
-                    stage: session.stage,
-                    capacityPercent: bin.capacityPercent,
-                    outcomeTone: _outcomeTone(result),
-                  ),
-          ),
+          _binVisual(context, binAsync, bin, result, session),
           const SizedBox(height: 18),
           _flowInfo(
             context,
@@ -267,6 +264,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
             bin,
             instructions,
             result,
+            resultAsync?.hasError == true,
             completion,
             assets,
           ),
@@ -274,6 +272,56 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           ..._actions(context, session, completion, assets),
         ],
       ),
+    );
+  }
+
+  void _recordReceiptTiming(DepositSession session, DepositResult? result) {
+    if (result == null ||
+        result.outcome != DepositOutcome.verified ||
+        session.resultId == null ||
+        _measuredResultId == session.resultId) {
+      return;
+    }
+    _measuredResultId = session.resultId;
+    final stopwatch = _continueStopwatch;
+    developer.log(
+      'event=scan.credited_receipt_ready resultId=${session.resultId} '
+      'elapsedMs=${stopwatch?.elapsedMilliseconds}',
+      name: 'ecoloop.flutter',
+    );
+  }
+
+  Widget _binVisual(
+    BuildContext context,
+    AsyncValue<SmartBin?> binAsync,
+    SmartBin? bin,
+    DepositResult? result,
+    DepositSession session,
+  ) {
+    if (bin != null) {
+      return ScanStageVisual(
+        stage: session.stage,
+        capacityPercent: bin.capacityPercent,
+        outcomeTone: _outcomeTone(result),
+      );
+    }
+    if (session.stage == ScanStage.processing ||
+        session.stage == ScanStage.completed) {
+      return ScanStageVisual(
+        stage: session.stage,
+        capacityPercent: 0,
+        outcomeTone: _outcomeTone(result),
+      );
+    }
+    return binAsync.when(
+      loading: () => const ScannerStage(
+        child: SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      ),
+      error: (error, _) => _binError(context, error, session),
+      data: (_) => _binError(context, null, session),
     );
   }
 
@@ -316,15 +364,28 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     SmartBin? bin,
     ScanInstructions? instructions,
     DepositResult? result,
+    bool resultStreamFailed,
     ScanCompletionState completion,
     List<SimulationAsset> assets,
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Align(child: _badge(session, result)),
+      if (session.stage != ScanStage.processing)
+        Align(child: _badge(session, result)),
       const SizedBox(height: 9),
       if (session.stage == ScanStage.completed && result != null)
-        DepositResultCard(result: result, instructions: instructions!)
+        DepositResultCard(
+          result: result,
+          instructions: instructions ?? _fallbackInstructions,
+        )
+      else if (session.stage == ScanStage.processing)
+        ScanProgressCard(
+          session: session,
+          now: DateTime.now,
+          streamError: resultStreamFailed,
+        )
+      else if (session.stage == ScanStage.completed && result == null)
+        _resultLoading(context, resultStreamFailed)
       else ...[
         Text(
           _stageTitle(instructions, session, result),
@@ -354,8 +415,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
           child: SimulationAssetPicker(
             assets: assets,
             selectedAssetId: _selectedAssetId ?? session.draftAssetId,
-            onAssetSelected: (asset) =>
-                setState(() => _selectedAssetId = asset.id),
+            onAssetSelected: (asset) => _selectAsset(session, asset),
           ),
         ),
       if (session.stage == ScanStage.processing ||
@@ -373,6 +433,57 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         ),
       ],
     ],
+  );
+
+  Widget _resultLoading(BuildContext context, bool streamFailed) => Column(
+    children: [
+      Text(
+        'Loading your result',
+        textAlign: TextAlign.center,
+        style: AppTypography.sectionHeading,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        streamFailed
+            ? 'We could not load the receipt yet. Try again or open History later.'
+            : 'Your scan is complete. We are loading the receipt.',
+        textAlign: TextAlign.center,
+        style: AppTypography.body.copyWith(
+          color: AppColors.muted,
+          height: 1.55,
+        ),
+      ),
+      const SizedBox(height: 14),
+      AppButton(
+        label: 'Retry result',
+        onPressed: () {
+          final resultId = _latestSession?.resultId;
+          if (resultId != null) {
+            ref.invalidate(scanResultWatchProvider(resultId));
+          }
+        },
+        expand: true,
+      ),
+    ],
+  );
+
+  static const _fallbackInstructions = ScanInstructions(
+    id: 'fallback',
+    scannerTitle: 'Scan a smart bin',
+    scannerDescription:
+        'Position the registered EcoLoop QR code inside the camera frame.',
+    binFoundTitle: 'Smart bin found',
+    readyTitle: 'Ready to recycle?',
+    readyDescription:
+        'Deposit your items, then report that you pressed Finish.',
+    itemDetectedTitle: 'Choose your batch image',
+    itemDetectedDescription: 'Choose exactly one prepared image.',
+    processingTitle: 'Identifying your items',
+    processingDescription: 'The backend is analysing the selected image.',
+    verifiedTitle: 'Deposit verified',
+    reviewTitle: 'Deposit sent for review',
+    rejectedTitle: 'Deposit not eligible',
+    pointsTimingNotice: 'Verified points are added after classification.',
   );
 
   Widget _badge(DepositSession session, DepositResult? result) {
@@ -412,10 +523,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   ) {
     switch (session.stage) {
       case ScanStage.binFound || ScanStage.ready || ScanStage.itemDetected:
+        final hasSelection =
+            session.stage != ScanStage.itemDetected ||
+            _selectedAssetId != null ||
+            session.draftAssetId != null;
         return [
           AppButton(
             label: _actionLabel(session.stage),
-            onPressed: _busy
+            pendingLabel: _pendingLabel(session.stage),
+            onPressed: _busy || !hasSelection
                 ? null
                 : () => unawaited(_advance(session, assets)),
             isLoading: _busy,
@@ -437,14 +553,15 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
                     ),
               expand: true,
             ),
+            ..._continueProcessingAction(),
           ];
         }
-        return const [];
+        return _continueProcessingAction();
       case ScanStage.completed:
         return [
           AppButton(
             label: 'Back to home',
-            onPressed: () => unawaited(_backToHome()),
+            onPressed: () => unawaited(_backToHome(clearActiveSession: false)),
             expand: true,
           ),
         ];
@@ -458,6 +575,33 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     ScanStage.ready => 'I pressed the finish button',
     ScanStage.itemDetected => 'Continue',
     _ => 'Continue',
+  };
+
+  List<Widget> _continueProcessingAction() => [
+    const SizedBox(height: 8),
+    Text(
+      'Your submitted deposit will keep processing. You can find it on Home.',
+      textAlign: TextAlign.center,
+      style: AppTypography.activityMetadata.copyWith(
+        fontSize: 12,
+        height: 1.45,
+        color: AppColors.muted,
+      ),
+    ),
+    const SizedBox(height: 8),
+    AppButton(
+      label: 'Continue using EcoLoop',
+      variant: AppButtonVariant.ghost,
+      onPressed: _continueUsingEcoLoop,
+      expand: true,
+    ),
+  ];
+
+  String _pendingLabel(ScanStage stage) => switch (stage) {
+    ScanStage.binFound => 'Confirming session...',
+    ScanStage.ready => 'Recording finish...',
+    ScanStage.itemDetected => 'Submitting for verification...',
+    _ => 'Working...',
   };
 
   String _stageTitle(
@@ -532,15 +676,9 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
   void _sync(DepositSession session) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final tracker = ref.read(activeScanSessionProvider.notifier);
       final visible = _isVisible(session);
-      if (session.stage == ScanStage.cancelled ||
-          (session.stage == ScanStage.completed && visible)) {
-        tracker.clearIf(session.id);
-        _stopRenewal();
-      } else {
-        tracker.track(session);
-      }
+      if (session.stage == ScanStage.cancelled) _stopRenewal();
+
       if (!visible) return;
       if (session.stage != widget.expectedStage) {
         context.go(_pathForStage(session));
@@ -556,6 +694,70 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
         );
       }
     });
+  }
+
+  DepositSession _preferredSession(DepositSession streamed) {
+    final local = _confirmedSession;
+    if (local == null ||
+        local.id != streamed.id ||
+        streamed.sessionVersion > local.sessionVersion) {
+      _confirmedSession = streamed;
+      return streamed;
+    }
+    return local;
+  }
+
+  void _selectAsset(DepositSession session, SimulationAsset asset) {
+    setState(() {
+      _selectedAssetId = asset.id;
+      _actionError = null;
+    });
+    _startDraftSave(session, asset);
+  }
+
+  void _startDraftSave(DepositSession session, SimulationAsset asset) {
+    final acknowledged = _draftAcknowledgement;
+    if (acknowledged != null &&
+        acknowledged.id == session.id &&
+        acknowledged.draftAssetId == asset.id &&
+        acknowledged.draftAssetVersion == asset.version) {
+      return;
+    }
+    if (_draftSaveFuture != null) return;
+    final future = ref
+        .read(scanRepositoryProvider)
+        .saveImageSelection(
+          sessionId: session.id,
+          assetId: asset.id,
+          assetVersion: asset.version,
+          expectedVersion: session.sessionVersion,
+        );
+    _draftSaveFuture = future;
+    unawaited(_finishDraftSave(future));
+  }
+
+  Future<void> _finishDraftSave(Future<DepositSession> future) async {
+    try {
+      final acknowledged = await future;
+      if (!mounted || _draftSaveFuture != future) return;
+      _draftAcknowledgement = acknowledged;
+      _draftSaveFuture = null;
+      _applyConfirmedSession(acknowledged);
+    } catch (error) {
+      if (!mounted || _draftSaveFuture != future) return;
+      _draftSaveFuture = null;
+      setState(() => _actionError = scanFailureCopy(error));
+    }
+  }
+
+  void _applyConfirmedSession(DepositSession session) {
+    _confirmedSession = session;
+    _latestSession = session;
+    if (!mounted) return;
+    setState(() {});
+    if (_isVisible(session) && session.stage != widget.expectedStage) {
+      context.go(_pathForStage(session));
+    }
   }
 
   /// The screen instance is visible when the router URI still points at the
@@ -594,36 +796,73 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       final repository = ref.read(scanRepositoryProvider);
       switch (session.stage) {
         case ScanStage.binFound:
-          await repository.confirmSession(session.id, session.sessionVersion);
+          _applyConfirmedSession(
+            await repository.confirmSession(session.id, session.sessionVersion),
+          );
         case ScanStage.ready:
-          await repository.reportFinishPressed(
-            session.id,
-            session.sessionVersion,
+          _applyConfirmedSession(
+            await repository.reportFinishPressed(
+              session.id,
+              session.sessionVersion,
+            ),
           );
         case ScanStage.itemDetected:
+          _continueStopwatch = Stopwatch()..start();
+          developer.log(
+            'event=scan.continue_tapped sessionId=${session.id} '
+            'assetId=${_selectedAssetId ?? session.draftAssetId}',
+            name: 'ecoloop.flutter',
+          );
           final assetId = _selectedAssetId ?? session.draftAssetId;
           final matchingAssets = assets.where((item) => item.id == assetId);
-          final asset = matchingAssets.isNotEmpty
-              ? matchingAssets.first
-              : (repository is MockScanRepository && assets.isNotEmpty
-                    ? assets.first
-                    : null);
+          final asset = matchingAssets.isNotEmpty ? matchingAssets.first : null;
           if (asset == null) {
-            if (repository is MockScanRepository) {
-              await repository.startVerification(session.id);
-              break;
-            }
             throw const AppFailure(
               code: AppFailureCodes.validation,
               messageKey: 'scan.assetRequired',
               retryable: false,
             );
           }
-          await repository.submitInspection(
+          DepositSession selectedSession;
+          final acknowledged = _draftAcknowledgement;
+          if (acknowledged != null &&
+              acknowledged.id == session.id &&
+              acknowledged.draftAssetId == asset.id &&
+              acknowledged.draftAssetVersion == asset.version) {
+            selectedSession = acknowledged;
+          } else {
+            final draftSave = _draftSaveFuture;
+            selectedSession = draftSave == null
+                ? await repository.saveImageSelection(
+                    sessionId: session.id,
+                    assetId: asset.id,
+                    assetVersion: asset.version,
+                    expectedVersion: session.sessionVersion,
+                  )
+                : await draftSave;
+            _draftAcknowledgement = selectedSession;
+            _draftSaveFuture = null;
+          }
+          final submission = await repository.submitInspection(
             sessionId: session.id,
             assetId: asset.id,
             assetVersion: asset.version,
-            expectedVersion: session.sessionVersion,
+            expectedVersion: selectedSession.sessionVersion,
+          );
+          developer.log(
+            'event=scan.submission_acknowledged jobId=${submission.jobId} '
+            'resultId=${submission.resultId} '
+            'elapsedMs=${_continueStopwatch?.elapsedMilliseconds}',
+            name: 'ecoloop.flutter',
+          );
+          _applyConfirmedSession(
+            selectedSession.copyWith(
+              stage: ScanStage.processing,
+              resultId: submission.resultId,
+              batchId: submission.batchId,
+              jobId: submission.jobId,
+              deadlineAt: submission.deadlineAt,
+            ),
           );
         default:
           break;
@@ -657,7 +896,7 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
     if (session == null || !_isPreProcessing(session.stage)) {
       if (session?.stage == ScanStage.processing ||
           session?.stage == ScanStage.completed) {
-        await _backToHome();
+        await _backToHome(clearActiveSession: false);
       }
       return;
     }
@@ -696,20 +935,58 @@ class _ScanSessionScreenState extends ConsumerState<ScanSessionScreen>
       ),
     );
     if (decision != LeaveDecision.leave) return LeaveDecision.stay;
+    if (currentSession == null) return LeaveDecision.leave;
+
+    final coordinator = ref.read(exitIntentCoordinatorProvider);
+    final intent = coordinator.enqueue(
+      operation: ExitIntentOperation.cancelSession,
+      targetIdentity: currentSession.id,
+      owner: currentSession.residentId,
+      installationId: coordinator.installationId,
+      authGeneration: currentSession.residentId,
+      registrationGeneration: currentSession.residentId,
+    );
+    coordinator.fenceSession(currentSession.id);
+    ref.read(activeScanSessionProvider.notifier).clearIf(currentSession.id);
+    _stopRenewal();
+    unawaited(
+      _reconcileCancellation(
+        intent.id,
+        currentSession.id,
+        currentSession.sessionVersion,
+      ),
+    );
+    return LeaveDecision.leave;
+  }
+
+  Future<void> _reconcileCancellation(
+    String intentId,
+    String sessionId,
+    int expectedVersion,
+  ) async {
+    final coordinator = ref.read(exitIntentCoordinatorProvider);
+    coordinator.markAwaitingDelivery(intentId);
     try {
       await ref
           .read(scanRepositoryProvider)
-          .cancelSession(widget.sessionId, currentSession?.sessionVersion);
-      ref.read(activeScanSessionProvider.notifier).clear();
-      return LeaveDecision.leave;
+          .cancelSession(sessionId, expectedVersion);
+      coordinator.markResolved(intentId);
     } on Object {
-      if (mounted) setState(() => _actionError = AppCopy.scanCancelFailed);
-      return LeaveDecision.stay;
+      coordinator.markRetryWait(
+        intentId,
+        DateTime.now().toUtc().add(const Duration(seconds: 30)),
+      );
     }
   }
 
-  Future<void> _backToHome() async {
-    ref.read(activeScanSessionProvider.notifier).clear();
+  void _continueUsingEcoLoop() {
+    if (mounted) context.go(AppRoutes.home);
+  }
+
+  Future<void> _backToHome({bool clearActiveSession = true}) async {
+    if (clearActiveSession) {
+      ref.read(activeScanSessionProvider.notifier).clear();
+    }
     if (mounted) context.go(AppRoutes.home);
   }
 }

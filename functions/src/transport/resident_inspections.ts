@@ -3,14 +3,19 @@ import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/
 import { recoverInspectionOperation, submitInspection as submitInspectionApplication } from "../application/submit_inspection.js";
 import { DomainError, isDomainError } from "../domain/errors.js";
 import { getComposition } from "../composition.js";
+import type { Dispatcher } from "../infrastructure/cloud_tasks.js";
+import type { InspectionSubmission } from "../infrastructure/firestore/inspection_store.js";
+import { StructuredLogger } from "../infrastructure/logger.js";
+import { residentCallableOptions, requireResident } from "./request.js";
 
-export const submitInspection = onCall(async (request) => {
-  const identity = requireIdentity(request);
-  const data = payload(request.data);
+export const submitInspection = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "submitInspection");
+  const data = identity.payload;
   const traceId = randomBytes(16).toString("hex");
   try {
+    const composition = getComposition();
     const result = await submitInspectionApplication(
-      getComposition().inspections,
+      composition.inspections,
       identity,
       stringField(data, "sessionId"),
       stringField(data, "assetId"),
@@ -19,7 +24,12 @@ export const submitInspection = onCall(async (request) => {
       new Date().toISOString(),
       traceId,
     );
-    return envelope("submitInspection", identity.requestId, result);
+    const dispatchState = await dispatchCommittedSubmission(
+      composition.dispatcher,
+      composition.logger,
+      result,
+    );
+    return envelope("submitInspection", identity.requestId, result, dispatchState);
   } catch (error) {
     throw mapInspectionError(error);
   }
@@ -32,10 +42,9 @@ export async function recoverSubmittedInspection(
   return recoverInspectionOperation(getComposition().inspections, uid, operationRequestId);
 }
 
-function requireIdentity(request: CallableRequest<unknown>): { uid: string; requestId: string } {
-  if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
-  const data = payload(request.data);
-  return { uid: request.auth.uid, requestId: stringField(data, "requestId") };
+function requireIdentity(request: CallableRequest<unknown>, operation: string): { uid: string; requestId: string; payload: Record<string, unknown> } {
+  const identity = requireResident(request, operation);
+  return { uid: identity.uid, requestId: identity.requestId, payload: identity.payload };
 }
 
 function payload(value: unknown): Record<string, unknown> {
@@ -59,7 +68,32 @@ function integerField(data: Record<string, unknown>, name: string): number {
   return value;
 }
 
-function envelope(operation: string, requestId: string, result: Awaited<ReturnType<typeof submitInspectionApplication>>) {
+export async function dispatchCommittedSubmission(
+  dispatcher: Dispatcher,
+  logger: StructuredLogger,
+  result: InspectionSubmission,
+  now = new Date().toISOString(),
+): Promise<"pending" | "dispatched"> {
+  try {
+    await dispatcher.dispatchJob(result.jobId, now);
+    return "dispatched";
+  } catch (error) {
+    logger.error("inspection.dispatch_enqueue_failed", error, {
+      jobId: result.jobId,
+      batchId: result.batchId,
+      traceId: result.traceId,
+      dispatchState: result.dispatchState,
+    });
+    return "pending";
+  }
+}
+
+function envelope(
+  operation: string,
+  requestId: string,
+  result: Awaited<ReturnType<typeof submitInspectionApplication>>,
+  dispatchState: "pending" | "dispatched" = result.dispatchState,
+) {
   return {
     schemaVersion: "backend.v1",
     operation,
@@ -76,7 +110,7 @@ function envelope(operation: string, requestId: string, result: Awaited<ReturnTy
       jobId: result.jobId,
       resultId: result.resultId,
       deadlineAt: result.deadlineAt,
-      dispatchState: result.dispatchState,
+      dispatchState,
     },
   };
 }

@@ -57,9 +57,8 @@ abstract final class BackendScanMapper {
       ...json,
       'id': json['id'] ?? json['resultId'],
       'transactionId': json['transactionId'] ?? json['batchId'],
-      'policyVersion': json['policyVersion'] ?? 'backend.v1',
-      'decisionVersion': json['decisionVersion'] ?? 0,
-      'traceId': json['traceId'] ?? '00000000000000000000000000000000',
+      'classifiedAt':
+          json['classifiedAt'] ?? json['updatedAt'] ?? json['createdAt'],
       'totalDetectedObjectCount':
           json['totalDetectedObjectCount'] ?? _countLines(json['lines']),
     };

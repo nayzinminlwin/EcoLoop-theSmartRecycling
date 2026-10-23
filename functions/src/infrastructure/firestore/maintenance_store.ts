@@ -60,7 +60,7 @@ export class FirestoreMaintenanceStore implements MaintenanceStore {
   async reconcileJobs(now: Instant, limit = 50, settlements?: SettlementStore): Promise<MaintenanceSummary> {
     validateLimit(limit, "Job reconciliation");
     const snapshot = await this.firestore.collection("inferenceJobs")
-      .where("state", "in", ["running", "retry_wait", "queued"])
+      .where("state", "in", ["running", "retry_wait", "queued", "failed"])
       .limit(limit)
       .get();
     let jobsRecovered = 0;

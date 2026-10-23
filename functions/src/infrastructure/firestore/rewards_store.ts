@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { Firestore, DocumentData } from "firebase-admin/firestore";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { DomainError } from "../../domain/errors.js";
 import type { RewardRedemption, RewardStore, VoucherUseResult } from "../../application/rewards.js";
 import { canUseDemoVoucher, hasReachedResidentRewardLimit } from "../../domain/reward_policy.js";
@@ -36,7 +36,7 @@ export class FirestoreRewardsStore implements RewardStore {
       const reward = rewardSnap.data()!;
       const offerVersion = String(reward.offerVersion ?? "");
       const cost = integer(reward.pointsCost);
-      const expiresAt = Date.parse(String(reward.catalogExpiresAt ?? reward.expiresAt ?? ""));
+      const expiresAt = instantMillis(reward.catalogExpiresAt ?? reward.expiresAt);
       if (reward.isActive !== true || offerVersion !== input.offerVersion || cost !== input.displayedCost ||
           !Number.isFinite(expiresAt) || expiresAt <= Date.parse(input.now)) {
         throw new DomainError("offer_changed", "The reward offer has changed or expired", { retryability: "after_refresh" });
@@ -44,7 +44,7 @@ export class FirestoreRewardsStore implements RewardStore {
       const wallet = walletSnap.data();
       const balance = integer(wallet?.balance);
       if (balance < cost) throw new DomainError("insufficient_points", "Not enough points for this reward");
-      const max = integer(reward.maxRedemptionsPerResident ?? reward.residentLimit ?? 1);
+      const max = Math.max(3, integer(reward.maxRedemptionsPerResident ?? reward.residentLimit ?? 1));
       if (reward.demoOnly !== true) throw new DomainError("reward_unavailable", "This reward is not available in the demo");
       if (hasReachedResidentRewardLimit(redemptions.size, max)) throw new DomainError("redemption_limit_reached", "This reward limit has been reached");
       if (!statsSnap.exists) throw new DomainError("reward_unavailable", "Resident reward statistics are unavailable");
@@ -66,6 +66,7 @@ export class FirestoreRewardsStore implements RewardStore {
       transaction.create(voucherRef, {
         id: voucherRef.id, residentId: input.uid, redemptionId: redemptionRef.id,
         rewardId: input.rewardId, code: voucherCode, demo: true, status: "available",
+        remainingUses: 1,
         title: redemption.title, merchant: redemption.merchant, terms: redemption.terms,
         offerVersion, issuedAt: input.now, expiresAt: expiry,
       });
@@ -81,6 +82,8 @@ export class FirestoreRewardsStore implements RewardStore {
         payloadFingerprint: input.payloadFingerprint, redemptionId: redemptionRef.id,
         voucherId: voucherRef.id, voucherCode, rewardId: input.rewardId,
         offerVersion, cost, balance: nextBalance, expiresAt: expiry,
+        issuedAt: input.now, redeemedAt: input.now, walletVersion: nextVersion,
+        title: redemption.title, merchant: redemption.merchant, terms: redemption.terms,
       });
       return {
         redemptionId: redemptionRef.id, voucherId: voucherRef.id, voucherCode,
@@ -111,7 +114,9 @@ export class FirestoreRewardsStore implements RewardStore {
       const voucher = voucherSnap.data()!;
       if (voucher.residentId !== input.uid) throw new DomainError("permission_denied", "Voucher belongs to another resident");
       if (voucher.demo !== true) throw new DomainError("reward_unavailable", "Only demo vouchers can be simulated");
-      if (voucher.status !== "available" || usageSnap.exists) throw new DomainError("voucher_used", "Voucher has already been used");
+      if (voucher.status !== "available" || Number(voucher.remainingUses ?? 0) !== 1 || usageSnap.exists) {
+        throw new DomainError("voucher_used", "Voucher has already been used");
+      }
       if (!canUseDemoVoucher({
         demo: voucher.demo,
         status: String(voucher.status),
@@ -119,7 +124,7 @@ export class FirestoreRewardsStore implements RewardStore {
         now: input.now,
       })) throw new DomainError("voucher_expired", "Voucher has expired");
       transaction.create(usageRef, { id: usageRef.id, voucherId: input.voucherId, residentId: input.uid, usedAt: input.now, requestId: input.requestId });
-      transaction.update(voucherRef, { status: "used", usedAt: input.now, updatedAt: input.now });
+      transaction.update(voucherRef, { status: "used", remainingUses: 0, usedAt: input.now, updatedAt: input.now });
       transaction.create(requestRef, { payloadFingerprint: input.payloadFingerprint, voucherId: input.voucherId, usedAt: input.now });
       return { voucherId: input.voucherId, usedAt: input.now, replayed: false };
     });
@@ -143,6 +148,20 @@ export class FirestoreRewardsStore implements RewardStore {
 
 function integer(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function instantMillis(value: unknown): number {
+  if (value instanceof Timestamp) return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "string") return Date.parse(value);
+  if (value && typeof value === "object" && "seconds" in value) {
+    const seconds = (value as { seconds?: unknown }).seconds;
+    const nanoseconds = (value as { nanoseconds?: unknown }).nanoseconds ?? 0;
+    if (typeof seconds === "number" && typeof nanoseconds === "number") {
+      return seconds * 1000 + nanoseconds / 1_000_000;
+    }
+  }
+  return Number.NaN;
 }
 
 function redemptionFromRequest(data: DocumentData, replayed: boolean): RewardRedemption {

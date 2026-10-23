@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eco_loop/core/data/json_readers.dart';
+import 'package:eco_loop/core/domain/material_type.dart';
 import 'package:eco_loop/core/mock/mock_api.dart';
 import 'package:eco_loop/core/mock/mock_seed_loader.dart';
 
@@ -38,6 +39,7 @@ class MockRecyclingGuideRepository implements RecyclingGuideRepository {
               .toList()
             ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)))
         : <RecyclingMaterial>[];
+    final displayMaterials = _combinePaperMaterials(materials);
     final steps = envelope['steps'] is List
         ? ((envelope['steps'] as List)
               .map(
@@ -56,12 +58,46 @@ class MockRecyclingGuideRepository implements RecyclingGuideRepository {
         : <MaterialRate>[];
     final guide = RecyclingGuide.compose(
       content: content,
-      materials: materials,
+      materials: displayMaterials,
       steps: steps,
       rates: rates,
       rateExamples: content.rateExamples,
     );
     return guide;
+  }
+
+  List<RecyclingMaterial> _combinePaperMaterials(
+    List<RecyclingMaterial> materials,
+  ) {
+    final paperMaterials = materials
+        .where(
+          (material) =>
+              material.canonicalClass == 'paper_item' ||
+              material.canonicalClass == 'paper_bag' ||
+              material.id == 'paper-items' ||
+              material.id == 'paper-bags',
+        )
+        .toList();
+    if (paperMaterials.length < 2) return List.unmodifiable(materials);
+
+    final firstPaperIndex = materials.indexOf(paperMaterials.first);
+    final combined = RecyclingMaterial(
+      id: 'paper-items-and-bags',
+      type: MaterialType.paper,
+      title: 'Paper items & bags',
+      preparationTip: paperMaterials
+          .map((material) => material.preparationTip)
+          .toSet()
+          .join(' '),
+      iconKey: paperMaterials.first.iconKey,
+      sortOrder: paperMaterials.first.sortOrder,
+    );
+    return List.unmodifiable([
+      for (var index = 0; index < materials.length; index++) ...[
+        if (index == firstPaperIndex) combined,
+        if (!paperMaterials.contains(materials[index])) materials[index],
+      ],
+    ]);
   }
 
   @override

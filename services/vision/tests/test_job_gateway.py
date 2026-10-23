@@ -10,6 +10,7 @@ class Response:
         return {"status": "committed", "data": {
             "jobId": "job-1", "batchId": "batch-1", "attemptId": "attempt-1",
             "deadlineAt": "2030-01-01T00:05:00.000Z",
+            "leaseExpiresAt": "2030-01-01T00:04:00.000Z",
             "source": {"assetId": "asset-1", "assetVersion": "v1", "contentSha256": "a" * 64},
             "configurationVersion": "inspection-v1",
             "artifactPrefix": "vision-artifacts/job-1/attempt-1/",

@@ -303,7 +303,7 @@ Create:
 - `assets/icons/shield.svg`
 - `assets/icons/close.svg`
 - `assets/icons/camera.svg`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 
 Modify `pubspec.yaml`, `pubspec.lock`, `lib/main.dart`, and `test/widget_test.dart`; adjust `README.md` to describe the app and mock launch command. Do not regenerate the existing Android/iOS/web projects.
 
@@ -352,7 +352,7 @@ No feature data models or repositories are introduced here. `AppRoutes` contains
 - [ ] Replace the counter test with an EcoLoop bootstrap smoke test; `flutter test test/widget_test.dart` passes.
 - [ ] `flutter build web` succeeds; resident frame is centered at 480 maximum width and does not become an admin/desktop layout.
 - [ ] Check 320, 390, and 480 widths; no fixed-height body prevents scrolling or clips content under device insets.
-- [ ] Fonts and icons render offline. Source font/icon origins and fidelity decisions are recorded in `docs/FLUTTER_UI_EXECUTION_LOG.md`.
+- [ ] Fonts and icons render offline. Source font/icon origins and fidelity decisions are recorded in `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`.
 
 ---
 
@@ -1027,10 +1027,10 @@ Create:
 
 - `integration_test/resident_journey_test.dart`
 - `test/fixtures/mock_fixture_integrity_test.dart`
-- `docs/FLUTTER_UI_ACCEPTANCE.md`
+- `docs/archive/FLUTTER_UI_ACCEPTANCE.md`
 - `docs/FLUTTER_MOCK_CONTRACTS.md`
 
-Modify `test/widget_test.dart`, `README.md`, and `docs/FLUTTER_UI_EXECUTION_LOG.md` with final launch/test/scenario instructions and actual results. Update existing implementation files only to fix failures found during this phase. No new production domain models or repository methods are expected.
+Modify `test/widget_test.dart`, `README.md`, and `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` with final launch/test/scenario instructions and actual results. Update existing implementation files only to fix failures found during this phase. No new production domain models or repository methods are expected.
 
 ### Required acceptance journeys
 
@@ -1062,13 +1062,13 @@ Run from the existing repository root:
 Use `flutter devices` to choose the supported integration-test target; run the journey on an available emulator/device. If no target exists, record that exact limitation rather than claiming the integration test ran. For manual browser review, use `flutter run -d chrome --dart-define=MOCK_SCENARIO=normal`; select the other named scenarios the same way. Android/iOS runtime review should be performed where their tooling/device is available; iOS compilation is not an independent phase gate on this Windows workspace.
 
 - [ ] All available checks pass; unavailable platform/device checks are explicitly recorded with a runnable command.
-- [ ] Every original resident screen, every scan stage, and every settings detail is accounted for in `docs/FLUTTER_UI_ACCEPTANCE.md`.
+- [ ] Every original resident screen, every scan stage, and every settings detail is accounted for in `docs/archive/FLUTTER_UI_ACCEPTANCE.md`.
 - [ ] No dead tappable controls, widget-local dummy records, unhandled async errors, negative balances, duplicate credits, or embedded admin entry points remain.
 - [ ] `docs/FLUTTER_MOCK_CONTRACTS.md` records actual model JSON shapes, enum wire values, fixture files, repository method signatures, latency/scenario controls, mutation/invalidation rules, and process-lifetime persistence.
 - [ ] The handoff names the **same Firebase project** for Firestore/Auth/Storage/App Check and Firebase Hosting for admin deployment; it records the identical document paths, UID/custom-claim mapping, Timestamp converters, URL fields, stream/observable interfaces and unsubscribe behavior from both plans.
 - [ ] Physical bin/AI events, Auth account updates, Storage uploads, merchant consumption, trusted Firestore atomic credit/redemption and real rules/indexes are deferred to Goals 3–4. Goals 1–2 contain no live Firebase initialization/calls, emulator connections or deployment.
 - [ ] All three protected Android Firebase files match their pre-phase checksum baseline; no Gradle/Google Services rewrite was made to pass tests.
-- [ ] `docs/FLUTTER_UI_EXECUTION_LOG.md` lists completed phases, commands/results, visual differences, and remaining integration work. It must not mark later admin/backend roadmap goals as implemented.
+- [ ] `docs/archive/FLUTTER_UI_EXECUTION_LOG.md` lists completed phases, commands/results, visual differences, and remaining integration work. It must not mark later admin/backend roadmap goals as implemented.
 
 ---
 

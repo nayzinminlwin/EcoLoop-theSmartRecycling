@@ -99,5 +99,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - run: npm ci
       - run: npx firebase-tools@15.30.2 emulators:exec --only firestore,storage --project demo-ecoloop "npm run test:rules:runner"

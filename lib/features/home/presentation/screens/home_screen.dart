@@ -15,6 +15,7 @@ import 'package:eco_loop/features/home/presentation/widgets/home_quick_actions.d
 import 'package:eco_loop/features/home/presentation/widgets/impact_summary_card.dart';
 import 'package:eco_loop/features/home/presentation/widgets/scan_call_to_action.dart';
 import 'package:eco_loop/features/home/presentation/widgets/wallet_summary_card.dart';
+import 'package:eco_loop/features/home/presentation/widgets/resident_work_card.dart';
 import 'package:eco_loop/features/activity/presentation/widgets/deposit_activity_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,16 +29,22 @@ class HomeScreen extends ConsumerWidget {
     final state = ref.watch(homeControllerProvider);
     final clock = ref.watch(appClockProvider);
     return AppPage(
-      child: state.when(
-        loading: () => const SizedBox(
-          height: 500,
-          child: AppLoadingView(message: 'Loading your dashboard'),
-        ),
-        error: (_, _) => AppErrorView(
-          message: AppCopy.loadDashboardFailed,
-          onRetry: () => _refresh(context, ref),
-        ),
-        data: (data) => _HomeContent(data: data, clock: clock),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const ResidentWorkCard(),
+          state.when(
+            loading: () => const SizedBox(
+              height: 500,
+              child: AppLoadingView(message: 'Loading your dashboard'),
+            ),
+            error: (_, _) => AppErrorView(
+              message: AppCopy.loadDashboardFailed,
+              onRetry: () => _refresh(context, ref),
+            ),
+            data: (data) => _HomeContent(data: data, clock: clock),
+          ),
+        ],
       ),
     );
   }
@@ -73,7 +80,8 @@ class _HomeContent extends StatelessWidget {
       WalletSummaryCard(
         wallet: data.wallet,
         progress: data.rewardProgress,
-        onBrowseRewards: () => context.go(AppRoutes.rewards),
+        progressState: data.rewardProgressState,
+        onBrowseRewards: () => context.push(AppRoutes.rewards),
       ),
       const SizedBox(height: AppSpacing.section),
       ScanCallToAction(onPressed: () => context.go(AppRoutes.scan)),
@@ -81,15 +89,15 @@ class _HomeContent extends StatelessWidget {
       ImpactSummaryCard(summary: data.summary),
       const SizedBox(height: AppSpacing.section),
       HomeQuickActions(
-        onGuide: () => context.go(AppRoutes.guide),
-        onHistory: () => context.go(AppRoutes.history),
+        onGuide: () => context.push(AppRoutes.guide),
+        onHistory: () => context.push(AppRoutes.history),
       ),
       const SizedBox(height: AppSpacing.section),
       AppSectionHeader(
         title: 'Recent recycling',
         eyebrow: 'ACTIVITY',
         actionLabel: 'View all',
-        onAction: () => context.go(AppRoutes.history),
+        onAction: () => context.push(AppRoutes.history),
       ),
       const SizedBox(height: AppSpacing.md),
       if (data.recentDeposits.isEmpty)

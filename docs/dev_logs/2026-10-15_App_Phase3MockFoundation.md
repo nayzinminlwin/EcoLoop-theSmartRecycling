@@ -13,7 +13,7 @@ and recycling activity contracts required by later resident screens.
 ## 2. Reference Documents
 
 - `docs/FIGMA_USER_APP_TO_FLUTTER_IMPLEMENTATION_PLAN.md`
-- `docs/FLUTTER_UI_EXECUTION_LOG.md`
+- `docs/archive/FLUTTER_UI_EXECUTION_LOG.md`
 - `.agent/developer/agent.md`
 - `EcoLoop_AI_Figma_Design_Artifacts/src/App.tsx`
 

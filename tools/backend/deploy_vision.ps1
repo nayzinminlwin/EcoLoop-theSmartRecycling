@@ -13,6 +13,11 @@ param(
     [string]$TaskInvokerServiceAccount,
     [Parameter(Mandatory = $true)]
     [string]$ArtifactBucket,
+    [Parameter(Mandatory = $true)]
+    [string]$WorkerGatewayUrl,
+    [Parameter(Mandatory = $true)]
+    [string]$WorkerGatewayAudience,
+    [string]$SourceBucket = "ecoloop-thesmartrecycling.firebasestorage.app",
     [string]$QueueName = "vision-processing"
 )
 
@@ -58,6 +63,22 @@ if ($LASTEXITCODE -ne 0) {
     throw "Could not grant the vision runtime artifact permission."
 }
 
+if ($SourceBucket -eq "" -or $SourceBucket -match '[^a-z0-9._-]') {
+    throw "SourceBucket must be an existing Cloud Storage bucket name."
+}
+gcloud storage buckets describe "gs://$SourceBucket" --project=$ProjectId *> $null
+if ($LASTEXITCODE -ne 0) {
+    throw "Source bucket '$SourceBucket' is missing in project '$ProjectId'."
+}
+gcloud storage buckets add-iam-policy-binding "gs://$SourceBucket" `
+    --member="serviceAccount:$RuntimeServiceAccount" `
+    --role=roles/storage.objectViewer `
+    --project=$ProjectId `
+    --quiet | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not grant the vision runtime source read permission."
+}
+
 $shortSha = (git rev-parse --short=12 HEAD).Trim()
 $image = "$Region-docker.pkg.dev/$ProjectId/ecoloop/vision:$shortSha"
 
@@ -93,7 +114,7 @@ gcloud run deploy $ServiceName `
     --max=1 `
     --timeout=300s `
     --set-secrets="ROBOFLOW_API_KEY=${RoboflowSecretName}:latest,GEMINI_API_KEY=${GeminiSecretName}:latest" `
-    --set-env-vars="ECOLOOP_GEMINI_MODEL=gemini-3.8-flash,ECOLOOP_ARTIFACT_BUCKET=$bucket" `
+    --set-env-vars="ECOLOOP_GEMINI_MODEL=gemini-3.8-flash,ECOLOOP_SOURCE_BUCKET=$SourceBucket,ECOLOOP_ARTIFACT_BUCKET=$bucket,ECOLOOP_WORKER_GATEWAY_URL=$WorkerGatewayUrl,ECOLOOP_WORKER_AUDIENCE=$WorkerGatewayAudience" `
     --no-cpu-throttling `
     --quiet
 if ($LASTEXITCODE -ne 0) {

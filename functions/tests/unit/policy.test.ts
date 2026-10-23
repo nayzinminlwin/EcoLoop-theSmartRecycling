@@ -28,7 +28,7 @@ describe("pure policy finalization", () => {
 
   it("distinguishes excluded, empty, unreadable, and unresolved states", () => {
     expect(calculateFinalization(initialPolicy(), "resolved", [finding("cardboard_item", "excluded")])).toMatchObject({
-      status: "excluded", pointsAwarded: 0, spaceContributionSpc: 15,
+      status: "rejected", pointsAwarded: 0, spaceContributionSpc: 15,
     });
     expect(calculateFinalization(initialPolicy(), "empty", [])).toMatchObject({
       status: "empty", totalDetectedObjectCount: 0, pointsAwarded: 0, spaceContributionSpc: 0,

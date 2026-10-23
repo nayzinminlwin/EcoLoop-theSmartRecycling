@@ -32,7 +32,7 @@ class RewardCard extends StatelessWidget {
     return AppCard(
       padding: const EdgeInsets.all(12),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 214),
+        constraints: const BoxConstraints(minHeight: 200),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -76,24 +76,34 @@ class RewardCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Text(
-              reward.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              reward.merchantName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            Text(
-              '${reward.pointsCost} points',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reward.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    reward.merchantName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${reward.pointsCost} points',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),

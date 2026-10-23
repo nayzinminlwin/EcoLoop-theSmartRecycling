@@ -5,13 +5,15 @@ import 'package:eco_loop/features/account/domain/repositories/account_repository
 import 'package:flutter/foundation.dart';
 
 import 'app_routes.dart';
+import '../../core/data/exit_intent_coordinator.dart';
 
 class RouteGuards extends ChangeNotifier {
-  RouteGuards(this._repository) {
+  RouteGuards(this._repository, [this._exitCoordinator]) {
     _subscribe();
   }
 
   final AccountRepository _repository;
+  final ExitIntentCoordinator? _exitCoordinator;
   StreamSubscription<AuthState>? _subscription;
   AuthState? _authState;
   Object? _error;
@@ -20,11 +22,16 @@ class RouteGuards extends ChangeNotifier {
   bool get isResolved => _authState != null;
   bool get hasError => _error != null;
   bool get isResident =>
-      _authState?.isSignedIn == true && _authState?.role == AppRole.user;
+      _exitCoordinator?.isLocallySignedOut != true &&
+      _authState?.isSignedIn == true &&
+      _authState?.role == AppRole.user;
 
   void _subscribe() {
     _subscription = _repository.watchAuthState().listen(
       (value) {
+        final signedOutAfterResidentSession =
+            _authState?.isSignedIn == true && !value.isSignedIn;
+        if (signedOutAfterResidentSession) _pendingLocation = null;
         _authState = value;
         _error = null;
         notifyListeners();

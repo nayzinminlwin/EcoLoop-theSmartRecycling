@@ -39,12 +39,16 @@ class _QrCaptureViewState extends State<QrCaptureView>
   late final MobileScannerController _controller =
       widget.controller ??
       MobileScannerController(
+        autoStart: false,
         detectionSpeed: DetectionSpeed.normal,
         detectionTimeoutMs: 500,
       );
   late final bool _ownsController = widget.controller == null;
   bool _handlingCapture = false;
   bool _active = false;
+  bool _cameraTransition = false;
+  bool _cameraError = false;
+  Timer? _syncDebounce;
 
   @override
   void initState() {
@@ -60,7 +64,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
     if (oldWidget.visible != widget.visible ||
         oldWidget.commandActive != widget.commandActive) {
       _active = widget.visible && !widget.commandActive;
-      _syncCamera();
+      _debouncedSyncCamera();
     }
   }
 
@@ -70,11 +74,17 @@ class _QrCaptureViewState extends State<QrCaptureView>
         widget.visible &&
         !widget.commandActive &&
         state == AppLifecycleState.resumed;
-    _syncCamera();
+    _debouncedSyncCamera();
+  }
+
+  void _debouncedSyncCamera() {
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 300), _syncCamera);
   }
 
   @override
   void dispose() {
+    _syncDebounce?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (_ownsController) unawaited(_controller.dispose());
     super.dispose();
@@ -92,6 +102,9 @@ class _QrCaptureViewState extends State<QrCaptureView>
             state.error?.errorCode == MobileScannerErrorCode.permissionDenied) {
           return const _CameraDenied();
         }
+        if (_cameraError) {
+          return _CameraStartError(onRetry: _retryCamera);
+        }
         return ScannerStage(child: child!);
       },
       child: surface,
@@ -100,6 +113,7 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   Widget _productionSurface() => MobileScanner(
     controller: _controller,
+    useAppLifecycleState: false,
     onDetect: (capture) {
       for (final barcode in capture.barcodes) {
         final value = barcode.rawValue;
@@ -113,25 +127,50 @@ class _QrCaptureViewState extends State<QrCaptureView>
 
   void _syncCamera() {
     if (widget.surfaceBuilder != null) return;
-    if (!_controller.value.isInitialized && !_controller.value.isStarting) {
-      if (_active) unawaited(_controller.start());
-      return;
+    if (_cameraTransition) return;
+    final state = _controller.value;
+    if (_active && !state.isRunning && !state.isStarting) {
+      _cameraTransition = true;
+      unawaited(
+        _controller.start().then((_) {
+          if (mounted) {
+            setState(() => _cameraError = _controller.value.error != null);
+          }
+        }).catchError((_) {
+          if (mounted) setState(() => _cameraError = true);
+        }).whenComplete(() {
+          _cameraTransition = false;
+          if (mounted && !_cameraError) _syncCamera();
+        }),
+      );
+    } else if (!_active && state.isRunning) {
+      _cameraTransition = true;
+      unawaited(
+        _controller.stop().whenComplete(() {
+          _cameraTransition = false;
+          if (mounted) _syncCamera();
+        }),
+      );
     }
-    if (_active && !_controller.value.isRunning) {
-      unawaited(_controller.start());
-    } else if (!_active && _controller.value.isRunning) {
-      unawaited(_controller.stop());
-    }
+  }
+
+  void _retryCamera() {
+    if (!mounted) return;
+    setState(() => _cameraError = false);
+    _active = widget.visible && !widget.commandActive;
+    _syncCamera();
   }
 
   void _handleCode(String value) {
     if (!_active || _handlingCapture || widget.commandActive) return;
+    final normalized = value.trim();
+    if (normalized.isEmpty) return;
     _handlingCapture = true;
     _active = false;
     unawaited(
       _controller.stop().then((_) async {
         try {
-          await widget.onCodeCaptured(value);
+          await widget.onCodeCaptured(normalized);
         } finally {
           _handlingCapture = false;
           if (mounted && widget.visible && !widget.commandActive) {
@@ -159,5 +198,29 @@ class _CameraDenied extends StatelessWidget {
         style: TextStyle(color: Colors.white),
       ),
     ],
+  );
+}
+
+class _CameraStartError extends StatelessWidget {
+  const _CameraStartError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => ScannerStage(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 42),
+        const SizedBox(height: 10),
+        const Text(
+          'We could not start a scan.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
+      ],
+    ),
   );
 }

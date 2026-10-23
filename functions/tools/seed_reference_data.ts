@@ -37,7 +37,7 @@ export function referenceDocuments(): ReferenceDocument[] {
         { id: "scan", order: 1, instruction: "Scan the recycling bin's registered QR code." },
         { id: "confirm", order: 2, instruction: "Check the bin and confirm your recycling session." },
         { id: "finish", order: 3, instruction: "Finish depositing and report that you pressed Finish." },
-        { id: "select", order: 4, instruction: "Select one prepared batch image; Continue submits it for real inference." },
+        { id: "select", order: 4, instruction: "Wait a minute for the image verification." },
         { id: "result", order: 5, instruction: "Receive a verified receipt or a pending-admin-review result." },
         { id: "redeem", order: 6, instruction: "Use earned EcoPoints to redeem and simulate use of a demo voucher." },
       ],

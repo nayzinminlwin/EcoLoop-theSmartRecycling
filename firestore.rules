@@ -79,6 +79,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /scanContent/{contentId} {
+      allow read: if canReadCatalog();
+      allow write: if false;
+    }
+
     match /residents/{uid} {
       allow read: if isOwner(uid) || isAdmin();
       allow create, update, delete: if false;
@@ -87,12 +92,6 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdmin();
         allow create, update, delete: if false;
       }
-    }
-
-    match /sessions/{sessionId} {
-      allow read: if signedIn() &&
-        resource.data.ownerId == request.auth.uid;
-      allow write: if false;
     }
 
     match /depositSessions/{sessionId} {
@@ -120,6 +119,11 @@ service cloud.firestore {
     match /depositResults/{receiptId} {
       allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
       allow write: if isAdmin();
+    }
+
+    match /walletEntries/{entryId} {
+      allow read: if (signedIn() && resource.data.residentId == request.auth.uid) || isAdmin();
+      allow write: if false;
     }
 
     match /vouchers/{voucherId} {

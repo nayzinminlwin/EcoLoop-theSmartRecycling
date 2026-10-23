@@ -3,13 +3,14 @@ import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/
 import { getComposition } from "../composition.js";
 import { redeemReward as redeemRewardApplication, useDemoVoucher } from "../application/rewards.js";
 import { isDomainError } from "../domain/errors.js";
+import { residentCallableOptions, requireResident } from "./request.js";
 
-export const redeemResidentReward = onCall(async (request) => {
-  const identity = requireIdentity(request);
+export const redeemResidentReward = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "redeemResidentReward");
   try {
     const result = await redeemRewardApplication(
       getComposition().rewards, { uid: identity.uid }, identity.requestId,
-      operationPayload(request.data), new Date().toISOString(),
+      identity.payload, new Date().toISOString(),
     );
     return envelope("redeemResidentReward", identity.requestId, result);
   } catch (error) {
@@ -17,12 +18,12 @@ export const redeemResidentReward = onCall(async (request) => {
   }
 });
 
-export const redeemReward = onCall(async (request) => {
-  const identity = requireIdentity(request);
+export const redeemReward = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "redeemReward");
   try {
     const result = await redeemRewardApplication(
       getComposition().rewards, { uid: identity.uid }, identity.requestId,
-      operationPayload(request.data), new Date().toISOString(),
+      identity.payload, new Date().toISOString(),
     );
     return envelope("redeemReward", identity.requestId, result);
   } catch (error) {
@@ -30,12 +31,12 @@ export const redeemReward = onCall(async (request) => {
   }
 });
 
-export const useResidentDemoVoucher = onCall(async (request) => {
-  const identity = requireIdentity(request);
+export const useResidentDemoVoucher = onCall(residentCallableOptions, async (request) => {
+  const identity = requireIdentity(request, "useResidentDemoVoucher");
   try {
     const result = await useDemoVoucher(
       getComposition().rewards, { uid: identity.uid }, identity.requestId,
-      operationPayload(request.data), new Date().toISOString(),
+      identity.payload, new Date().toISOString(),
     );
     return envelope("useResidentDemoVoucher", identity.requestId, result);
   } catch (error) {
@@ -43,25 +44,9 @@ export const useResidentDemoVoucher = onCall(async (request) => {
   }
 });
 
-function requireIdentity(request: CallableRequest<unknown>): { uid: string; requestId: string } {
-  if (request.auth === undefined) throw new HttpsError("unauthenticated", "Authentication is required");
-  const data = payload(request.data);
-  if (typeof data.requestId !== "string" || data.requestId.trim() === "") {
-    throw new HttpsError("invalid-argument", "requestId is required");
-  }
-  return { uid: request.auth.uid, requestId: data.requestId.trim() };
-}
-
-function payload(value: unknown): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new HttpsError("invalid-argument", "Request payload must be an object");
-  }
-  return value as Record<string, unknown>;
-}
-
-function operationPayload(value: unknown): Record<string, unknown> {
-  const data = payload(value);
-  return data.payload === undefined ? data : payload(data.payload);
+function requireIdentity(request: CallableRequest<unknown>, operation: string): { uid: string; requestId: string; payload: Record<string, unknown> } {
+  const identity = requireResident(request, operation);
+  return { uid: identity.uid, requestId: identity.requestId, payload: identity.payload };
 }
 
 function envelope(operation: string, requestId: string, data: unknown) {

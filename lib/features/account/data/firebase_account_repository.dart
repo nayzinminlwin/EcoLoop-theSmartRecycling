@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:eco_loop/core/data/app_failure.dart';
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 
 import '../domain/models/account_security_info.dart';
@@ -176,18 +177,22 @@ class FirebaseAccountRepository implements AccountRepository {
     required this._google,
     required this._commandClient,
     this.beforeSignOut,
-  });
+    AppLogger? logger,
+  }) : _logger = logger ?? AppLogger();
 
   final FirebaseAuthGateway _auth;
   final GoogleAuthGateway _google;
   final CommandClient Function(String uid) _commandClient;
   final Future<void> Function()? beforeSignOut;
+  final AppLogger _logger;
   final _authChanges = StreamController<AuthState>.broadcast();
   final _profileChanges = StreamController<ResidentProfile?>.broadcast();
   final _preferenceChanges =
       StreamController<NotificationPreferences?>.broadcast();
   StreamSubscription<AuthUser?>? _authSubscription;
   Future<AuthState>? _initialState;
+  Future<AuthState>? _provisioning;
+  String? _provisioningUid;
   String? _provisionedUid;
   AuthState? _lastState;
 
@@ -215,13 +220,24 @@ class FirebaseAccountRepository implements AccountRepository {
   @override
   Future<AuthState> getAuthState() {
     _subscribeOnce();
-    return _initialState ??= _resolveCurrentUser();
+    return _initialState ??= _resolveCurrentUser().catchError((error) {
+      _initialState = null;
+      throw error;
+    });
   }
 
   @override
   Stream<AuthState> watchAuthState() {
     _subscribeOnce();
-    return _authChanges.stream;
+    return Stream.multi((multi) {
+      final current = _lastState;
+      if (current != null) multi.add(current);
+      final subscription = _authChanges.stream.listen(
+        multi.add,
+        onError: multi.addError,
+      );
+      multi.onCancel = subscription.cancel;
+    });
   }
 
   void _subscribeOnce() {
@@ -255,6 +271,26 @@ class FirebaseAccountRepository implements AccountRepository {
     GoogleAccount? googleAccount,
   }) async {
     if (_provisionedUid == user.uid && _lastState != null) return _lastState!;
+    if (_provisioningUid == user.uid && _provisioning != null) {
+      return _provisioning!;
+    }
+    _provisioningUid = user.uid;
+    final future = _provisionCurrentUser(user, googleAccount: googleAccount);
+    _provisioning = future;
+    try {
+      return await future;
+    } finally {
+      if (_provisioningUid == user.uid) {
+        _provisioning = null;
+        _provisioningUid = null;
+      }
+    }
+  }
+
+  Future<AuthState> _provisionCurrentUser(
+    AuthUser user, {
+    GoogleAccount? googleAccount,
+  }) async {
     final claims = await _auth.refreshClaims(user);
     final client = _commandClient(user.uid);
     final result = await client.execute('bootstrapResident', <String, Object?>{
@@ -262,6 +298,9 @@ class FirebaseAccountRepository implements AccountRepository {
       'email': googleAccount?.email ?? user.email,
       'avatarUrl': googleAccount?.photoUrl ?? user.photoUrl,
     });
+    if (_auth.currentUser?.uid != user.uid) {
+      throw _signedOut();
+    }
     final role = AppRole.fromWire(
       _stringValue(claims['role']) ?? _stringValue(result.data?['role']),
     );
@@ -392,9 +431,36 @@ class FirebaseAccountRepository implements AccountRepository {
 
   @override
   Future<void> signOut() async {
-    await beforeSignOut?.call();
-    await _google.signOut();
+    final remoteCleanup = beforeSignOut == null
+        ? Future<void>.value()
+        : Future<void>(() async {
+            try {
+              await beforeSignOut!();
+            } catch (error, stackTrace) {
+              _logger.error('sign_out_remote_cleanup_failed', error);
+              _logger.log(
+                AppLogLevel.error,
+                'sign_out_remote_cleanup_stack',
+                fields: <String, Object?>{'stack': stackTrace.toString()},
+              );
+            }
+          });
+    final googleCleanup = Future<void>(() async {
+      try {
+        await _google.signOut();
+      } catch (error, stackTrace) {
+        _logger.error('sign_out_provider_cleanup_failed', error);
+        _logger.log(
+          AppLogLevel.error,
+          'sign_out_provider_cleanup_stack',
+          fields: <String, Object?>{'stack': stackTrace.toString()},
+        );
+      }
+    });
     await _auth.signOut();
+    await Future.wait<void>(<Future<void>>[remoteCleanup, googleCleanup]);
+    _provisionedUid = null;
+    _initialState = null;
   }
 
   @override

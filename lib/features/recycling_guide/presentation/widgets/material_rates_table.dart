@@ -70,10 +70,20 @@ class MaterialRatesTable extends StatelessWidget {
         children: [
           Text(rate.displayName, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 6),
-          Text(
-            'Points / pc: ${rate.eligible ? rate.pointsPerItem : 'Not accepted'}',
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Points / pc: ${rate.eligible ? rate.pointsPerItem : 'Not accepted'}',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text('Example: $example', textAlign: TextAlign.right),
+              ),
+            ],
           ),
-          Text('Example: $example'),
         ],
       ),
     );

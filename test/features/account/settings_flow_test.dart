@@ -20,6 +20,10 @@ void main() {
     expect(find.text('Account security'), findsOneWidget);
     expect(find.text('Notifications'), findsOneWidget);
     expect(find.text('Sign out'), findsOneWidget);
+    expect(
+      find.text('We could not sign you out. Please try again.'),
+      findsNothing,
+    );
   });
 
   testWidgets('settings provider can use an overridden account repository', (

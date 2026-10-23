@@ -14,9 +14,14 @@ import 'package:go_router/go_router.dart';
 /// selected label only for their own branch, and same-branch reselect resets
 /// the branch to its root while switching branches preserves nested routes.
 class ResidentBottomNavigation extends ConsumerWidget {
-  const ResidentBottomNavigation({required this.navigationShell, super.key});
+  const ResidentBottomNavigation({
+    required this.navigationShell,
+    required this.onBranchSelected,
+    super.key,
+  });
 
   final StatefulNavigationShell navigationShell;
+  final ValueChanged<int> onBranchSelected;
 
   Future<void> _select(BuildContext context, WidgetRef ref, int index) async {
     final coordinator = ref.read(leaveDecisionProvider);
@@ -24,6 +29,7 @@ class ResidentBottomNavigation extends ConsumerWidget {
     if (!context.mounted) return;
 
     final sameBranch = navigationShell.currentIndex == index;
+    onBranchSelected(index);
     if (index == 1) {
       // Resume tracked scan work from controller state rather than the
       // current route string; cancelled work returns to the scanner for a
@@ -62,10 +68,7 @@ class ResidentBottomNavigation extends ConsumerWidget {
               ],
             ),
           ),
-          Positioned(
-            top: -18,
-            child: _scanItem(context, ref),
-          ),
+          Positioned(top: -18, child: _scanItem(context, ref)),
         ],
       ),
     ),

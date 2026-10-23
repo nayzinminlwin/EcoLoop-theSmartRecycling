@@ -19,7 +19,7 @@ export type BatchStatus =
   | "processing"
   | "review"
   | "verified"
-  | "excluded"
+  | "rejected"
   | "empty"
   | "failed";
 

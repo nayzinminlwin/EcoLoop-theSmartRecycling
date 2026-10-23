@@ -16,6 +16,57 @@ enum ScanStage {
   );
 }
 
+class ScanProgressSummary {
+  const ScanProgressSummary({
+    required this.phase,
+    required this.activity,
+    required this.revision,
+    required this.attemptNumber,
+    required this.completedStages,
+    required this.submissionAt,
+    required this.updatedAt,
+    this.stageStartedAt,
+    this.deadlineAt,
+  });
+
+  final String phase;
+  final String activity;
+  final int revision;
+  final int attemptNumber;
+  final List<String> completedStages;
+  final DateTime submissionAt;
+  final DateTime? stageStartedAt;
+  final DateTime updatedAt;
+  final DateTime? deadlineAt;
+
+  factory ScanProgressSummary.fromJson(JsonMap json) => ScanProgressSummary(
+    phase: JsonReaders.string(json, 'phase'),
+    activity: JsonReaders.string(json, 'activity'),
+    revision: JsonReaders.integer(json, 'revision'),
+    attemptNumber: JsonReaders.integer(json, 'attemptNumber'),
+    completedStages: JsonReaders.strings(json, 'completedStages'),
+    submissionAt: JsonReaders.dateTime(json, 'submissionAt'),
+    stageStartedAt: _dateOrNull(json, 'stageStartedAt'),
+    updatedAt: JsonReaders.dateTime(json, 'updatedAt'),
+    deadlineAt: _dateOrNull(json, 'deadlineAt'),
+  );
+
+  JsonMap toJson() => {
+    'phase': phase,
+    'activity': activity,
+    'revision': revision,
+    'attemptNumber': attemptNumber,
+    'completedStages': completedStages,
+    'submissionAt': submissionAt.toIso8601String(),
+    'stageStartedAt': stageStartedAt?.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'deadlineAt': deadlineAt?.toIso8601String(),
+  };
+
+  static DateTime? _dateOrNull(JsonMap json, String field) =>
+      json[field] == null ? null : JsonReaders.dateTime(json, field);
+}
+
 class DepositSession {
   const DepositSession({
     required this.id,
@@ -35,6 +86,8 @@ class DepositSession {
     this.batchId,
     this.jobId,
     this.jobSubstage,
+    this.progress,
+    this.submittedAt,
     this.deadlineAt,
     this.reservationExpiresAt,
     this.terminationReason,
@@ -57,6 +110,8 @@ class DepositSession {
   final String? batchId;
   final String? jobId;
   final String? jobSubstage;
+  final ScanProgressSummary? progress;
+  final DateTime? submittedAt;
   final DateTime? deadlineAt;
   final DateTime? reservationExpiresAt;
   final String? terminationReason;
@@ -70,6 +125,21 @@ class DepositSession {
     updatedAt: JsonReaders.dateTime(json, 'updatedAt'),
     creationRequestId: JsonReaders.string(json, 'creationRequestId'),
     resultId: JsonReaders.nullableString(json, 'resultId'),
+    sessionVersion: json['version'] == null
+        ? 0
+        : JsonReaders.integer(json, 'version'),
+    draftAssetId: JsonReaders.nullableString(json, 'draftAssetId'),
+    draftAssetVersion: JsonReaders.nullableString(json, 'draftAssetVersion'),
+    committedAssetId: JsonReaders.nullableString(json, 'assetId'),
+    committedAssetVersion: JsonReaders.nullableString(json, 'assetVersion'),
+    batchId: JsonReaders.nullableString(json, 'batchId'),
+    jobId: JsonReaders.nullableString(json, 'jobId'),
+    jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
+    progress: _progressOrNull(json),
+    submittedAt: _dateOrNull(json, 'submittedAt'),
+    deadlineAt: _dateOrNull(json, 'deadlineAt'),
+    reservationExpiresAt: _dateOrNull(json, 'reservationExpiresAt'),
+    terminationReason: JsonReaders.nullableString(json, 'terminationReason'),
   );
 
   factory DepositSession.fromBackendJson(JsonMap json) {
@@ -105,6 +175,8 @@ class DepositSession {
       batchId: JsonReaders.nullableString(json, 'batchId'),
       jobId: JsonReaders.nullableString(json, 'jobId'),
       jobSubstage: JsonReaders.nullableString(json, 'jobSubstage'),
+      progress: _progressOrNull(json),
+      submittedAt: _dateOrNull(json, 'submittedAt'),
       deadlineAt: _dateOrNull(json, 'deadlineAt'),
       reservationExpiresAt: _dateOrNull(json, 'reservationExpiresAt'),
       terminationReason: JsonReaders.nullableString(json, 'terminationReason'),
@@ -129,6 +201,8 @@ class DepositSession {
     'batchId': batchId,
     'jobId': jobId,
     'jobSubstage': jobSubstage,
+    'progress': progress?.toJson(),
+    'submittedAt': submittedAt?.toIso8601String(),
     'deadlineAt': deadlineAt?.toIso8601String(),
     'reservationExpiresAt': reservationExpiresAt?.toIso8601String(),
     'terminationReason': terminationReason,
@@ -147,6 +221,8 @@ class DepositSession {
     String? batchId,
     String? jobId,
     String? jobSubstage,
+    ScanProgressSummary? progress,
+    DateTime? submittedAt,
     DateTime? deadlineAt,
     DateTime? reservationExpiresAt,
     String? terminationReason,
@@ -168,6 +244,8 @@ class DepositSession {
     batchId: batchId ?? this.batchId,
     jobId: jobId ?? this.jobId,
     jobSubstage: jobSubstage ?? this.jobSubstage,
+    progress: progress ?? this.progress,
+    submittedAt: submittedAt ?? this.submittedAt,
     deadlineAt: deadlineAt ?? this.deadlineAt,
     reservationExpiresAt: reservationExpiresAt ?? this.reservationExpiresAt,
     terminationReason: terminationReason ?? this.terminationReason,
@@ -175,5 +253,12 @@ class DepositSession {
 
   static DateTime? _dateOrNull(JsonMap json, String field) {
     return json[field] == null ? null : JsonReaders.dateTime(json, field);
+  }
+
+  static ScanProgressSummary? _progressOrNull(JsonMap json) {
+    final value = json['progress'];
+    return value == null
+        ? null
+        : ScanProgressSummary.fromJson(JsonReaders.map(value, 'progress'));
   }
 }

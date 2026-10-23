@@ -1,5 +1,5 @@
 import { deleteApp, initializeApp } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { payloadFingerprint } from "../../src/domain/identity.js";
 import { FirestoreRewardsStore } from "../../src/infrastructure/firestore/rewards_store.js";
@@ -32,7 +32,7 @@ beforeEach(async () => {
     maxRedemptionsPerResident: 1,
     isActive: true,
     demoOnly: true,
-    catalogExpiresAt: "2027-12-31T00:00:00.000Z",
+    catalogExpiresAt: Timestamp.fromDate(new Date("2027-12-31T00:00:00.000Z")),
   });
   await firestore.doc(`residents/${uid}/wallet/current`).set({
     residentId: uid,
@@ -50,6 +50,37 @@ afterAll(async () => {
 });
 
 describe("atomic reward redemption", () => {
+  it("allows three redemptions when the catalog limit is one", async () => {
+    for (const requestId of ["redeem-1", "redeem-2", "redeem-3"]) {
+      await rewards.redeem({
+        uid,
+        requestId,
+        payloadFingerprint: payloadFingerprint({
+          rewardId,
+          offerVersion: "v1",
+          displayedCost: 12,
+        }),
+        rewardId,
+        offerVersion: "v1",
+        displayedCost: 12,
+        now,
+      });
+    }
+    await expect(rewards.redeem({
+      uid,
+      requestId: "redeem-4",
+      payloadFingerprint: payloadFingerprint({
+        rewardId,
+        offerVersion: "v1",
+        displayedCost: 12,
+      }),
+      rewardId,
+      offerVersion: "v1",
+      displayedCost: 12,
+      now,
+    })).rejects.toMatchObject({ code: "insufficient_points" });
+  });
+
   it("moves 37 to 25 to 12 and replays the same request without a second debit", async () => {
     const first = await rewards.redeem({
       uid,
@@ -82,6 +113,15 @@ describe("atomic reward redemption", () => {
     expect(replay).toMatchObject({ replayed: true, redemptionId: first.redemptionId, balance: 25 });
     expect((await firestore.doc(`residents/${uid}/wallet/current`).get()).data()?.balance).toBe(25);
     expect((await firestore.collection("walletEntries").get()).size).toBe(1);
+    expect((await firestore.collection("redemptions").get()).size).toBe(1);
+    expect((await firestore.collection("vouchers").get()).size).toBe(1);
+    expect((await firestore.collection("vouchers").limit(1).get()).docs[0].data()).toMatchObject({
+      residentId: uid,
+      rewardId,
+      merchant: "EcoLoop Cafe",
+      terms: "One drink",
+      status: "available",
+    });
   });
 
   it("rejects changed price and insufficient balance without writing", async () => {

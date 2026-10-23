@@ -12,6 +12,7 @@ void main() {
       storageHost: '127.0.0.1',
       emulatorPort: 8080,
       useAppCheck: false,
+      webAppCheckSiteKey: '',
     );
 
     config.validate();
@@ -29,6 +30,7 @@ void main() {
       storageHost: '127.0.0.1',
       emulatorPort: 8080,
       useAppCheck: true,
+      webAppCheckSiteKey: '',
     );
 
     config.validate();
@@ -46,6 +48,7 @@ void main() {
       storageHost: '127.0.0.1',
       emulatorPort: 0,
       useAppCheck: false,
+      webAppCheckSiteKey: '',
     );
 
     expect(config.validate, throwsFormatException);
@@ -61,6 +64,7 @@ void main() {
       storageHost: '',
       emulatorPort: 8080,
       useAppCheck: false,
+      webAppCheckSiteKey: '',
     );
 
     expect(config.validate, throwsFormatException);

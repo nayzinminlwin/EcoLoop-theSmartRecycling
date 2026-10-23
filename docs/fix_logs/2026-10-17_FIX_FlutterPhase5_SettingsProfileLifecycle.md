@@ -8,7 +8,7 @@
 
 ## 1. Triggered By
 
-- **QA Report:** `docs/FLUTTER_UI_IMPLEMENTATION_AUDIT.md`
+- **QA Report:** `docs/archive/FLUTTER_UI_IMPLEMENTATION_AUDIT.md`
 - **Error Summary:** Account layouts did not match the supplied compositions and
   failed account writes replaced editable forms with read-error screens.
 

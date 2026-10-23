@@ -24,6 +24,7 @@ import { FirestoreAdminAlertsStore } from "./infrastructure/firestore/admin_aler
 import { FirestoreAdminReviewsStore } from "./infrastructure/firestore/admin_reviews_store.js";
 import { FirestoreAdminRewardsStore } from "./infrastructure/firestore/admin_rewards_store.js";
 import { FirestoreAdminDashboardStore } from "./infrastructure/firestore/admin_dashboard_store.js";
+import { CloudTasksDispatcher, createDispatchConfig } from "./infrastructure/cloud_tasks.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
 
@@ -91,6 +92,7 @@ export function createComposition() {
     adminDashboard,
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
+    dispatcher: new CloudTasksDispatcher(firestore, createDispatchConfig()),
     jobs: new FirestoreJobsStore(firestore),
     settlements: new FirestoreSettlementStore(firestore),
     rewards: new FirestoreRewardsStore(firestore),
@@ -99,6 +101,7 @@ export function createComposition() {
       new FirestoreNotificationsStore(firestore),
       new FirebaseMessagingProvider(app),
     ),
+    logger,
     maintenance: new FirestoreMaintenanceStore(firestore, storageBucket),
   };
 }
