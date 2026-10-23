@@ -456,6 +456,15 @@ loading. When diagnosing a dashboard load failure, inspect the first Flutter
 `command.call_*` event and the activity record schema before retrying or
 signing out.
 
+Account changes must invalidate resident-scoped scan dependencies. The scan
+repository and command client are keyed by the authenticated Firebase UID; if
+they survive an account switch, a valid session created for the new account
+can be checked against the previous account's UID and incorrectly surface as
+`permissionDenied`. The provider now invalidates itself whenever the resident
+UID changes, preventing stale ownership checks and cross-account session
+restoration. This was verified on the Android device at
+`2026-10-23T22:07:08.086+08:00` after a hot restart.
+
 ### Administrative Web Portal
 
 From [`apps/admin-web/`](apps/admin-web):

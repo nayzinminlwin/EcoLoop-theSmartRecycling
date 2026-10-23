@@ -199,6 +199,7 @@ final walletSnapshotProvider = StreamProvider<WalletSnapshot?>(
 final scanRepositoryProvider = Provider<ScanRepository>((ref) {
   final config = ref.watch(runtimeConfigProvider);
   if (config.mode != FirebaseMode.mock) {
+    ref.listen(residentUidProvider, (_, _) => ref.invalidateSelf());
     final clients = ref.watch(firebaseClientsProvider);
     final uid = clients?.auth.currentUser?.uid;
     if (clients == null || uid == null) {
