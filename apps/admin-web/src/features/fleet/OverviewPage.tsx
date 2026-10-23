@@ -40,7 +40,7 @@ const MATERIAL_COLORS: Record<MaterialType | string, string> = {
 const COLLECTION_LABELS: Record<CollectionStatus, string> = {
   notScheduled: "Not Scheduled",
   pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
+  scheduled: "Pending Collection",
   collected: "Collected"
 };
 
@@ -166,11 +166,20 @@ export function OverviewPage(): React.ReactElement {
     {
       id: "collection",
       header: "Collection",
-      cell: (row) => (
-        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-          {COLLECTION_LABELS[row.operations.collectionStatus]}
-        </span>
-      )
+      cell: (row) => {
+        const cs = row.operations.collectionStatus;
+        if (cs === "collected") {
+          return <Badge tone="green">Collected</Badge>;
+        }
+        if (cs === "pending" || cs === "scheduled") {
+          return <Badge tone="amber">Pending Collection</Badge>;
+        }
+        return (
+          <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+            Not Scheduled
+          </span>
+        );
+      }
     }
   ];
 

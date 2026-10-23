@@ -65,69 +65,69 @@ const PROGRAM_CLASS_GROUPS: {
   title: string;
   classes: ClassDef[];
 }[] = [
-  {
-    category: "plastic",
-    title: "Plastic Stream",
-    classes: [
-      {
-        id: "plastic_bottle",
-        label: "Plastic bottles",
-        description: "Clean PET and HDPE beverage bottles and liquid containers",
-        category: "plastic",
-      },
-    ],
-  },
-  {
-    category: "aluminium",
-    title: "Metal / Aluminium Stream",
-    classes: [
-      {
-        id: "aluminium_can",
-        label: "Aluminium cans",
-        description: "Clean beverage cans (generic metal cans require subtype inspection)",
-        category: "aluminium",
-      },
-    ],
-  },
-  {
-    category: "glass",
-    title: "Glass Stream",
-    classes: [
-      {
-        id: "glass_bottle",
-        label: "Glass bottles",
-        description: "Clean beverage and food jars (broken glassware and window panes excluded)",
-        category: "glass",
-      },
-    ],
-  },
-  {
-    category: "paper",
-    title: "Paper Stream & Excluded Cardboard",
-    classes: [
-      {
-        id: "paper_item",
-        label: "Paper items",
-        description: "Clean office paper, notebooks, mail, flyers, and magazines",
-        category: "paper",
-      },
-      {
-        id: "paper_bag",
-        label: "Paper bags",
-        description: "Clean unlined paper grocery and shopping bags",
-        category: "paper",
-      },
-      {
-        id: "cardboard_item",
-        label: "Cardboard (Boxes & Cartons)",
-        description: "Bulky corrugated cardboard and packaging boxes",
-        category: "paper",
-        excluded: true,
-        exclusionReason: "Excluded from smart bin acceptance — Bulky stream must be brought to manual recycling hubs",
-      },
-    ],
-  },
-];
+    {
+      category: "plastic",
+      title: "Plastic Stream",
+      classes: [
+        {
+          id: "plastic_bottle",
+          label: "Plastic bottles",
+          description: "Clean PET and HDPE beverage bottles and liquid containers",
+          category: "plastic",
+        },
+      ],
+    },
+    {
+      category: "aluminium",
+      title: "Metal / Aluminium Stream",
+      classes: [
+        {
+          id: "aluminium_can",
+          label: "Aluminium cans",
+          description: "Clean beverage cans (generic metal cans require subtype inspection)",
+          category: "aluminium",
+        },
+      ],
+    },
+    {
+      category: "glass",
+      title: "Glass Stream",
+      classes: [
+        {
+          id: "glass_bottle",
+          label: "Glass bottles",
+          description: "Clean beverage and food jars (broken glassware and window panes excluded)",
+          category: "glass",
+        },
+      ],
+    },
+    {
+      category: "paper",
+      title: "Paper Stream & Excluded Cardboard",
+      classes: [
+        {
+          id: "paper_item",
+          label: "Paper items",
+          description: "Clean office paper, notebooks, mail, flyers, and magazines",
+          category: "paper",
+        },
+        {
+          id: "paper_bag",
+          label: "Paper bags",
+          description: "Clean unlined paper grocery and shopping bags",
+          category: "paper",
+        },
+        {
+          id: "cardboard_item",
+          label: "Cardboard (Boxes & Cartons)",
+          description: "Bulky corrugated cardboard and packaging boxes",
+          category: "paper",
+          excluded: true,
+          exclusionReason: "Excluded from smart bin acceptance — Bulky stream must be brought to manual recycling hubs",
+        },
+      ],
+    },
+  ];
 
 function cloneForm(state: SettingsFormState): SettingsFormState {
   return {
@@ -201,8 +201,8 @@ export function SettingsPage(): React.ReactElement {
   // Version conflict detection: dirty draft exists while background data has moved ahead
   const isVersionConflict = Boolean(
     isDirty &&
-      settingsQuery.data?.version !== undefined &&
-      settingsQuery.data.version > baseVersion
+    settingsQuery.data?.version !== undefined &&
+    settingsQuery.data.version > baseVersion
   );
 
   // Unconditional React Router blocker
@@ -616,9 +616,8 @@ export function SettingsPage(): React.ReactElement {
                         {group.title}
                       </span>
                       <span
-                        className={`class-category-badge ${
-                          isGroupEligible ? "eligible" : "ineligible"
-                        }`}
+                        className={`class-category-badge ${isGroupEligible ? "eligible" : "ineligible"
+                          }`}
                       >
                         {isGroupEligible ? "Stream Active" : "Stream Inactive"}
                       </span>
@@ -632,9 +631,8 @@ export function SettingsPage(): React.ReactElement {
                         return (
                           <label
                             key={cls.id}
-                            className={`class-option-card ${
-                              isChecked ? "selected" : ""
-                            } ${isExcluded ? "disabled" : ""}`}
+                            className={`class-option-card ${isChecked ? "selected" : ""
+                              } ${isExcluded ? "disabled" : ""}`}
                           >
                             <input
                               type="checkbox"

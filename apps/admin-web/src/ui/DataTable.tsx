@@ -6,6 +6,7 @@
 import * as React from "react";
 import type { SortSpec } from "../contracts/admin.ts";
 import { AsyncState } from "./primitives.tsx";
+import "./data-table.css";
 
 export interface Column<T, K extends string> {
   id: string;
@@ -69,10 +70,10 @@ export function DataTable<T, K extends string>(props: DataTableProps<T, K>): Rea
               const ariaSort = !col.sortKey
                 ? undefined
                 : isSorted
-                ? sort.direction === "asc"
-                  ? "ascending"
-                  : "descending"
-                : "none";
+                  ? sort.direction === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none";
 
               return (
                 <th

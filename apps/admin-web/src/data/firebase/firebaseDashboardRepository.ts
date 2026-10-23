@@ -81,14 +81,19 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         for (const d of binsSnap.docs) {
           binMap.set(d.id, { id: d.id, ...d.data() });
         }
-      } catch {}
+      } catch { }
       try {
         const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
         for (const d of viewsSnap.docs) {
           const existing = binMap.get(d.id) ?? { id: d.id };
-          binMap.set(d.id, { ...existing, ...d.data() });
+          const merged = { ...existing, ...d.data() };
+          const existingFill = Number(existing.fillPercent) > 0 ? Number(existing.fillPercent) : Number(existing.capacityPercent) > 0 ? Number(existing.capacityPercent) : 0;
+          if (existingFill > 0 && (!d.data().fillPercent || Number(d.data().fillPercent) === 0)) {
+            merged.fillPercent = existingFill;
+          }
+          binMap.set(d.id, merged);
         }
-      } catch {}
+      } catch { }
       const allBins = Array.from(binMap.values());
 
       const attentionBins: Array<{
@@ -100,7 +105,8 @@ export class FirebaseDashboardRepository implements DashboardRepository {
       }> = [];
 
       for (const b of allBins) {
-        const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
+        const rawFill = Number(b.fillPercent) > 0 ? Number(b.fillPercent) : Number(b.capacityPercent) > 0 ? Number(b.capacityPercent) : 0;
+        const fill = Math.max(0, Math.min(100, Math.round(rawFill)));
         const isEnabled = b.enabled !== false;
         const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
         const isOnline = isEnabled && isLogicalOnline;
@@ -126,7 +132,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         for (const d of capSnap.docs) {
           alertMap.set(d.id, { id: d.id, ...d.data() });
         }
-      } catch {}
+      } catch { }
       try {
         const viewsSnap = await getDocs(collection(this.firestore, "adminAlertViews"));
         for (const d of viewsSnap.docs) {
@@ -134,14 +140,15 @@ export class FirebaseDashboardRepository implements DashboardRepository {
             alertMap.set(d.id, { id: d.id, ...d.data() });
           }
         }
-      } catch {}
+      } catch { }
       const activeAlerts = Array.from(alertMap.values()).filter((a) => {
         const state = a.state;
         if (state === "resolved" || state === "closed") return false;
         const binId = String(a.binId ?? "");
         const bin = binMap.get(binId);
         if (bin) {
-          const fill = Math.max(0, Math.min(100, Math.round(Number(bin.fillPercent ?? bin.capacityPercent ?? 0))));
+          const rawFill = Number(bin.fillPercent) > 0 ? Number(bin.fillPercent) : Number(bin.capacityPercent) > 0 ? Number(bin.capacityPercent) : 0;
+          const fill = Math.max(0, Math.min(100, Math.round(rawFill)));
           const threshold = Number(a.threshold ?? a.thresholdPercent ?? a.thresholdSnapshot ?? 85);
           if (fill < threshold) return false;
         }
@@ -156,7 +163,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
           const state = d.data().state ?? d.data().status;
           return state === "open" || state === "awaiting_review" || state === "awaitingReview";
         }).length;
-      } catch {}
+      } catch { }
 
       // 4. Deposits
       const depMap = new Map<string, Record<string, unknown>>();
@@ -165,7 +172,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         for (const d of depSnap.docs) {
           depMap.set(d.id, { id: d.id, ...d.data() });
         }
-      } catch {}
+      } catch { }
       try {
         const batchSnap = await getDocs(collection(this.firestore, "batches"));
         for (const d of batchSnap.docs) {
@@ -173,7 +180,7 @@ export class FirebaseDashboardRepository implements DashboardRepository {
             depMap.set(d.id, { id: d.id, ...d.data() });
           }
         }
-      } catch {}
+      } catch { }
       const depDocs = Array.from(depMap.values());
 
       let totalVerifiedDeposits = 0;
@@ -329,14 +336,19 @@ export class FirebaseDashboardRepository implements DashboardRepository {
         for (const d of binsSnap.docs) {
           binMap.set(d.id, { id: d.id, ...d.data() });
         }
-      } catch {}
+      } catch { }
       try {
         const viewsSnap = await getDocs(collection(this.firestore, "adminBinViews"));
         for (const d of viewsSnap.docs) {
           const existing = binMap.get(d.id) ?? { id: d.id };
-          binMap.set(d.id, { ...existing, ...d.data() });
+          const merged = { ...existing, ...d.data() };
+          const existingFill = Number(existing.fillPercent) > 0 ? Number(existing.fillPercent) : Number(existing.capacityPercent) > 0 ? Number(existing.capacityPercent) : 0;
+          if (existingFill > 0 && (!d.data().fillPercent || Number(d.data().fillPercent) === 0)) {
+            merged.fillPercent = existingFill;
+          }
+          binMap.set(d.id, merged);
         }
-      } catch {}
+      } catch { }
       const allBins = Array.from(binMap.values());
       if (allBins.length === 0) return;
 
@@ -345,7 +357,8 @@ export class FirebaseDashboardRepository implements DashboardRepository {
 
       for (const b of allBins) {
         const binId = String(b.binId ?? b.id);
-        const fill = Math.max(0, Math.min(100, Math.round(Number(b.fillPercent ?? b.capacityPercent ?? 0))));
+        const rawFill = Number(b.fillPercent) > 0 ? Number(b.fillPercent) : Number(b.capacityPercent) > 0 ? Number(b.capacityPercent) : 0;
+        const fill = Math.max(0, Math.min(100, Math.round(rawFill)));
         const isEnabled = b.enabled !== false;
         const isLogicalOnline = b.logicalOnline !== false && b.isOnline !== false;
         const isOnline = isEnabled && isLogicalOnline;
@@ -371,11 +384,12 @@ export class FirebaseDashboardRepository implements DashboardRepository {
             },
             operations: {
               binId,
-              collectionStatus: colState === "critical" || colState === "collection_pending"
-                ? "pending"
-                : band === "warning"
-                ? "scheduled"
-                : "notScheduled",
+              collectionStatus:
+                b.collectionStatus === "collected" || b.collectionState === "collected"
+                  ? "collected"
+                  : b.collectionStatus === "pending" || b.collectionStatus === "scheduled" || b.collectionState === "collection_pending"
+                    ? "pending"
+                    : "notScheduled",
             },
           });
         }

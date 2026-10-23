@@ -37,7 +37,7 @@ import "./operations.css";
 const COLLECTION_LABELS: Record<CollectionStatus, string> = {
   notScheduled: "Not Scheduled",
   pending: "Pending Collection",
-  scheduled: "Collection Scheduled",
+  scheduled: "Pending Collection",
   collected: "Collected"
 };
 
@@ -135,12 +135,20 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
   }
 
   const { alert, bin, operations } = row;
-  const isResolved = alert.status === "resolved";
-  const isCollected = operations.collectionStatus === "collected";
-  const isScheduled = operations.collectionStatus === "scheduled";
-  const isPendingOrNot =
-    operations.collectionStatus === "pending" ||
-    operations.collectionStatus === "notScheduled";
+  const rawAlert = alert as unknown as Record<string, unknown>;
+  const alertState = typeof rawAlert.state === "string" ? rawAlert.state : undefined;
+
+  const isResolved = alert.status === "resolved" || alertState === "resolved";
+  const isCollected =
+    !isResolved &&
+    (operations.collectionStatus === "collected" || alertState === "collected");
+  const isScheduled =
+    !isResolved &&
+    !isCollected &&
+    (alertState === "scheduled" ||
+      operations.collectionStatus === "scheduled" ||
+      (operations.collectionStatus === "pending" && alertState !== "pending"));
+  const isBeforeSchedule = !isScheduled && !isCollected && !isResolved;
 
   // 5-step workflow computation:
   // Uses alert.thresholdPercent snapshot rather than hardcoded 85
@@ -278,7 +286,8 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
               tone={
                 operations.collectionStatus === "collected"
                   ? "green"
-                  : operations.collectionStatus === "scheduled"
+                  : operations.collectionStatus === "scheduled" ||
+                    operations.collectionStatus === "pending"
                     ? "amber"
                     : "gray"
               }
@@ -295,7 +304,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
 
       {/* Lifecycle Actions */}
       <div className="alert-actions">
-        {!isResolved && isPendingOrNot && (
+        {!isResolved && isBeforeSchedule && (
           <Button
             variant="primary"
             busy={actionMutation.pending}
@@ -305,7 +314,7 @@ function AlertDetailPanel(props: AlertDetailPanelProps): React.ReactElement {
           </Button>
         )}
 
-        {!isResolved && isScheduled && (
+        {!isResolved && isScheduled && !isCollected && (
           <Button
             variant="primary"
             busy={actionMutation.pending}
@@ -517,7 +526,7 @@ export function CapacityAlertsPage(): React.ReactElement {
             tone={
               cs === "collected"
                 ? "green"
-                : cs === "scheduled"
+                : cs === "scheduled" || cs === "pending"
                   ? "amber"
                   : "gray"
             }

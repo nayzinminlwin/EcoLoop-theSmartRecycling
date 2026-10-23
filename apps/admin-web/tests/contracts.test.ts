@@ -680,7 +680,7 @@ describe("Phase 3 — Alert Lifecycle & Transitions", () => {
     assert.equal(alertsPage.resolvedCount, 0);
 
     const alertId = alertsPage.items[0].alert.id;
-    assert.equal(alertsPage.items[0].operations.collectionStatus, "pending");
+    assert.equal(alertsPage.items[0].operations.collectionStatus, "notScheduled");
 
     // Cannot resolve or collect directly before scheduled
     await assert.rejects(
@@ -901,7 +901,7 @@ describe("Phase 3 — Watch / Observable Contract", () => {
       next(val) {
         emitted.push(val.isSignedIn);
       },
-      error() {}
+      error() { }
     });
 
     await new Promise((r) => setTimeout(r, 20));

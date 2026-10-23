@@ -457,9 +457,9 @@ export function createMockRepositories(options?: {
         });
         const ops = state.binOperations.find((o) => o.binId === bin.id);
         if (ops) {
-          ops.collectionStatus = "pending";
+          ops.collectionStatus = "notScheduled";
         } else {
-          state.binOperations.push({ binId: bin.id, collectionStatus: "pending" });
+          state.binOperations.push({ binId: bin.id, collectionStatus: "notScheduled" });
         }
       }
     } else {
@@ -835,6 +835,7 @@ export function createMockRepositories(options?: {
 
       alert.status = "resolved";
       alert.resolvedAt = MOCK_NOW;
+      ops.collectionStatus = "notScheduled";
       notifyCommit();
       return clone(getAlertRow(id));
     }

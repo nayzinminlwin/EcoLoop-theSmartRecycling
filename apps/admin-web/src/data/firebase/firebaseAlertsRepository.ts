@@ -68,10 +68,36 @@ export class FirebaseAlertsRepository implements AlertsRepository {
   }
 
   private filterAndPaginateAlerts(rows: CapacityAlertRow[], query: AlertListQuery): AlertPage {
-    const activeCount = rows.filter((r) => r.alert.status === "active").length;
-    const resolvedCount = rows.filter((r) => r.alert.status === "resolved").length;
+    // Deduplicate active alerts by binId to prevent multiple active alerts for the same bin
+    const activeBinMap = new Map<string, CapacityAlertRow>();
+    const resolvedRows: CapacityAlertRow[] = [];
 
-    let filtered = rows.filter((r) => r.alert.status === query.status);
+    for (const r of rows) {
+      if (r.alert.status === "active") {
+        const existing = activeBinMap.get(r.bin.id);
+        if (!existing) {
+          activeBinMap.set(r.bin.id, r);
+        } else {
+          const isCurrentCanonical = r.alert.id.includes("cycle");
+          const isExistingCanonical = existing.alert.id.includes("cycle");
+          if (isCurrentCanonical && !isExistingCanonical) {
+            activeBinMap.set(r.bin.id, r);
+          } else if (new Date(r.alert.triggeredAt).getTime() > new Date(existing.alert.triggeredAt).getTime() && isCurrentCanonical === isExistingCanonical) {
+            activeBinMap.set(r.bin.id, r);
+          }
+        }
+      } else {
+        resolvedRows.push(r);
+      }
+    }
+
+    const dedupedActiveRows = Array.from(activeBinMap.values());
+    const dedupedAllRows = [...dedupedActiveRows, ...resolvedRows];
+
+    const activeCount = dedupedActiveRows.length;
+    const resolvedCount = resolvedRows.length;
+
+    let filtered = dedupedAllRows.filter((r) => r.alert.status === query.status);
 
     if (query.search && query.search.trim()) {
       const q = query.search.toLowerCase().trim();
@@ -174,7 +200,8 @@ export class FirebaseAlertsRepository implements AlertsRepository {
         const binsSnap = await getDocs(collection(this.firestore, "bins"));
         for (const b of binsSnap.docs) {
           const bData = b.data();
-          const cap = Math.max(0, Math.min(100, Math.round(Number(bData.fillPercent ?? bData.capacityPercent ?? 0))));
+          const rawCap = Number(bData.fillPercent) > 0 ? Number(bData.fillPercent) : Number(bData.capacityPercent) > 0 ? Number(bData.capacityPercent) : 0;
+          const cap = Math.max(0, Math.min(100, Math.round(rawCap)));
           binLocationMap.set(b.id, {
             locationName: String(bData.locationName ?? bData.displayName ?? b.id),
             locationDetail: String(bData.locationDetail ?? "Standard Facility"),
@@ -184,14 +211,57 @@ export class FirebaseAlertsRepository implements AlertsRepository {
         }
       } catch {}
 
+      // Ensure any bin currently exceeding threshold (>= 85%) has an active alert
+      for (const [binId, bInfo] of binLocationMap.entries()) {
+        if (bInfo.capacityPercent >= 85 && bInfo.isOnline) {
+          const existingAlerts = Array.from(alertMap.values()).filter((a) => a.binId === binId);
+          const hasActiveAlert = existingAlerts.some((a) => a.state !== "resolved");
+
+          if (!hasActiveAlert) {
+            const targetAlert = existingAlerts[0];
+            const alertId = String(targetAlert?.alertId || `alert-${binId}-cycle-001`);
+            const nowIso = new Date().toISOString();
+
+            const activatedAlert = {
+              ...(targetAlert || {}),
+              alertId,
+              binId,
+              locationName: bInfo.locationName,
+              cycleId: targetAlert?.cycleId || `cycle-${binId}-001`,
+              triggeringFillPercent: bInfo.capacityPercent,
+              currentFillPercent: bInfo.capacityPercent,
+              threshold: targetAlert?.threshold || 85,
+              operationalSettingsVersion: 1,
+              state: "pending",
+              version: Number(targetAlert?.version ?? 0) + 1,
+              triggeredAt: nowIso,
+              resolvedAt: null,
+              resolvedBy: null,
+              collectedAt: null,
+              collectedBy: null,
+              scheduledAt: null,
+              scheduledBy: null,
+            };
+
+            alertMap.set(alertId, activatedAlert);
+
+            try {
+              setDoc(doc(this.firestore, "capacityAlerts", alertId), activatedAlert, { merge: true });
+              setDoc(doc(this.firestore, "adminAlertViews", alertId), activatedAlert, { merge: true });
+              setDoc(doc(this.firestore, "adminReadVersions", "alerts"), { topic: "alerts", version: increment(1), updatedAt: serverTimestamp() }, { merge: true });
+            } catch {}
+          }
+        }
+      }
+
       const rows: CapacityAlertRow[] = Array.from(alertMap.values()).map((raw) => {
         const view = decodeAdminAlertView(raw);
         const binInfo = binLocationMap.get(view.binId);
 
-        // If the live bin has capacity lower than threshold and alert was not yet marked resolved:
-        const liveCap = binInfo ? binInfo.capacityPercent : view.currentFillPercent;
+        const isResolved = view.state === "resolved";
+        const liveCap = isResolved ? 0 : (binInfo ? binInfo.capacityPercent : view.currentFillPercent);
         let effectiveView: AdminAlertView = view;
-        if (liveCap < (view.threshold || 85) && view.state !== "resolved") {
+        if (liveCap < (view.threshold || 85) && !isResolved && view.state !== "collected" && view.state !== "scheduled") {
           effectiveView = {
             ...view,
             state: "resolved",
@@ -275,6 +345,14 @@ export class FirebaseAlertsRepository implements AlertsRepository {
       } catch {
         // Non-blocking counter fallback
       }
+
+      // Check live Firestore records to ensure real-time consistency with manual bin edits
+      try {
+        const firestorePage = await this.listFromFirestore(query);
+        if (firestorePage && firestorePage.total > 0) {
+          return firestorePage;
+        }
+      } catch {}
 
       return {
         items,
@@ -455,14 +533,22 @@ export class FirebaseAlertsRepository implements AlertsRepository {
               const binSnap = await getDoc(doc(this.firestore, "bins", decoded.binId));
               if (binSnap.exists()) {
                 const bData = binSnap.data();
-                const fill = Math.max(0, Math.min(100, Math.round(Number(bData.fillPercent ?? bData.capacityPercent ?? 0))));
+                const rawFill = Number(bData.fillPercent) > 0 ? Number(bData.fillPercent) : Number(bData.capacityPercent) > 0 ? Number(bData.capacityPercent) : 0;
+                const fill = Math.max(0, Math.min(100, Math.round(rawFill)));
                 binDoc = {
                   locationName: String(bData.locationName ?? bData.displayName ?? decoded.locationName),
                   locationDetail: String(bData.locationDetail ?? "Standard Facility"),
                   isOnline: bData.isOnline !== false && bData.logicalOnline !== false && bData.enabled !== false,
                   capacityPercent: fill,
                 };
-                if (fill < (decoded.threshold || 85) && decoded.state !== "resolved") {
+                const isResolved = decoded.state === "resolved";
+                if (isResolved) {
+                  effectiveView = {
+                    ...decoded,
+                    currentFillPercent: 0,
+                  };
+                  if (binDoc) binDoc.capacityPercent = 0;
+                } else if (fill < (decoded.threshold || 85) && decoded.state !== "collected" && decoded.state !== "scheduled") {
                   effectiveView = {
                     ...decoded,
                     state: "resolved",
@@ -619,6 +705,16 @@ export class FirebaseAlertsRepository implements AlertsRepository {
             doc(this.firestore, "adminBinViews", raw.binId),
             {
               collectionState: "collection_pending",
+              collectionStatus: "pending",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          await setDoc(
+            doc(this.firestore, "bins", raw.binId),
+            {
+              collectionStatus: "pending",
               updatedAt: serverTimestamp(),
             },
             { merge: true }
@@ -628,6 +724,11 @@ export class FirebaseAlertsRepository implements AlertsRepository {
         await setDoc(
           doc(this.firestore, "adminReadVersions", "alerts"),
           { topic: "alerts", version: increment(1), updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        await setDoc(
+          doc(this.firestore, "adminReadVersions", "bins"),
+          { topic: "bins", version: increment(1), updatedAt: serverTimestamp() },
           { merge: true }
         );
       } catch {
@@ -687,6 +788,7 @@ export class FirebaseAlertsRepository implements AlertsRepository {
               occupiedSpc: 0,
               fillPercent: 0,
               collectionState: "normal",
+              collectionStatus: "collected",
               lastCollectionTime: nowIso,
               updatedAt: serverTimestamp(),
             },
@@ -698,6 +800,8 @@ export class FirebaseAlertsRepository implements AlertsRepository {
             {
               occupiedSpc: 0,
               fillPercent: 0,
+              capacityPercent: 0,
+              collectionStatus: "collected",
               updatedAt: serverTimestamp(),
             },
             { merge: true }
@@ -719,12 +823,33 @@ export class FirebaseAlertsRepository implements AlertsRepository {
       }
     }
 
+    if (binId) {
+      try {
+        await setDoc(
+          doc(this.firestore, "bins", binId),
+          { occupiedSpc: 0, fillPercent: 0, capacityPercent: 0, collectionStatus: "collected", updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        await setDoc(
+          doc(this.firestore, "adminBinViews", binId),
+          { occupiedSpc: 0, fillPercent: 0, collectionState: "normal", collectionStatus: "collected", updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        await setDoc(
+          doc(this.firestore, "adminReadVersions", "bins"),
+          { topic: "bins", version: increment(1), updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch {}
+    }
+
     return await this.get(id);
   }
 
   async resolve(id: string): Promise<CapacityAlertRow> {
     const raw = await this.getRawAlert(id);
     const expectedVersion = Number(raw.version ?? 1);
+    const binId = raw.binId;
 
     try {
       await this.commandClient.execute("adminResolveCapacityAlert", {
@@ -739,6 +864,7 @@ export class FirebaseAlertsRepository implements AlertsRepository {
 
         await updateDoc(doc(this.firestore, "adminAlertViews", id), {
           state: "resolved",
+          currentFillPercent: 0,
           version: nextVersion,
           resolvedAt: nowIso,
           updatedAt: serverTimestamp(),
@@ -746,19 +872,50 @@ export class FirebaseAlertsRepository implements AlertsRepository {
 
         await updateDoc(doc(this.firestore, "capacityAlerts", id), {
           state: "resolved",
+          currentFillPercent: 0,
           version: nextVersion,
           resolvedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        if (raw.binId) {
+        if (binId) {
           await setDoc(
-            doc(this.firestore, "binCollectionState", raw.binId),
+            doc(this.firestore, "binCollectionState", binId),
             {
               activeAlertId: null,
               status: "normal",
               updatedAt: serverTimestamp(),
             },
+            { merge: true }
+          );
+
+          await setDoc(
+            doc(this.firestore, "adminBinViews", binId),
+            {
+              occupiedSpc: 0,
+              fillPercent: 0,
+              collectionState: "normal",
+              collectionStatus: "notScheduled",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          await setDoc(
+            doc(this.firestore, "bins", binId),
+            {
+              occupiedSpc: 0,
+              fillPercent: 0,
+              capacityPercent: 0,
+              collectionStatus: "notScheduled",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+
+          await setDoc(
+            doc(this.firestore, "adminReadVersions", "bins"),
+            { topic: "bins", version: increment(1), updatedAt: serverTimestamp() },
             { merge: true }
           );
         }
@@ -771,6 +928,26 @@ export class FirebaseAlertsRepository implements AlertsRepository {
       } catch {
         return await this.fallbackAlertsRepo.resolve(id);
       }
+    }
+
+    if (binId) {
+      try {
+        await setDoc(
+          doc(this.firestore, "bins", binId),
+          { occupiedSpc: 0, fillPercent: 0, capacityPercent: 0, collectionStatus: "notScheduled", updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        await setDoc(
+          doc(this.firestore, "adminBinViews", binId),
+          { occupiedSpc: 0, fillPercent: 0, collectionState: "normal", collectionStatus: "notScheduled", updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+        await setDoc(
+          doc(this.firestore, "adminReadVersions", "bins"),
+          { topic: "bins", version: increment(1), updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch {}
     }
 
     return await this.get(id);
