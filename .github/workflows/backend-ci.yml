@@ -16,7 +16,8 @@ on:
       - ".github/workflows/backend-ci.yml"
       - ".github/workflows/android-release.yml"
   push:
-    branches: [main]
+    branches:
+      - "**"
     paths:
       - "functions/**"
       - "services/vision/**"
