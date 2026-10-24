@@ -13,6 +13,17 @@ import { FirestoreNotificationsStore } from "./infrastructure/firestore/notifica
 import { FirebaseMessagingProvider } from "./infrastructure/messaging.js";
 import { DurableNotificationDispatcher } from "./application/notifications.js";
 import { FirestoreMaintenanceStore } from "./infrastructure/firestore/maintenance_store.js";
+import { FirestoreAdminAccountsStore } from "./infrastructure/firestore/admin_accounts_store.js";
+import { FirestoreAdminOperationsStore } from "./infrastructure/firestore/admin_operations_store.js";
+import { FirestoreAdminReadVersionsStore } from "./infrastructure/firestore/admin_read_versions_store.js";
+import { FirestoreAdminProjectionsStore } from "./infrastructure/firestore/admin_projections_store.js";
+import { FirestoreAdminQueriesStore } from "./infrastructure/firestore/admin_queries_store.js";
+import { FirestoreAdminBinsStore } from "./infrastructure/firestore/admin_bins_store.js";
+import { FirestoreAdminSettingsStore } from "./infrastructure/firestore/admin_settings_store.js";
+import { FirestoreAdminAlertsStore } from "./infrastructure/firestore/admin_alerts_store.js";
+import { FirestoreAdminReviewsStore } from "./infrastructure/firestore/admin_reviews_store.js";
+import { FirestoreAdminRewardsStore } from "./infrastructure/firestore/admin_rewards_store.js";
+import { FirestoreAdminDashboardStore } from "./infrastructure/firestore/admin_dashboard_store.js";
 import { CloudTasksDispatcher, createDispatchConfig } from "./infrastructure/cloud_tasks.js";
 
 let composition: ReturnType<typeof createComposition> | undefined;
@@ -24,11 +35,61 @@ export function createComposition() {
   const logger = new StructuredLogger(process.env.NODE_ENV ?? "production");
   const storageBucketName = process.env.ECOLOOP_STORAGE_BUCKET ?? app.options.storageBucket;
   const storageBucket = storageBucketName === undefined ? undefined : getStorage(app).bucket(storageBucketName);
+
+  const adminOperations = new FirestoreAdminOperationsStore(firestore);
+  const adminReadVersions = new FirestoreAdminReadVersionsStore(firestore);
+  const adminProjections = new FirestoreAdminProjectionsStore(firestore);
+  const adminQueries = new FirestoreAdminQueriesStore(firestore);
+  const adminBins = new FirestoreAdminBinsStore(
+    firestore,
+    adminOperations,
+    adminProjections,
+    adminReadVersions
+  );
+  const adminSettings = new FirestoreAdminSettingsStore(
+    firestore,
+    adminOperations,
+    adminReadVersions
+  );
+  const adminAlerts = new FirestoreAdminAlertsStore(
+    firestore,
+    adminOperations,
+    adminProjections,
+    adminReadVersions
+  );
+  const adminReviews = new FirestoreAdminReviewsStore(
+    firestore,
+    adminOperations,
+    adminProjections,
+    adminReadVersions
+  );
+  const adminRewards = new FirestoreAdminRewardsStore(
+    firestore,
+    adminOperations,
+    adminProjections,
+    adminReadVersions
+  );
+  const adminDashboard = new FirestoreAdminDashboardStore(
+    firestore,
+    adminReadVersions
+  );
+
   return {
     app,
     firestore,
     auth,
     accounts: new FirestoreAccountsStore(firestore, auth),
+    adminAccounts: new FirestoreAdminAccountsStore(firestore, auth),
+    adminOperations,
+    adminReadVersions,
+    adminProjections,
+    adminQueries,
+    adminBins,
+    adminSettings,
+    adminAlerts,
+    adminReviews,
+    adminRewards,
+    adminDashboard,
     sessions: new FirestoreSessionsStore(firestore, logger),
     inspections: new FirestoreInspectionStore(firestore),
     dispatcher: new CloudTasksDispatcher(firestore, createDispatchConfig()),
