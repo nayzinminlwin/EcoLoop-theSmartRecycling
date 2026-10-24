@@ -1,0 +1,90 @@
+name: Android APK Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "GitHub release tag to create (for example, v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.0"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: >
+          flutter build apk --release
+          --build-number=${{ github.run_number }}
+          --dart-define=ECOLOOP_FIREBASE_MODE=firebase
+          --dart-define=ECOLOOP_FIREBASE_REGION=us-central1
+          --dart-define=ECOLOOP_FIRESTORE_DATABASE=ecoloop-db
+          --dart-define=ECOLOOP_APP_CHECK_MODE=demo-debug
+
+      - name: Validate release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="build/app/outputs/flutter-apk/app-release.apk"
+          build_tools="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+
+          test -s "$apk"
+          unzip -t "$apk"
+          "$build_tools/zipalign" -c -P 16 -v 4 "$apk"
+          "$build_tools/apksigner" verify --verbose "$apk"
+          "$build_tools/aapt" dump badging "$apk" | grep -F "package: name='sd.idk.ecoLoop'"
+
+      - name: Select release tag
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="${{ inputs.release_tag }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag must use semantic-version format such as v1.0.0." >&2
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk "ecoloop-${{ steps.release.outputs.tag }}.apk"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.release.outputs.tag }}" \
+            "ecoloop-${{ steps.release.outputs.tag }}.apk" \
+            --title "EcoLoop ${{ steps.release.outputs.tag }}" \
+            --generate-notes
