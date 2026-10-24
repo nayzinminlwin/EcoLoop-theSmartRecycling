@@ -57,3 +57,5 @@ app.*.map.json
 
 # Trash images for simulation / verification
 assets/trash_images/
+# Archive for refactor visuals
+docs/archive/refactor_visuals/
