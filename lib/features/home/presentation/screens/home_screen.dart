@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:eco_loop/app/router/app_routes.dart';
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/core/mock/app_clock.dart';
@@ -19,7 +17,6 @@ import 'package:eco_loop/features/home/presentation/widgets/scan_call_to_action.
 import 'package:eco_loop/features/home/presentation/widgets/wallet_summary_card.dart';
 import 'package:eco_loop/features/home/presentation/widgets/resident_work_card.dart';
 import 'package:eco_loop/features/activity/presentation/widgets/deposit_activity_tile.dart';
-import 'package:eco_loop/features/activity/domain/models/deposit_transaction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -109,81 +106,31 @@ class _HomeContent extends StatelessWidget {
           child: Text('No recycling activity yet.'),
         )
       else
-        _RecentRecyclingCard(deposits: data.recentDeposits, clock: clock),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadii.card),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.card),
+            child: Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < data.recentDeposits.length;
+                  index++
+                ) ...[
+                  if (index > 0) Container(height: 1, color: AppColors.border),
+                  DepositActivityTile(
+                    deposit: data.recentDeposits[index],
+                    clock: clock,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
     ],
   );
-}
-
-class _RecentRecyclingCard extends StatefulWidget {
-  const _RecentRecyclingCard({required this.deposits, required this.clock});
-
-  final List<DepositTransaction> deposits;
-  final AppClock clock;
-
-  @override
-  State<_RecentRecyclingCard> createState() => _RecentRecyclingCardState();
-}
-
-class _RecentRecyclingCardState extends State<_RecentRecyclingCard> {
-  Timer? _dismissTimer;
-  bool _isVisible = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _startDismissTimer();
-  }
-
-  @override
-  void didUpdateWidget(covariant _RecentRecyclingCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final oldLatestId = oldWidget.deposits.isEmpty
-        ? null
-        : oldWidget.deposits.first.id;
-    final latestId = widget.deposits.isEmpty ? null : widget.deposits.first.id;
-    if (oldLatestId != latestId) {
-      _dismissTimer?.cancel();
-      _isVisible = true;
-      _startDismissTimer();
-    }
-  }
-
-  @override
-  void dispose() {
-    _dismissTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startDismissTimer() {
-    _dismissTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) setState(() => _isVisible = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isVisible) return const SizedBox.shrink();
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        child: Column(
-          children: [
-            for (var index = 0; index < widget.deposits.length; index++) ...[
-              if (index > 0) Container(height: 1, color: AppColors.border),
-              DepositActivityTile(
-                deposit: widget.deposits[index],
-                clock: widget.clock,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 }

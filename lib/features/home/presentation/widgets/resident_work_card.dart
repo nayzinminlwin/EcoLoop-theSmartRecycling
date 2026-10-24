@@ -23,7 +23,9 @@ class ResidentWorkCard extends ConsumerStatefulWidget {
 
 class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
   Timer? _timer;
+  Timer? _resultDismissTimer;
   DateTime _now = DateTime.now();
+  String? _scheduledResultId;
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
   @override
   void dispose() {
     _timer?.cancel();
+    _resultDismissTimer?.cancel();
     super.dispose();
   }
 
@@ -57,6 +60,9 @@ class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
     final result = work.result;
     if (completed && result != null && work.resultSeen) {
       return const SizedBox.shrink();
+    }
+    if (completed && result != null && !work.resultSeen) {
+      _scheduleResultDismissal(result.id);
     }
     final title = completed ? _resultTitle(result) : _stageTitle(work.stage);
     final description = completed
@@ -106,6 +112,19 @@ class _ResidentWorkCardState extends ConsumerState<ResidentWorkCard> {
         ),
       ),
     );
+  }
+
+  void _scheduleResultDismissal(String resultId) {
+    if (_scheduledResultId == resultId) return;
+    _scheduledResultId = resultId;
+    _resultDismissTimer?.cancel();
+    _resultDismissTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      final work = ref.read(activeScanSessionProvider);
+      if (work?.result?.id == resultId && !work!.resultSeen) {
+        ref.read(activeScanSessionProvider.notifier).markResultSeen();
+      }
+    });
   }
 
   void _openWork(BuildContext context, ActiveScanSession work) {
