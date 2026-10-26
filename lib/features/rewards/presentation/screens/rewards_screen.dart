@@ -221,12 +221,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
     try {
       final receipt = await ref
           .read(rewardsRepositoryProvider)
-          .redeemReward(
-            reward.id,
-            _idempotencyKey!,
-            offerVersion: reward.offerVersion,
-            displayedCost: reward.pointsCost,
-          );
+          .redeemReward(reward.id, _idempotencyKey!);
       if (!mounted || !dialogNavigator.mounted) return;
       _redeeming = false;
       dialogNavigator.pop();

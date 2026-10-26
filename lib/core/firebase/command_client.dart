@@ -81,13 +81,16 @@ class CommandClient {
       if (durable) await store.clear(uid);
       return envelope;
     } on AppFailure catch (error) {
-      if (durable && error.retryable) {
+      if (durable && _shouldRecover(error)) {
         return _recover(intent, error);
       }
       if (durable) await store.clear(uid);
       rethrow;
     }
   }, uid);
+
+  bool _shouldRecover(AppFailure error) =>
+      error.retryable && error.code != AppFailureCodes.offerChanged;
 
   Future<T> _synchronized<T>(Future<T> Function() action, String key) async {
     final previous = _uidLocks[key] ?? Future<void>.value();

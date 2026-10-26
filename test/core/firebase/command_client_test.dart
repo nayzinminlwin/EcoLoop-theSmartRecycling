@@ -135,6 +135,44 @@ void main() {
     expect(await store.read('resident-1'), isNull);
   });
 
+  test(
+    'offer changes clear the stale redemption intent without recovery',
+    () async {
+      final store = PendingOperationStore(preferences: MemoryPreferences());
+      final calls = <String>[];
+      final client = CommandClient(
+        uid: 'resident-1',
+        store: store,
+        requestIdFactory: () => 'request-offer-changed',
+        transport: (operation, payload) async {
+          calls.add(operation);
+          return _error(
+            'request-offer-changed',
+            operation,
+            code: 'offer_changed',
+            retryable: true,
+          );
+        },
+      );
+
+      await expectLater(
+        client.execute('redeemReward', <String, Object?>{
+          'rewardId': 'reward-cafe',
+        }),
+        throwsA(
+          isA<AppFailure>().having(
+            (failure) => failure.code,
+            'code',
+            AppFailureCodes.offerChanged,
+          ),
+        ),
+      );
+
+      expect(calls, ['redeemReward']);
+      expect(await store.read('resident-1'), isNull);
+    },
+  );
+
   test('session actions supersede a stale renewal intent', () async {
     final store = PendingOperationStore(preferences: MemoryPreferences());
     await store.save(

@@ -11,8 +11,6 @@ import '../config/runtime_config.dart';
 import '../../firebase_options.dart';
 
 class FirebaseClients {
-  static const firestoreDatabaseId = RuntimeConfig.firestoreDatabaseId;
-
   const FirebaseClients({
     required this.app,
     required this.auth,
@@ -44,7 +42,7 @@ class FirebaseClients {
     final auth = FirebaseAuth.instanceFor(app: app);
     final firestore = FirebaseFirestore.instanceFor(
       app: app,
-      databaseId: firestoreDatabaseId,
+      databaseId: config.firestoreDatabaseId,
     );
     final functions = FirebaseFunctions.instanceFor(
       app: app,
