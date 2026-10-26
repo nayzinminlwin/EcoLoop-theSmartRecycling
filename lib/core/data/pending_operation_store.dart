@@ -51,20 +51,24 @@ abstract interface class PendingOperationPreferences {
 
 class SharedPreferencesOperationPreferences
     implements PendingOperationPreferences {
-  SharedPreferencesOperationPreferences({SharedPreferencesAsync? preferences})
-    : _preferences = preferences ?? SharedPreferencesAsync();
+  SharedPreferencesOperationPreferences({
+    Future<SharedPreferences>? preferences,
+  }) : _preferences = preferences ?? SharedPreferences.getInstance();
 
-  final SharedPreferencesAsync _preferences;
-
-  @override
-  Future<String?> read(String key) => _preferences.getString(key);
+  final Future<SharedPreferences> _preferences;
 
   @override
-  Future<void> write(String key, String value) =>
-      _preferences.setString(key, value);
+  Future<String?> read(String key) async => (await _preferences).getString(key);
 
   @override
-  Future<void> remove(String key) => _preferences.remove(key);
+  Future<void> write(String key, String value) async {
+    await (await _preferences).setString(key, value);
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    await (await _preferences).remove(key);
+  }
 }
 
 class PendingOperationStore {

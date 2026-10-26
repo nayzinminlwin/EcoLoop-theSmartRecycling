@@ -273,10 +273,11 @@ class CommandClient {
             ? details['traceId']! as String
             : null,
       );
-    } catch (error) {
+    } on Object catch (error, stackTrace) {
       _logger.error(
         'command.call_unknown_failure',
         error,
+        stackTrace: stackTrace,
         fields: <String, Object?>{
           'operation': operation,
           'requestId': requestId,

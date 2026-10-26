@@ -1,5 +1,6 @@
 import 'package:eco_loop/core/data/app_failure.dart';
 import 'package:eco_loop/core/data/pending_operation_store.dart';
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -197,6 +198,35 @@ void main() {
 
     expect(calls.single, 'request-owner-2');
     expect((await store.read('resident-1'))?.requestId, 'request-owner-1');
+  });
+
+  test('logs unknown transport failures with their stack trace', () async {
+    final store = PendingOperationStore(preferences: MemoryPreferences());
+    final lines = <String>[];
+    final client = CommandClient(
+      uid: 'resident-1',
+      store: store,
+      requestIdFactory: () => 'request-unknown',
+      logger: AppLogger(sink: lines.add),
+      transport: (operation, payload) async {
+        throw StateError('release callable failure');
+      },
+    );
+
+    await expectLater(
+      client.execute('redeemReward', <String, Object?>{
+        'rewardId': 'reward-cafe',
+      }),
+      throwsA(isA<AppFailure>()),
+    );
+
+    final log = lines.firstWhere(
+      (line) => line.contains('event=command.call_unknown_failure'),
+    );
+    expect(log, contains('event=command.call_unknown_failure'));
+    expect(log, contains('errorType=StateError'));
+    expect(log, contains('errorMessage=Bad state: release callable failure'));
+    expect(log, contains('stackTrace='));
   });
 }
 

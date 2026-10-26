@@ -61,19 +61,35 @@ class FirebaseClients {
       await storage.useStorageEmulator(config.storageHost, 9199);
     }
 
-    if (config.useAppCheck) {
-      if (!kIsWeb) {
-        if (kDebugMode) {
-          await appCheck.activate(providerAndroid: const AndroidDebugProvider());
-        } else {
-          await appCheck.activate(providerAndroid: const AndroidPlayIntegrityProvider());
-        }
+    // Always activate App Check so that Firebase callable functions work in
+    // every build mode.  Without activation, release builds send no App Check
+    // token at all; if the Firebase project has App Check enforcement turned on
+    // in the Console the callable will reject the request with a platform-level
+    // error that falls outside the app's AppFailure error-handling chain.
+    //
+    // • Debug / profile builds → AndroidDebugProvider (lightweight, always works).
+    // • Release builds with useAppCheck=true → AndroidPlayIntegrityProvider
+    //   (requires SHA-256 registered in Firebase Console + Play Integrity API).
+    // • Release builds with useAppCheck=false → still fall back to
+    //   AndroidDebugProvider so the APK keeps working without full Play
+    //   Integrity setup.
+    if (!kIsWeb) {
+      if (kDebugMode || !config.useAppCheck) {
+        await appCheck.activate(
+          providerAndroid: const AndroidDebugProvider(),
+        );
       } else {
-        if (!kDebugMode) {
-          final siteKey = config.webAppCheckSiteKey;
-          if (siteKey.isNotEmpty) {
-            await appCheck.activate(providerWeb: ReCaptchaEnterpriseProvider(siteKey));
-          }
+        await appCheck.activate(
+          providerAndroid: const AndroidPlayIntegrityProvider(),
+        );
+      }
+    } else {
+      if (config.useAppCheck && !kDebugMode) {
+        final siteKey = config.webAppCheckSiteKey;
+        if (siteKey.isNotEmpty) {
+          await appCheck.activate(
+            providerWeb: ReCaptchaEnterpriseProvider(siteKey),
+          );
         }
       }
     }

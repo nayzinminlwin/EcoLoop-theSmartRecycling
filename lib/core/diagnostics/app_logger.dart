@@ -89,14 +89,23 @@ class AppLogger {
     _sink(data.entries.map((entry) => '${entry.key}=${entry.value}').join(' '));
   }
 
-  void error(String event, Object error, {Map<String, Object?> fields = const <String, Object?>{}}) {
+  void error(
+    String event,
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, Object?> fields = const <String, Object?>{},
+  }) {
     log(
       AppLogLevel.error,
       event,
       fields: <String, Object?>{
         ...fields,
-        'errorCode': error.runtimeType.toString(),
-        'errorMessage': error.toString().substring(0, error.toString().length.clamp(0, 240)),
+        'errorType': error.runtimeType.toString(),
+        'errorMessage': error.toString().substring(
+          0,
+          error.toString().length.clamp(0, 240),
+        ),
+        if (stackTrace != null) 'stackTrace': stackTrace.toString(),
       },
     );
   }
