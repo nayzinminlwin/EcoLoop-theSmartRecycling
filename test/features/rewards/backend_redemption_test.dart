@@ -61,7 +61,7 @@ void main() {
       expect(receipt.voucher.merchantName, 'EcoLoop Cafe');
       expect(receipt.wallet.balance, 12);
       expect(receipt.redemption.pointsSpent, 25);
-      expect(_FakeRewardsReads.readDocumentCalls, 1);
+      expect(_FakeRewardsReads.readDocumentCalls, 0);
     },
   );
 }

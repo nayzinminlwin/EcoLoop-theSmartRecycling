@@ -52,10 +52,7 @@ class FirestoreRewardsReadTransport
 
   @override
   Future<JsonMap?> readDocument(String collection, String id) async {
-    final snapshot = await firestore
-        .collection(collection)
-        .doc(id)
-        .get(const GetOptions(source: Source.server));
+    final snapshot = await firestore.collection(collection).doc(id).get();
     final data = snapshot.data();
     return data == null ? null : <String, Object?>{'id': snapshot.id, ...data};
   }
@@ -165,11 +162,13 @@ class FirebaseRewardsRepository implements RewardsRepository {
     String? offerVersion,
     int? displayedCost,
   }) async {
-    final displayedOffer = await getReward(rewardId);
+    final displayedOffer = offerVersion != null && displayedCost != null
+        ? null
+        : await getReward(rewardId);
     final envelope = await commandClient.execute('redeemReward', {
       'rewardId': rewardId,
-      'offerVersion': displayedOffer.offerVersion,
-      'displayedCost': displayedOffer.pointsCost,
+      'offerVersion': offerVersion ?? displayedOffer!.offerVersion,
+      'displayedCost': displayedCost ?? displayedOffer!.pointsCost,
     }, requestId: idempotencyKey);
     final data = envelope.data!;
     final redeemedAt = data['redeemedAt'] == null
