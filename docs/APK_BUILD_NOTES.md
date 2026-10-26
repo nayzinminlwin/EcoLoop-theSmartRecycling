@@ -31,6 +31,39 @@ The working APK used:
 
 The universal APK was approximately 74 MB.
 
+## Verified Valid Release Build (2026-10-26)
+
+The release build was confirmed functional and valid on device `qgfy7xz9eaci4tvs`:
+
+- **Commit:** `b6f3205`
+- **Output Artifact:** `build/app/outputs/flutter-apk/app-release.apk`
+- **Size:** 82.8 MB (86,781,990 bytes)
+- **Packaged ABIs:** `arm64-v8a`, `armeabi-v7a`, `x86_64` (Universal)
+- **Build Command:**
+  ```bash
+  flutter build apk --release \
+    --dart-define=ECOLOOP_FIREBASE_MODE=firebase \
+    --dart-define=ECOLOOP_FIREBASE_REGION=us-central1 \
+    --dart-define=ECOLOOP_FIRESTORE_DATABASE=ecoloop-db \
+    --dart-define=ECOLOOP_APP_CHECK_MODE=demo-debug
+  ```
+
+### Key Issues Resolved in This Build:
+
+1. **R8 Minification / `shared_preferences_android` Stripping:**
+   - Previous release builds crashed during QR scan (`scanBinQr`) and reward redemption (`redeemReward`) with:
+     `PlatformException, java.lang.NoSuchMethodError: no non-static method "Lio/flutter/plugins/sharedpreferences/SharedPreferencesApiRegistrar;.getAll(...)"`
+   - Upgraded `shared_preferences_android` from `2.5.0` to `2.5.3` (which includes proper consumer ProGuard rules).
+   - Created `android/app/proguard-rules.pro` with explicit keep rules for Flutter plugins, SharedPreferences, and Firebase.
+   - Configured `android/app/build.gradle.kts` with `isMinifyEnabled = false` and `isShrinkResources = false`.
+2. **Defensive Storage Operations:**
+   - Wrapped `PendingOperationStore` reads/writes so that local caching hiccups never crash resident transactions.
+   - Handled non-fatal push token registration errors gracefully in `FirebaseNotificationService`.
+3. **App Check Guarding:**
+   - In `FirebaseClients.initialize`, guarded App Check activation with `if (config.useAppCheck)` so direct/sideloaded APKs authenticate cleanly with Firebase Auth without requiring Play Store attestation.
+4. **Device Verification:**
+   - Successfully installed and verified on physical Android device (`qgfy7xz9eaci4tvs`). Camera QR scan, bin reservation, session progression, and rewards redemption confirmed functional.
+
 ## Critical startup fix
 
 Do not reintroduce blocking initialization before the real Flutter application
