@@ -59,10 +59,13 @@ The release build was confirmed functional and valid on device `qgfy7xz9eaci4tvs
 2. **Defensive Storage Operations:**
    - Wrapped `PendingOperationStore` reads/writes so that local caching hiccups never crash resident transactions.
    - Handled non-fatal push token registration errors gracefully in `FirebaseNotificationService`.
-3. **App Check Guarding:**
-   - In `FirebaseClients.initialize`, guarded App Check activation with `if (config.useAppCheck)` so direct/sideloaded APKs authenticate cleanly with Firebase Auth without requiring Play Store attestation.
-4. **Device Verification:**
-   - Successfully installed and verified on physical Android device (`qgfy7xz9eaci4tvs`). Camera QR scan, bin reservation, session progression, and rewards redemption confirmed functional.
+3. **App Check Guarding & Demo-Debug Provider:**
+   - In `FirebaseClients.initialize`, guarded App Check activation with `if (config.useAppCheck)` and mapped `config.appCheckMode == 'demo-debug'` to `AndroidDebugProvider()` across all build modes, allowing release builds to bypass Play Integrity attestation without 403 errors.
+4. **Rewards Redemption Stabilization:**
+   - Cloud Functions revision `redeemreward-00012-zan` deployed with proper Firestore `Timestamp` parsing via `instantMillis()`.
+   - Cleared stale offer-change intents on conflict, and removed redundant blocking pre-reads in `FirebaseRewardsRepository`.
+5. **Device Verification:**
+   - Successfully installed and verified on physical Android device (`qgfy7xz9eaci4tvs`). Camera QR scan, bin reservation, session progression, and rewards redemption confirmed 100% functional.
 
 ## Critical startup fix
 
