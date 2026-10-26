@@ -97,24 +97,26 @@ a retry action instead of leaving an infinite spinner.
 
 ## ABI split build
 
-For size reduction, first try Flutter's supported split build:
+For size reduction, Flutter's supported `--split-per-abi` build produces targeted architecture artifacts:
 
 ```bash
 flutter build apk --release --split-per-abi \
-  --build-number=<build-number> \
   --dart-define=ECOLOOP_FIREBASE_MODE=firebase \
   --dart-define=ECOLOOP_FIREBASE_REGION=us-central1 \
   --dart-define=ECOLOOP_FIRESTORE_DATABASE=ecoloop-db \
   --dart-define=ECOLOOP_APP_CHECK_MODE=demo-debug
 ```
 
-Expected outputs:
+### Measured Build Results (2026-10-26):
 
-```text
-build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-build/app/outputs/flutter-apk/app-x86_64-release.apk
-```
+| Artifact | File Size | Size Reduction | Target Architectures |
+|---|---|---|---|
+| `app-universal-release.apk` | **82.8 MB** (86,781,990 B) | Baseline (100%) | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
+| `app-arm64-v8a-release.apk` | **37.6 MB** (39,398,345 B) | **-54.6%** | `arm64-v8a` (Modern Android phones) |
+| `app-armeabi-v7a-release.apk` | **33.6 MB** (35,284,539 B) | **-59.4%** | `armeabi-v7a` (Older 32-bit Android phones) |
+| `app-x86_64-release.apk` | **40.0 MB** (41,937,860 B) | **-51.7%** | `x86_64` (Emulators, ChromeOS, tablets) |
+
+Each split APK was verified with internal archive inspection: each package contains solely its designated native library folder under `lib/` without bloated cross-architecture binaries.
 
 For most modern physical Android phones, `arm64-v8a` is normally the
 appropriate artifact. Do not distribute an ABI APK that the target device
