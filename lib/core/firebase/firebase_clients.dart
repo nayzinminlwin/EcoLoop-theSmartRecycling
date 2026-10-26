@@ -64,7 +64,7 @@ class FirebaseClients {
     // authenticates via Firebase Auth without failing Play Integrity attestation.
     if (config.useAppCheck) {
       if (!kIsWeb) {
-        if (kDebugMode) {
+        if (kDebugMode || config.appCheckMode == 'demo-debug') {
           await appCheck.activate(
             providerAndroid: const AndroidDebugProvider(),
           );

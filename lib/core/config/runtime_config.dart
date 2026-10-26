@@ -18,6 +18,7 @@ class RuntimeConfig {
     required this.emulatorPort,
     required this.useAppCheck,
     required this.webAppCheckSiteKey,
+    this.appCheckMode = 'off',
     this.firestoreDatabaseId = defaultFirestoreDatabaseId,
   });
 
@@ -75,6 +76,10 @@ class RuntimeConfig {
         'ECOLOOP_WEB_APP_CHECK_SITE_KEY',
         defaultValue: '',
       ),
+      appCheckMode: const String.fromEnvironment(
+        'ECOLOOP_APP_CHECK_MODE',
+        defaultValue: 'off',
+      ),
       firestoreDatabaseId: const String.fromEnvironment(
         'ECOLOOP_FIRESTORE_DATABASE',
         defaultValue: defaultFirestoreDatabaseId,
@@ -93,6 +98,7 @@ class RuntimeConfig {
   final int emulatorPort;
   final bool useAppCheck;
   final String webAppCheckSiteKey;
+  final String appCheckMode;
   final String firestoreDatabaseId;
 
   bool get usesFirebase => mode != FirebaseMode.mock;
