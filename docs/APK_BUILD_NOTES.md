@@ -114,7 +114,7 @@ flutter build apk --release --split-per-abi \
 
 | Artifact | File Size | Size Reduction | Target Architectures |
 |---|---|---|---|
-| `app-universal-release.apk` | **82.8 MB** (86,781,990 B) | Baseline (100%) | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
+| `app-release.apk` (Universal) | **82.8 MB** (86,781,990 B) | Baseline (100%) | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | `app-arm64-v8a-release.apk` | **37.6 MB** (39,398,345 B) | **-54.6%** | `arm64-v8a` (Modern Android phones) |
 | `app-armeabi-v7a-release.apk` | **33.6 MB** (35,284,539 B) | **-59.4%** | `armeabi-v7a` (Older 32-bit Android phones) |
 | `app-x86_64-release.apk` | **40.0 MB** (41,937,860 B) | **-51.7%** | `x86_64` (Emulators, ChromeOS, tablets) |
