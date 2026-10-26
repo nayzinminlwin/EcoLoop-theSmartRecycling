@@ -206,12 +206,16 @@ class FirebaseNotificationService {
 
   Future<void> _register(String uid, String? token) async {
     if (token == null || token.isEmpty || uid != _uid) return;
-    await commandClient(uid).execute('registerResidentDevice', {
-      'deviceId': await _deviceId(),
-      'platform': _platform,
-      'token': token,
-    });
-    _token = token;
+    try {
+      await commandClient(uid).execute('registerResidentDevice', {
+        'deviceId': await _deviceId(),
+        'platform': _platform,
+        'token': token,
+      });
+      _token = token;
+    } catch (_) {
+      // Non-fatal background registration
+    }
   }
 
   Future<void> _unregister(String uid) async {

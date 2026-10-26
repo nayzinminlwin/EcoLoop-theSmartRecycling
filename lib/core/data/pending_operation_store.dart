@@ -79,9 +79,9 @@ class PendingOperationStore {
   final PendingOperationPreferences _preferences;
 
   Future<PendingOperation?> read(String uid) async {
-    final encoded = await _preferences.read(_key(uid));
-    if (encoded == null) return null;
     try {
+      final encoded = await _preferences.read(_key(uid));
+      if (encoded == null) return null;
       final decoded = jsonDecode(encoded);
       if (decoded is! Map) {
         throw const FormatException('Pending operation is not an object');
@@ -96,17 +96,29 @@ class PendingOperationStore {
     } on FormatException {
       await clear(uid);
       rethrow;
+    } catch (_) {
+      return null;
     }
   }
 
   Future<void> save(PendingOperation operation) async {
-    await _preferences.write(
-      _key(operation.uid),
-      jsonEncode(operation.toJson()),
-    );
+    try {
+      await _preferences.write(
+        _key(operation.uid),
+        jsonEncode(operation.toJson()),
+      );
+    } catch (_) {
+      // Local caching failure should not block operation execution
+    }
   }
 
-  Future<void> clear(String uid) => _preferences.remove(_key(uid));
+  Future<void> clear(String uid) async {
+    try {
+      await _preferences.remove(_key(uid));
+    } catch (_) {
+      // Ignore storage cleanup failure
+    }
+  }
 
   Future<String> installationId() async {
     final existing = await _preferences.read(_installationKey);
