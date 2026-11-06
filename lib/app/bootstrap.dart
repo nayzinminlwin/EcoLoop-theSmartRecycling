@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eco_loop/app/eco_loop_app.dart';
 import 'package:eco_loop/app/providers/app_providers.dart';
 import 'package:eco_loop/app/presentation/bootstrap_screen.dart';
@@ -12,6 +14,7 @@ import 'package:eco_loop/core/data/exit_intent_coordinator.dart';
 import 'package:eco_loop/core/data/exit_intent_store.dart';
 import 'package:eco_loop/core/data/resident_work_store.dart';
 import 'package:eco_loop/core/firebase/command_client.dart';
+import 'package:eco_loop/core/diagnostics/app_logger.dart';
 import 'package:eco_loop/core/theme/app_theme.dart';
 import 'package:eco_loop/features/account/data/firebase_account_repository.dart';
 import 'package:eco_loop/features/notifications/data/firebase_notification_service.dart';
@@ -27,9 +30,9 @@ Future<void> bootstrap() async {
     store: ExitIntentStore(
       preferences: SharedPreferencesExitIntentPreferences(),
     ),
-    installationId: await pendingOperationStore.installationId(),
+    installationId: 'runtime',
   );
-  await exitIntentCoordinator.restore();
+  unawaited(_restoreExitIntents(exitIntentCoordinator));
   final residentWorkStore = ResidentWorkStore(
     preferences: SharedPreferencesResidentWorkPreferences(),
   );
@@ -57,7 +60,6 @@ Future<void> bootstrap() async {
       ),
       beforeSignOut: notificationService.unregisterCurrentDevice,
     );
-    await notificationService.start();
     runApp(
       ProviderScope(
         overrides: [
@@ -76,6 +78,7 @@ Future<void> bootstrap() async {
         child: const EcoLoopApp(),
       ),
     );
+    unawaited(_startNotifications(notificationService));
     return;
   }
   final store = await const MockSeedLoader().loadStore();
@@ -94,6 +97,26 @@ Future<void> bootstrap() async {
       child: const EcoLoopApp(),
     ),
   );
+}
+
+Future<void> _restoreExitIntents(
+  ExitIntentCoordinator exitIntentCoordinator,
+) async {
+  try {
+    await exitIntentCoordinator.restore();
+  } catch (error) {
+    AppLogger().error('exit_intent_restore_failed', error);
+  }
+}
+
+Future<void> _startNotifications(
+  FirebaseNotificationService notificationService,
+) async {
+  try {
+    await notificationService.start();
+  } catch (error) {
+    AppLogger().error('notification_start_failed', error);
+  }
 }
 
 class _BootstrapApp extends StatelessWidget {

@@ -6,7 +6,7 @@ class RuntimeConfig {
   static const residentFunctionsRegion = 'us-central1';
   static const workerFunctionsRegion = 'us-central1';
   static const visionTasksRegion = 'asia-southeast1';
-  static const firestoreDatabaseId = 'ecoloop-db';
+  static const defaultFirestoreDatabaseId = 'ecoloop-db';
 
   const RuntimeConfig({
     required this.mode,
@@ -18,6 +18,8 @@ class RuntimeConfig {
     required this.emulatorPort,
     required this.useAppCheck,
     required this.webAppCheckSiteKey,
+    this.appCheckMode = 'off',
+    this.firestoreDatabaseId = defaultFirestoreDatabaseId,
   });
 
   factory RuntimeConfig.fromEnvironment() {
@@ -55,20 +57,32 @@ class RuntimeConfig {
         'ECOLOOP_STORAGE_HOST',
         defaultValue: '127.0.0.1',
       ),
-      emulatorPort: int.tryParse(
+      emulatorPort:
+          int.tryParse(
             const String.fromEnvironment(
               'ECOLOOP_EMULATOR_PORT',
               defaultValue: '8080',
             ),
           ) ??
           8080,
-      useAppCheck: const bool.fromEnvironment(
-        'ECOLOOP_USE_APP_CHECK',
-        defaultValue: false,
-      ),
+      useAppCheck:
+          const bool.fromEnvironment('ECOLOOP_USE_APP_CHECK') ||
+          const String.fromEnvironment(
+                'ECOLOOP_APP_CHECK_MODE',
+                defaultValue: 'off',
+              ) !=
+              'off',
       webAppCheckSiteKey: const String.fromEnvironment(
         'ECOLOOP_WEB_APP_CHECK_SITE_KEY',
         defaultValue: '',
+      ),
+      appCheckMode: const String.fromEnvironment(
+        'ECOLOOP_APP_CHECK_MODE',
+        defaultValue: 'off',
+      ),
+      firestoreDatabaseId: const String.fromEnvironment(
+        'ECOLOOP_FIRESTORE_DATABASE',
+        defaultValue: defaultFirestoreDatabaseId,
       ),
     );
     config.validate();
@@ -84,6 +98,8 @@ class RuntimeConfig {
   final int emulatorPort;
   final bool useAppCheck;
   final String webAppCheckSiteKey;
+  final String appCheckMode;
+  final String firestoreDatabaseId;
 
   bool get usesFirebase => mode != FirebaseMode.mock;
   bool get usesEmulator => mode == FirebaseMode.emulator;
@@ -98,13 +114,17 @@ class RuntimeConfig {
             authHost.trim().isEmpty ||
             functionsHost.trim().isEmpty ||
             storageHost.trim().isEmpty)) {
-      throw const FormatException('Emulator hosts must be configured explicitly');
+      throw const FormatException(
+        'Emulator hosts must be configured explicitly',
+      );
     }
     if (emulatorPort < 1 || emulatorPort > 65535) {
       throw FormatException('Invalid emulator port: $emulatorPort');
     }
     if (kReleaseMode && mode != FirebaseMode.firebase) {
-      throw StateError('Release builds must use ECOLOOP_FIREBASE_MODE=firebase');
+      throw StateError(
+        'Release builds must use ECOLOOP_FIREBASE_MODE=firebase',
+      );
     }
   }
 }

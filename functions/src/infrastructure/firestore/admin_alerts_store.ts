@@ -535,14 +535,12 @@ export class FirestoreAdminAlertsStore {
         });
       }
 
-      // Reset bin capacity to 0 upon resolution
+      // Preserve the new collection cycle's occupancy when resolving the old
+      // alert.
       const binRef = this.firestore.doc(`bins/${binId}`);
       const binSnap = await transaction.get(binRef);
       if (binSnap.exists) {
         transaction.update(binRef, {
-          occupiedSpc: 0,
-          fillPercent: 0,
-          capacityPercent: 0,
           updatedAt: FieldValue.serverTimestamp(),
         });
       }
@@ -550,8 +548,6 @@ export class FirestoreAdminAlertsStore {
       transaction.set(
         binViewRef,
         {
-          occupiedSpc: 0,
-          fillPercent: 0,
           collectionState: "normal",
           updatedAt: FieldValue.serverTimestamp(),
         },

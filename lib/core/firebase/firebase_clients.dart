@@ -11,8 +11,6 @@ import '../config/runtime_config.dart';
 import '../../firebase_options.dart';
 
 class FirebaseClients {
-  static const firestoreDatabaseId = RuntimeConfig.firestoreDatabaseId;
-
   const FirebaseClients({
     required this.app,
     required this.auth,
@@ -44,7 +42,7 @@ class FirebaseClients {
     final auth = FirebaseAuth.instanceFor(app: app);
     final firestore = FirebaseFirestore.instanceFor(
       app: app,
-      databaseId: firestoreDatabaseId,
+      databaseId: config.firestoreDatabaseId,
     );
     final functions = FirebaseFunctions.instanceFor(
       app: app,
@@ -61,18 +59,27 @@ class FirebaseClients {
       await storage.useStorageEmulator(config.storageHost, 9199);
     }
 
+    // Only activate App Check when explicitly configured (e.g. for Google Play Store builds).
+    // For direct/sideloaded release APKs, config.useAppCheck defaults to false so the app
+    // authenticates via Firebase Auth without failing Play Integrity attestation.
     if (config.useAppCheck) {
       if (!kIsWeb) {
-        if (kDebugMode) {
-          await appCheck.activate(providerAndroid: const AndroidDebugProvider());
+        if (kDebugMode || config.appCheckMode == 'demo-debug') {
+          await appCheck.activate(
+            providerAndroid: const AndroidDebugProvider(),
+          );
         } else {
-          await appCheck.activate(providerAndroid: const AndroidPlayIntegrityProvider());
+          await appCheck.activate(
+            providerAndroid: const AndroidPlayIntegrityProvider(),
+          );
         }
       } else {
         if (!kDebugMode) {
           final siteKey = config.webAppCheckSiteKey;
           if (siteKey.isNotEmpty) {
-            await appCheck.activate(providerWeb: ReCaptchaEnterpriseProvider(siteKey));
+            await appCheck.activate(
+              providerWeb: ReCaptchaEnterpriseProvider(siteKey),
+            );
           }
         }
       }

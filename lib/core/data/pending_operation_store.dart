@@ -51,20 +51,24 @@ abstract interface class PendingOperationPreferences {
 
 class SharedPreferencesOperationPreferences
     implements PendingOperationPreferences {
-  SharedPreferencesOperationPreferences({SharedPreferencesAsync? preferences})
-    : _preferences = preferences ?? SharedPreferencesAsync();
+  SharedPreferencesOperationPreferences({
+    Future<SharedPreferences>? preferences,
+  }) : _preferences = preferences ?? SharedPreferences.getInstance();
 
-  final SharedPreferencesAsync _preferences;
-
-  @override
-  Future<String?> read(String key) => _preferences.getString(key);
+  final Future<SharedPreferences> _preferences;
 
   @override
-  Future<void> write(String key, String value) =>
-      _preferences.setString(key, value);
+  Future<String?> read(String key) async => (await _preferences).getString(key);
 
   @override
-  Future<void> remove(String key) => _preferences.remove(key);
+  Future<void> write(String key, String value) async {
+    await (await _preferences).setString(key, value);
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    await (await _preferences).remove(key);
+  }
 }
 
 class PendingOperationStore {
@@ -75,9 +79,9 @@ class PendingOperationStore {
   final PendingOperationPreferences _preferences;
 
   Future<PendingOperation?> read(String uid) async {
-    final encoded = await _preferences.read(_key(uid));
-    if (encoded == null) return null;
     try {
+      final encoded = await _preferences.read(_key(uid));
+      if (encoded == null) return null;
       final decoded = jsonDecode(encoded);
       if (decoded is! Map) {
         throw const FormatException('Pending operation is not an object');
@@ -92,17 +96,29 @@ class PendingOperationStore {
     } on FormatException {
       await clear(uid);
       rethrow;
+    } catch (_) {
+      return null;
     }
   }
 
   Future<void> save(PendingOperation operation) async {
-    await _preferences.write(
-      _key(operation.uid),
-      jsonEncode(operation.toJson()),
-    );
+    try {
+      await _preferences.write(
+        _key(operation.uid),
+        jsonEncode(operation.toJson()),
+      );
+    } catch (_) {
+      // Local caching failure should not block operation execution
+    }
   }
 
-  Future<void> clear(String uid) => _preferences.remove(_key(uid));
+  Future<void> clear(String uid) async {
+    try {
+      await _preferences.remove(_key(uid));
+    } catch (_) {
+      // Ignore storage cleanup failure
+    }
+  }
 
   Future<String> installationId() async {
     final existing = await _preferences.read(_installationKey);
